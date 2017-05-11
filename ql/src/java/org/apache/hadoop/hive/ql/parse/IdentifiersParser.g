@@ -796,6 +796,8 @@ nonReserved
     | KW_EXPRESSION
     | KW_DETAIL
     | KW_WAIT
+    | KW_ZONE
+    | KW_TIMESTAMPTZ
 
 ;
 

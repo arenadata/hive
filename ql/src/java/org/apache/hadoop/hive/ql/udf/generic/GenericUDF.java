@@ -405,6 +405,7 @@ public abstract class GenericUDF implements Closeable {
     case TIMESTAMP:
     case DATE:
     case VOID:
+    case TIMESTAMPTZ:
       outOi = PrimitiveObjectInspectorFactory.writableDateObjectInspector;
       break;
     default:
@@ -427,6 +428,7 @@ public abstract class GenericUDF implements Closeable {
     case CHAR:
     case TIMESTAMP:
     case DATE:
+    case TIMESTAMPTZ:
       break;
     default:
       throw new UDFArgumentTypeException(i, getFuncName()
@@ -501,6 +503,7 @@ public abstract class GenericUDF implements Closeable {
       break;
     case TIMESTAMP:
     case DATE:
+    case TIMESTAMPTZ:
       Object writableValue = converters[i].convert(obj);
       date = ((DateWritable) writableValue).get();
       break;
