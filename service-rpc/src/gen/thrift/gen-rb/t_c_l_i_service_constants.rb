@@ -25,6 +25,7 @@ PRIMITIVE_TYPES = Set.new([
     19,
     20,
     21,
+    22,
 ])
 
 COMPLEX_TYPES = Set.new([
@@ -58,6 +59,7 @@ TYPE_NAMES = {
     2 => %q"SMALLINT",
     7 => %q"STRING",
     12 => %q"STRUCT",
+    22 => %q"TIMESTAMP WITH TIME ZONE",
     8 => %q"TIMESTAMP",
     1 => %q"TINYINT",
     13 => %q"UNIONTYPE",

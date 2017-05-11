@@ -30,6 +30,7 @@ PRIMITIVE_TYPES = set((
     19,
     20,
     21,
+    22,
 ))
 COMPLEX_TYPES = set((
     10,
@@ -60,6 +61,7 @@ TYPE_NAMES = {
     2: "SMALLINT",
     7: "STRING",
     12: "STRUCT",
+    22: "TIMESTAMP WITH TIME ZONE",
     8: "TIMESTAMP",
     1: "TINYINT",
     13: "UNIONTYPE",

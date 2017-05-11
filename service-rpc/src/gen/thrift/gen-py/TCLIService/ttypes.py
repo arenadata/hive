@@ -27,6 +27,7 @@ class TProtocolVersion(object):
     HIVE_CLI_SERVICE_PROTOCOL_V8 = 7
     HIVE_CLI_SERVICE_PROTOCOL_V9 = 8
     HIVE_CLI_SERVICE_PROTOCOL_V10 = 9
+    HIVE_CLI_SERVICE_PROTOCOL_V11 = 10
 
     _VALUES_TO_NAMES = {
         0: "HIVE_CLI_SERVICE_PROTOCOL_V1",
@@ -39,6 +40,7 @@ class TProtocolVersion(object):
         7: "HIVE_CLI_SERVICE_PROTOCOL_V8",
         8: "HIVE_CLI_SERVICE_PROTOCOL_V9",
         9: "HIVE_CLI_SERVICE_PROTOCOL_V10",
+        10: "HIVE_CLI_SERVICE_PROTOCOL_V11",
     }
 
     _NAMES_TO_VALUES = {
@@ -52,6 +54,7 @@ class TProtocolVersion(object):
         "HIVE_CLI_SERVICE_PROTOCOL_V8": 7,
         "HIVE_CLI_SERVICE_PROTOCOL_V9": 8,
         "HIVE_CLI_SERVICE_PROTOCOL_V10": 9,
+        "HIVE_CLI_SERVICE_PROTOCOL_V11": 10,
     }
 
 
@@ -78,6 +81,7 @@ class TTypeId(object):
     CHAR_TYPE = 19
     INTERVAL_YEAR_MONTH_TYPE = 20
     INTERVAL_DAY_TIME_TYPE = 21
+    TIMESTAMPTZ_TYPE = 22
 
     _VALUES_TO_NAMES = {
         0: "BOOLEAN_TYPE",
@@ -102,6 +106,7 @@ class TTypeId(object):
         19: "CHAR_TYPE",
         20: "INTERVAL_YEAR_MONTH_TYPE",
         21: "INTERVAL_DAY_TIME_TYPE",
+        22: "TIMESTAMPTZ_TYPE",
     }
 
     _NAMES_TO_VALUES = {
@@ -127,6 +132,7 @@ class TTypeId(object):
         "CHAR_TYPE": 19,
         "INTERVAL_YEAR_MONTH_TYPE": 20,
         "INTERVAL_DAY_TIME_TYPE": 21,
+        "TIMESTAMPTZ_TYPE": 22,
     }
 
 

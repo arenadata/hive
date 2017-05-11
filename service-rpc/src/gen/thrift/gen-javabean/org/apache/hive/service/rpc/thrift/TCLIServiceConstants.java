@@ -28,6 +28,7 @@ public class TCLIServiceConstants {
     PRIMITIVE_TYPES.add(org.apache.hive.service.rpc.thrift.TTypeId.CHAR_TYPE);
     PRIMITIVE_TYPES.add(org.apache.hive.service.rpc.thrift.TTypeId.INTERVAL_YEAR_MONTH_TYPE);
     PRIMITIVE_TYPES.add(org.apache.hive.service.rpc.thrift.TTypeId.INTERVAL_DAY_TIME_TYPE);
+    PRIMITIVE_TYPES.add(org.apache.hive.service.rpc.thrift.TTypeId.TIMESTAMPTZ_TYPE);
   }
 
   public static final java.util.Set<TTypeId> COMPLEX_TYPES = java.util.EnumSet.noneOf(TTypeId.class);
@@ -64,6 +65,7 @@ public class TCLIServiceConstants {
     TYPE_NAMES.put(org.apache.hive.service.rpc.thrift.TTypeId.SMALLINT_TYPE, "SMALLINT");
     TYPE_NAMES.put(org.apache.hive.service.rpc.thrift.TTypeId.STRING_TYPE, "STRING");
     TYPE_NAMES.put(org.apache.hive.service.rpc.thrift.TTypeId.STRUCT_TYPE, "STRUCT");
+    TYPE_NAMES.put(org.apache.hive.service.rpc.thrift.TTypeId.TIMESTAMPTZ_TYPE, "TIMESTAMP WITH TIME ZONE");
     TYPE_NAMES.put(org.apache.hive.service.rpc.thrift.TTypeId.TIMESTAMP_TYPE, "TIMESTAMP");
     TYPE_NAMES.put(org.apache.hive.service.rpc.thrift.TTypeId.TINYINT_TYPE, "TINYINT");
     TYPE_NAMES.put(org.apache.hive.service.rpc.thrift.TTypeId.UNION_TYPE, "UNIONTYPE");
