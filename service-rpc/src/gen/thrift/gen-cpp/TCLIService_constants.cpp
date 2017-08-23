@@ -56,7 +56,7 @@ TCLIServiceConstants::TCLIServiceConstants() {
   TYPE_NAMES.insert(std::make_pair((TTypeId::type)2, "SMALLINT"));
   TYPE_NAMES.insert(std::make_pair((TTypeId::type)7, "STRING"));
   TYPE_NAMES.insert(std::make_pair((TTypeId::type)12, "STRUCT"));
-  TYPE_NAMES.insert(std::make_pair((TTypeId::type)22, "TIMESTAMP WITH TIME ZONE"));
+  TYPE_NAMES.insert(std::make_pair((TTypeId::type)22, "TIMESTAMP WITH LOCAL TIME ZONE"));
   TYPE_NAMES.insert(std::make_pair((TTypeId::type)8, "TIMESTAMP"));
   TYPE_NAMES.insert(std::make_pair((TTypeId::type)1, "TINYINT"));
   TYPE_NAMES.insert(std::make_pair((TTypeId::type)13, "UNIONTYPE"));

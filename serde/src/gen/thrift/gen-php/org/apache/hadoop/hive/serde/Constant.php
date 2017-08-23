@@ -55,7 +55,7 @@ final class Constant extends \Thrift\Type\TConstant
     static protected $BINARY_TYPE_NAME;
     static protected $INTERVAL_YEAR_MONTH_TYPE_NAME;
     static protected $INTERVAL_DAY_TIME_TYPE_NAME;
-    static protected $TIMESTAMPTZ_TYPE_NAME;
+    static protected $TIMESTAMPLOCALTZ_TYPE_NAME;
     static protected $LIST_TYPE_NAME;
     static protected $MAP_TYPE_NAME;
     static protected $STRUCT_TYPE_NAME;
@@ -253,9 +253,9 @@ final class Constant extends \Thrift\Type\TConstant
         return "interval_day_time";
     }
 
-    protected static function init_TIMESTAMPTZ_TYPE_NAME()
+    protected static function init_TIMESTAMPLOCALTZ_TYPE_NAME()
     {
-        return "timestamp with time zone";
+        return "timestamp with local time zone";
     }
 
     protected static function init_LIST_TYPE_NAME()
@@ -319,7 +319,7 @@ final class Constant extends \Thrift\Type\TConstant
             "interval_day_time" => true,
             "decimal" => true,
             "binary" => true,
-            "timestamp with time zone" => true,
+            "timestamp with local time zone" => true,
         );
     }
 

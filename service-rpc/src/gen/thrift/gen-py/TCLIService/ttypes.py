@@ -81,7 +81,7 @@ class TTypeId(object):
     CHAR_TYPE = 19
     INTERVAL_YEAR_MONTH_TYPE = 20
     INTERVAL_DAY_TIME_TYPE = 21
-    TIMESTAMPTZ_TYPE = 22
+    TIMESTAMPLOCALTZ_TYPE = 22
 
     _VALUES_TO_NAMES = {
         0: "BOOLEAN_TYPE",
@@ -106,7 +106,7 @@ class TTypeId(object):
         19: "CHAR_TYPE",
         20: "INTERVAL_YEAR_MONTH_TYPE",
         21: "INTERVAL_DAY_TIME_TYPE",
-        22: "TIMESTAMPTZ_TYPE",
+        22: "TIMESTAMPLOCALTZ_TYPE",
     }
 
     _NAMES_TO_VALUES = {
@@ -132,7 +132,7 @@ class TTypeId(object):
         "CHAR_TYPE": 19,
         "INTERVAL_YEAR_MONTH_TYPE": 20,
         "INTERVAL_DAY_TIME_TYPE": 21,
-        "TIMESTAMPTZ_TYPE": 22,
+        "TIMESTAMPLOCALTZ_TYPE": 22,
     }
 
 

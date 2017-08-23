@@ -87,7 +87,7 @@ final class Constant extends \Thrift\Type\TConstant
                         2 => "SMALLINT",
                         7 => "STRING",
                         12 => "STRUCT",
-                        22 => "TIMESTAMP WITH TIME ZONE",
+                        22 => "TIMESTAMP WITH LOCAL TIME ZONE",
                         8 => "TIMESTAMP",
                         1 => "TINYINT",
                         13 => "UNIONTYPE",
