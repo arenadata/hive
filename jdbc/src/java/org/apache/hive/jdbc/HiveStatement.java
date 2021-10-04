@@ -120,6 +120,9 @@ public class HiveStatement implements java.sql.Statement {
 
   private InPlaceUpdateStream inPlaceUpdateStream = InPlaceUpdateStream.NO_OP;
 
+  protected List<HashMap<Integer,String>> batchParameters;
+  protected List<String> batchStatements;
+
   public HiveStatement(HiveConnection connection, TCLIService.Iface client,
       TSessionHandle sessHandle) {
     this(connection, client, sessHandle, false, DEFAULT_FETCH_SIZE);
@@ -152,7 +155,12 @@ public class HiveStatement implements java.sql.Statement {
 
   @Override
   public void addBatch(String sql) throws SQLException {
-    throw new SQLFeatureNotSupportedException("Method not supported");
+    checkConnection("addBatch");
+    List<String> batchStatements = this.batchStatements;
+    if (batchStatements == null) {
+      this.batchStatements = batchStatements = new ArrayList<>();
+    }
+    batchStatements.add(sql);
   }
 
   /*
@@ -190,7 +198,12 @@ public class HiveStatement implements java.sql.Statement {
 
   @Override
   public void clearBatch() throws SQLException {
-    throw new SQLFeatureNotSupportedException("Method not supported");
+    if (batchStatements != null) {
+      batchStatements.clear();
+    }
+    if (batchParameters != null) {
+      batchParameters.clear();
+    }
   }
 
   /*
@@ -246,6 +259,9 @@ public class HiveStatement implements java.sql.Statement {
       resultSet.close();
       resultSet = null;
     }
+    clearBatch();
+    batchParameters = null;
+    batchStatements = null;
     isClosed = true;
   }
 
@@ -423,7 +439,7 @@ public class HiveStatement implements java.sql.Statement {
     return statusResp;
   }
 
-  private void checkConnection(String action) throws SQLException {
+  protected void checkConnection(String action) throws SQLException {
     if (isClosed) {
       throw new SQLException("Can't " + action + " after statement has been closed");
     }
@@ -483,7 +499,15 @@ public class HiveStatement implements java.sql.Statement {
 
   @Override
   public int[] executeBatch() throws SQLException {
-    throw new SQLFeatureNotSupportedException("Method not supported");
+    checkConnection("executeBatch");
+    if (batchStatements == null || batchStatements.isEmpty()) {
+      return new int[0];
+    }
+    int[] results = new int[batchStatements.size()];
+    for (int i = 0; i < batchStatements.size(); i++) {
+      results[i] = executeUpdate(batchStatements.get(i));
+    }
+    return results;
   }
 
   /*

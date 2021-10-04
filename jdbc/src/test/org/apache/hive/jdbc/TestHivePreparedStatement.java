@@ -152,4 +152,67 @@ public class TestHivePreparedStatement {
 		verify(client).ExecuteStatement(argument.capture());
 		assertEquals("select 1 from x where a='\\044e' || 'v'", argument.getValue().getStatement());
 	}
+
+	@SuppressWarnings("resource")
+	@Test
+	public void batchQueryIntoMultiInsertQuery() throws Exception {
+		String sql = "insert into test_table values (?)";
+		HivePreparedStatement ps = new HivePreparedStatement(connection, client, sessHandle, sql);
+		ps.setString(1, "1");
+		ps.addBatch();
+		ps.setString(1, "2");
+		ps.addBatch();
+		ps.setString(1,"3");
+		ps.addBatch();
+		ps.executeBatch();
+
+		ArgumentCaptor<TExecuteStatementReq> argument = ArgumentCaptor.forClass(TExecuteStatementReq.class);
+		verify(client).ExecuteStatement(argument.capture());
+		assertEquals("insert into test_table values ('1'),('2'),('3')", argument.getValue().getStatement());
+	}
+
+	@SuppressWarnings("resource")
+	@Test
+	public void batchQueryIntoMultiInsertQueryWithSemicolon() throws Exception {
+		String sql = "insert into test_table values (?);";
+		HivePreparedStatement ps = new HivePreparedStatement(connection, client, sessHandle, sql);
+		ps.setString(1, "1");
+		ps.addBatch();
+		ps.setString(1, "2");
+		ps.addBatch();
+		ps.setString(1,"3");
+		ps.addBatch();
+		ps.executeBatch();
+
+		ArgumentCaptor<TExecuteStatementReq> argument = ArgumentCaptor.forClass(TExecuteStatementReq.class);
+		verify(client).ExecuteStatement(argument.capture());
+		assertEquals("insert into test_table values ('1'),('2'),('3')", argument.getValue().getStatement());
+	}
+
+	@SuppressWarnings("resource")
+	@Test(expected=SQLException.class)
+	public void excessArgumentBatchInsert() throws Exception {
+		String sql = "insert into test_table values (?)";
+		HivePreparedStatement ps = new HivePreparedStatement(connection, client, sessHandle, sql);
+		ps.setString(1, "1");
+		ps.addBatch();
+		ps.setString(1,"1");
+		ps.setString(2,"2");
+		ps.addBatch();
+		ps.executeBatch();
+	}
+
+	@SuppressWarnings("resource")
+	@Test(expected = SQLException.class)
+	public void batchSelectQuery() throws Exception {
+		String sql = "select * from test_table where a = ?";
+		HivePreparedStatement ps = new HivePreparedStatement(connection, client, sessHandle, sql);
+		ps.setString(1, "1");
+		ps.addBatch();
+		ps.setString(1, "2");
+		ps.addBatch();
+		ps.setString(1,"3");
+		ps.addBatch();
+		ps.executeBatch();
+	}
 }

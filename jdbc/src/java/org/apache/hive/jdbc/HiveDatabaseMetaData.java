@@ -948,7 +948,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsBatchUpdates() throws SQLException {
-    return false;
+    return true;
   }
 
   public boolean supportsCatalogsInDataManipulation() throws SQLException {
