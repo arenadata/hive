@@ -190,6 +190,19 @@ public class TestHivePreparedStatement {
 	}
 
 	@SuppressWarnings("resource")
+	@Test
+	public void batchQueryOneRow() throws Exception {
+		String sql = "insert into test_table values (?)";
+		HivePreparedStatement ps = new HivePreparedStatement(connection, client, sessHandle, sql);
+		ps.setString(1, "1");
+		ps.addBatch();
+		ps.executeBatch();
+		ArgumentCaptor<TExecuteStatementReq> argument = ArgumentCaptor.forClass(TExecuteStatementReq.class);
+		verify(client).ExecuteStatement(argument.capture());
+		assertEquals("insert into test_table values ('1')", argument.getValue().getStatement());
+	}
+
+	@SuppressWarnings("resource")
 	@Test(expected=SQLException.class)
 	public void excessArgumentBatchInsert() throws Exception {
 		String sql = "insert into test_table values (?)";

@@ -808,33 +808,39 @@ public class HivePreparedStatement extends HiveStatement implements PreparedStat
 
   private String updateSqlBatch(final String sql, List<HashMap<Integer, String>> batchParameters) throws SQLException {
     StringBuilder builder = new StringBuilder(updateSql(sql, batchParameters.get(0)));
-    int parametersSize = batchParameters.get(0).size();
-    if(builder.charAt(builder.length() - 1) == ';') {
-      builder.deleteCharAt(builder.length() - 1);
+
+    if(batchParameters.size() == 1) {
+      return builder.toString();
     }
-    builder.append(",");
-    for (int i = 1; i < batchParameters.size(); i++) {
-      Map<Integer, String> currentParameter = batchParameters.get(i);
-
-      if (currentParameter.size() > parametersSize) {
-        throw new SQLException("Parameter #" + (currentParameter.size() + 1 - parametersSize) + " is excess for batch #" + (i+1));
+    else {
+      int parametersSize = batchParameters.get(0).size();
+      if (builder.charAt(builder.length() - 1) == ';') {
+        builder.deleteCharAt(builder.length() - 1);
       }
+      builder.append(",");
+      for (int i = 1; i < batchParameters.size(); i++) {
+        Map<Integer, String> currentParameter = batchParameters.get(i);
 
-      if(currentParameter.size() < parametersSize) {
-        throw new SQLException("Parameter #" + (currentParameter.size() + 1) + " is unset for batch #" + (i+1));
-      }
-      builder.append("(");
-      for (int j = 0; j < currentParameter.size(); j++) {
-        builder.append(currentParameter.get(j + 1));
-        if (j != currentParameter.size() - 1)
+        if (currentParameter.size() > parametersSize) {
+          throw new SQLException("Parameter #" + (currentParameter.size() + 1 - parametersSize) + " is excess for batch #" + (i + 1));
+        }
+
+        if (currentParameter.size() < parametersSize) {
+          throw new SQLException("Parameter #" + (currentParameter.size() + 1) + " is unset for batch #" + (i + 1));
+        }
+        builder.append("(");
+        for (int j = 0; j < currentParameter.size(); j++) {
+          builder.append(currentParameter.get(j + 1));
+          if (j != currentParameter.size() - 1)
+            builder.append(",");
+        }
+        builder.append(")");
+        if (i != batchParameters.size() - 1) {
           builder.append(",");
+        }
       }
-      builder.append(")");
-      if (i != batchParameters.size() - 1) {
-        builder.append(",");
-      }
+      return builder.toString();
     }
-    return builder.toString();
   }
 
   @Override
