@@ -45,14 +45,4 @@ public class HiveStatementTest {
     HiveStatement stmt = new HiveStatement(null, null, null);
     stmt.setFetchSize(-1);
   }
-
-  @Test
-  public void testaddBatch() throws SQLException {
-    HiveStatement stmt = new HiveStatement(null, null, null);
-    try {
-      stmt.addBatch(null);
-    } catch (SQLException e) {
-      assertEquals("java.sql.SQLFeatureNotSupportedException: Method not supported", e.toString());
-    }
-  }
 }
