@@ -23,6 +23,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
+  <groupId>io.arenadata.hive</groupId>
   <artifactId>hive-jdbc</artifactId>
   <packaging>jar</packaging>
   <name>Hive JDBC</name>
