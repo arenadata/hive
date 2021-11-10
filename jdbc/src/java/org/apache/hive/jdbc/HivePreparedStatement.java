@@ -40,11 +40,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 import org.apache.hive.service.rpc.thrift.TCLIService;
 import org.apache.hive.service.rpc.thrift.TSessionHandle;
@@ -74,8 +70,19 @@ public class HivePreparedStatement extends HiveStatement implements PreparedStat
    */
 
   public void addBatch() throws SQLException {
-    // TODO Auto-generated method stub
-    throw new SQLFeatureNotSupportedException("Method not supported");
+    if(!sql.toUpperCase().startsWith("INSERT INTO"))
+      throw new SQLFeatureNotSupportedException("Only INSERT INTO {} value ({}) queries supported for prepared statement batch");
+    checkConnection("addBatch");
+    List<HashMap<Integer, String>> batchParameters = this.batchParameters;
+    if(batchParameters == null) {
+      this.batchParameters =  batchParameters = new ArrayList<>();
+    }
+    batchParameters.add(new HashMap<>(parameters)); // shallow copy
+  }
+
+  @Override
+  public void addBatch(String sql) throws SQLException {
+    throw new SQLFeatureNotSupportedException("Can''t use query methods that take a query string on a PreparedStatement.");
   }
 
   /*
@@ -797,5 +804,53 @@ public class HivePreparedStatement extends HiveStatement implements PreparedStat
       throws SQLException {
     // TODO Auto-generated method stub
     throw new SQLFeatureNotSupportedException("Method not supported");
+  }
+
+  private String updateSqlBatch(final String sql, List<HashMap<Integer, String>> batchParameters) throws SQLException {
+    StringBuilder builder = new StringBuilder(updateSql(sql, batchParameters.get(0)));
+
+    if(batchParameters.size() == 1) {
+      return builder.toString();
+    }
+    else {
+      int parametersSize = batchParameters.get(0).size();
+      if (builder.charAt(builder.length() - 1) == ';') {
+        builder.deleteCharAt(builder.length() - 1);
+      }
+      builder.append(",");
+      for (int i = 1; i < batchParameters.size(); i++) {
+        Map<Integer, String> currentParameter = batchParameters.get(i);
+
+        if (currentParameter.size() > parametersSize) {
+          throw new SQLException("Parameter #" + (currentParameter.size() + 1 - parametersSize) + " is excess for batch #" + (i + 1));
+        }
+
+        if (currentParameter.size() < parametersSize) {
+          throw new SQLException("Parameter #" + (currentParameter.size() + 1) + " is unset for batch #" + (i + 1));
+        }
+        builder.append("(");
+        for (int j = 0; j < currentParameter.size(); j++) {
+          builder.append(currentParameter.get(j + 1));
+          if (j != currentParameter.size() - 1)
+            builder.append(",");
+        }
+        builder.append(")");
+        if (i != batchParameters.size() - 1) {
+          builder.append(",");
+        }
+      }
+      return builder.toString();
+    }
+  }
+
+  @Override
+  public int[] executeBatch() throws SQLException {
+    checkConnection("executeBatch");
+    if(batchParameters == null || batchParameters.isEmpty()) {
+      return new int[0];
+    }
+    String batchSql = updateSqlBatch(sql,batchParameters);
+    executeUpdate(batchSql);
+    return new int[] {getUpdateCount()};
   }
 }
