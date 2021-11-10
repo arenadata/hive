@@ -23,9 +23,11 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
+  <groupId>io.arenadata.hive</groupId>
   <artifactId>hive-jdbc</artifactId>
   <packaging>jar</packaging>
   <name>Hive JDBC</name>
+  <version>2.3.8-arenadata-pxf-1</version>
 
   <properties>
     <hive.path.to.root>..</hive.path.to.root>
@@ -38,12 +40,12 @@
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-common</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-service</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.hive</groupId>
@@ -54,22 +56,22 @@
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-serde</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-metastore</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-shims</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-service-rpc</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
     </dependency>
     <!-- inter-project -->
     <dependency>
