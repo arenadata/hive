@@ -486,6 +486,7 @@ public class HiveStatement implements java.sql.Statement {
     for (int i = 0; i < batchStatements.size(); i++) {
       results[i] = executeUpdate(batchStatements.get(i));
     }
+    clearBatch();
     return results;
   }
 
