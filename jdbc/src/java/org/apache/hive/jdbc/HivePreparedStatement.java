@@ -851,6 +851,7 @@ public class HivePreparedStatement extends HiveStatement implements PreparedStat
     }
     String batchSql = updateSqlBatch(sql,batchParameters);
     executeUpdate(batchSql);
+    clearBatch();
     return new int[] {getUpdateCount()};
   }
 }
