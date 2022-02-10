@@ -292,7 +292,7 @@
             <artifactId>maven-assembly-plugin</artifactId>
             <version>3.3.0</version>
             <configuration>
-              <finalName>hive-jdbc-${project.version}-arenadata-assembly</finalName>
+              <finalName>hive-jdbc-${project.version}-assembly</finalName>
               <descriptorRefs>
                 <descriptorRef>jar-with-dependencies</descriptorRef>
               </descriptorRefs>
