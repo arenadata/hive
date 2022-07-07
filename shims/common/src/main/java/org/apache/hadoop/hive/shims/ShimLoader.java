@@ -36,8 +36,6 @@ public abstract class ShimLoader {
   private static volatile HadoopShims hadoopShims;
   private static JettyShims jettyShims;
   private static AppenderSkeleton eventCounter;
-  private static SchedulerShim schedulerShim;
-
   /**
    * The names of the classes for shimming Hadoop for each major version.
    */
