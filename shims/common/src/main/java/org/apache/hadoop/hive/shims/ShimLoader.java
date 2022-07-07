@@ -101,12 +101,6 @@ public abstract class ShimLoader {
     return eventCounter;
   }
 
-  public static synchronized SchedulerShim getSchedulerShims() {
-    if (schedulerShim == null) {
-      schedulerShim = createShim(SCHEDULER_SHIM_CLASSE, SchedulerShim.class);
-    }
-    return schedulerShim;
-  }
 
   private static <T> T loadShims(Map<String, String> classMap, Class<T> xface) {
     String vers = getMajorVersion();
