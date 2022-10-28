@@ -1071,7 +1071,7 @@ public final class PlanUtils {
   }
 
   public static String getExprListString(Collection<?  extends ExprNodeDesc> exprs,
-          boolean userLevelExplain, boolean sortExpressions) {
+                                         boolean userLevelExplain, boolean sortExpressions) {
     StringBuilder sb = new StringBuilder();
     boolean first = true;
     for (ExprNodeDesc expr: exprs) {

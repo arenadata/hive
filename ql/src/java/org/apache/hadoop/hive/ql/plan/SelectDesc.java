@@ -48,15 +48,15 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public SelectDesc(
-    final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
-    final List<java.lang.String> outputColumnNames) {
+          final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
+          final List<java.lang.String> outputColumnNames) {
     this(colList, outputColumnNames, false);
   }
 
   public SelectDesc(
-    final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
-    List<java.lang.String> outputColumnNames,
-    final boolean selectStar) {
+          final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
+          List<java.lang.String> outputColumnNames,
+          final boolean selectStar) {
     this.colList = colList;
     this.selectStar = selectStar;
     this.outputColumnNames = outputColumnNames;
@@ -67,7 +67,7 @@ public class SelectDesc extends AbstractOperatorDesc {
     SelectDesc ret = new SelectDesc();
     ret.setColList(getColList() == null ? null : new ArrayList<ExprNodeDesc>(getColList()));
     ret.setOutputColumnNames(getOutputColumnNames() == null ? null :
-      new ArrayList<String>(getOutputColumnNames()));
+            new ArrayList<String>(getOutputColumnNames()));
     ret.setSelectStar(selectStar);
     ret.setSelStarNoCompute(selStarNoCompute);
     return ret;
@@ -84,7 +84,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public void setColList(
-    final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList) {
+          final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList) {
     this.colList = colList;
   }
 
@@ -100,7 +100,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public void setOutputColumnNames(
-    List<java.lang.String> outputColumnNames) {
+          List<java.lang.String> outputColumnNames) {
     this.outputColumnNames = outputColumnNames;
   }
 
@@ -151,7 +151,7 @@ public class SelectDesc extends AbstractOperatorDesc {
     private final VectorSelectDesc vectorSelectDesc;
 
     public SelectOperatorExplainVectorization(SelectDesc selectDesc,
-        VectorSelectDesc vectorSelectDesc) {
+                                              VectorSelectDesc vectorSelectDesc) {
       // Native vectorization supported.
       super(vectorSelectDesc, true);
       this.selectDesc = selectDesc;
@@ -183,8 +183,8 @@ public class SelectDesc extends AbstractOperatorDesc {
     if (getClass().getName().equals(other.getClass().getName())) {
       SelectDesc otherDesc = (SelectDesc) other;
       return Objects.equals(getColListString(), otherDesc.getColListString()) &&
-          Objects.equals(getOutputColumnNames(), otherDesc.getOutputColumnNames()) &&
-          Objects.equals(explainNoCompute(), otherDesc.explainNoCompute());
+              Objects.equals(getOutputColumnNames(), otherDesc.getOutputColumnNames()) &&
+              Objects.equals(explainNoCompute(), otherDesc.explainNoCompute());
     }
     return false;
   }

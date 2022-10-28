@@ -280,11 +280,15 @@ public class PartitionPruner extends Transform {
       return null;
     }
     if (expr instanceof ExprNodeConstantDesc) {
-      if (((ExprNodeConstantDesc)expr).getValue() == null) return null;
+      if (((ExprNodeConstantDesc)expr).getValue() == null) {
+        return null;
+      }
       if (!isBooleanExpr(expr)) {
         throw new IllegalStateException("Unexpected non-boolean ExprNodeConstantDesc: "
-            + expr.getExprString());
+                + expr.getExprString(true));
       }
+      return expr;
+    } else if (expr instanceof ExprNodeColumnDesc) {
       return expr;
     } else if (expr instanceof ExprNodeGenericFuncDesc) {
       GenericUDF udf = ((ExprNodeGenericFuncDesc)expr).getGenericUDF();
@@ -359,7 +363,7 @@ public class PartitionPruner extends Transform {
 
       return expr;
     } else {
-      throw new IllegalStateException("Unexpected type of ExprNodeDesc: " + expr.getExprString());
+      throw new IllegalStateException("Unexpected type of ExprNodeDesc: " + expr.getExprString(true));
     }
   }
 
@@ -401,7 +405,7 @@ public class PartitionPruner extends Transform {
             Preconditions.checkArgument(expr.getTypeInfo().accept(TypeInfoFactory.booleanTypeInfo));
             other = new ExprNodeConstantDesc(expr.getTypeInfo(), true);
           } else {
-            // Functions like NVL, COALESCE, CASE can change a 
+            // Functions like NVL, COALESCE, CASE can change a
             // NULL introduced by a nonpart column removal into a non-null
             // and cause overaggressive prunning, missing data (incorrect result)
             return new ExprNodeConstantDesc(expr.getTypeInfo(), null);
