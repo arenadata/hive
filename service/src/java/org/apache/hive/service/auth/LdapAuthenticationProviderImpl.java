@@ -26,17 +26,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hive.service.ServiceUtils;
-import org.apache.hive.service.auth.ldap.ChainFilterFactory;
-import org.apache.hive.service.auth.ldap.CustomQueryFilterFactory;
-import org.apache.hive.service.auth.ldap.LdapSearchFactory;
-import org.apache.hive.service.auth.ldap.Filter;
-import org.apache.hive.service.auth.ldap.DirSearch;
-import org.apache.hive.service.auth.ldap.DirSearchFactory;
-import org.apache.hive.service.auth.ldap.FilterFactory;
-import org.apache.hive.service.auth.ldap.GroupFilterFactory;
-import org.apache.hive.service.auth.ldap.LdapUtils;
-import org.apache.hive.service.auth.ldap.UserFilterFactory;
-import org.apache.hive.service.auth.ldap.UserSearchFilterFactory;
+import org.apache.hive.service.auth.ldap.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +35,10 @@ public class LdapAuthenticationProviderImpl implements PasswdAuthenticationProvi
   private static final Logger LOG = LoggerFactory.getLogger(LdapAuthenticationProviderImpl.class);
 
   private static final List<FilterFactory> FILTER_FACTORIES = ImmutableList.<FilterFactory>of(
-      new CustomQueryFilterFactory(),
-      new ChainFilterFactory(new UserSearchFilterFactory(), new UserFilterFactory(),
-          new GroupFilterFactory())
+          new CustomQueryFilterFactory(),
+          new ChainFilterFactory(new UserSearchFilterFactory(), new UserFilterFactory(),
+                  new GroupFilterFactory()),
+          new PatternFilterFactory()
   );
 
   private final HiveConf conf;
