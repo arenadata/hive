@@ -676,4 +676,70 @@ public class TestLdapAtnProviderWithMiniDS extends AbstractLdapTestUnit {
     testCase.assertAuthenticateFails(ENGINEER_1.credentialsWithId());
     testCase.assertAuthenticateFails(MANAGER_1.credentialsWithDn());
   }
+  @Test
+  public void testPatternFilterPositiveUserPattern() {
+    testCase = defaultBuilder()
+            .userDNPatterns("uid=%s,ou=People,dc=example,dc=com")
+            .enablePatternFilter()
+            .build();
+
+    testCase.assertAuthenticatePasses(USER1.credentialsWithId());
+    testCase.assertAuthenticatePasses(USER2.credentialsWithId());
+  }
+
+  @Test
+  public void testPatternFilterPositiveGroupPattern() {
+    testCase = defaultBuilder()
+            .userDNPatterns("uid=%s,ou=DummyPeople,dc=example,dc=com")
+            .groupDNPatterns("uid=%s,ou=Groups,dc=example,dc=com")
+            .enablePatternFilter()
+            .build();
+
+    testCase.assertAuthenticatePasses(USER1.credentialsWithDn());
+    testCase.assertAuthenticatePasses(USER2.credentialsWithDn());
+  }
+
+  @Test
+  public void testDirectUserMembershipPatternFilterPositive() {
+    testCase = defaultBuilder()
+            .userDNPatterns(
+                    "sAMAccountName=%s,ou=Engineering,dc=ad,dc=example,dc=com",
+                    "sAMAccountName=%s,ou=Management,dc=ad,dc=example,dc=com")
+            .groupDNPatterns(
+                    "sAMAccountName=%s,ou=Teams,dc=ad,dc=example,dc=com",
+                    "sAMAccountName=%s,ou=Resources,dc=ad,dc=example,dc=com")
+            .guidKey("sAMAccountName")
+            .userMembershipKey("memberOf")
+            .enablePatternFilter()
+            .build();
+
+    testCase.assertAuthenticatePasses(ENGINEER_1.credentialsWithId());
+    testCase.assertAuthenticatePasses(ENGINEER_2.credentialsWithId());
+    testCase.assertAuthenticatePasses(MANAGER_1.credentialsWithId());
+    testCase.assertAuthenticatePasses(MANAGER_2.credentialsWithId());
+  }
+
+  @Test
+  public void testPatternFilterNegativeEmptyDn() {
+    testCase = defaultBuilder()
+            .baseDN("ou=People,dc=example,dc=com")
+            .userDNPatterns("")
+            .groupDNPatterns("")
+            .enablePatternFilter()
+            .build();
+
+    testCase.assertAuthenticateFails(ADMIN_1.credentialsWithId());
+  }
+
+  @Test
+  public void testPatternFilterNegativeWrongData() {
+    testCase = defaultBuilder()
+            .userDNPatterns("uid=%s,ou=DummyPeople,dc=example,dc=com")
+            .groupDNPatterns("uid=%s,ou=DummyGroups,dc=example,dc=com")
+            .enablePatternFilter()
+            .build();
+
+    testCase.assertAuthenticateFails(USER1.credentialsWithDn());
+    testCase.assertAuthenticateFails(USER2.credentialsWithDn());
+  }
 }

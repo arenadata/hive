@@ -37,8 +37,7 @@ public class LdapAuthenticationProviderImpl implements PasswdAuthenticationProvi
   private static final List<FilterFactory> FILTER_FACTORIES = ImmutableList.<FilterFactory>of(
           new CustomQueryFilterFactory(),
           new ChainFilterFactory(new UserSearchFilterFactory(), new UserFilterFactory(),
-                  new GroupFilterFactory()),
-          new PatternFilterFactory()
+                  new GroupFilterFactory()), new PatternFilterFactory()
   );
 
   private final HiveConf conf;
