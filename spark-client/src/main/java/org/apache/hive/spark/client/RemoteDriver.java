@@ -25,8 +25,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -122,12 +120,12 @@ public class RemoteDriver {
 
     executor = Executors.newCachedThreadPool();
 
-    LOG.info("Connecting to: {}:{}", serverAddress, serverPort);
+    LOG.info("Connecting to HiveServer2 address: {}:{}", serverAddress, serverPort);
 
     Map<String, String> mapConf = Maps.newHashMap();
     for (Tuple2<String, String> e : conf.getAll()) {
       mapConf.put(e._1(), e._2());
-      LOG.debug("Remote Driver configured with: " + e._1() + "=" + e._2());
+      LOG.debug("Remote Spark Driver configured with: " + e._1() + "=" + e._2());
     }
 
     String clientId = mapConf.get(SparkClientFactory.CONF_CLIENT_ID);
@@ -139,7 +137,7 @@ public class RemoteDriver {
     this.egroup = new NioEventLoopGroup(
         threadCount,
         new ThreadFactoryBuilder()
-            .setNameFormat("Driver-RPC-Handler-%d")
+            .setNameFormat("Spark-Driver-RPC-Handler-%d")
             .setDaemon(true)
             .build());
     this.protocol = new DriverProtocol();
@@ -152,8 +150,13 @@ public class RemoteDriver {
     this.clientRpc.addListener(new Rpc.Listener() {
       @Override
       public void rpcClosed(Rpc rpc) {
-        LOG.warn("Shutting down driver because RPC channel was closed.");
+        LOG.warn("Shutting down driver because Remote Spark Driver to HiveServer2 connection was closed.");
         shutdown(null);
+      }
+
+      @Override
+      public String toString() {
+        return "Shutting Down Remote Spark Driver to HiveServer2 Connection";
       }
     });
 
@@ -210,7 +213,7 @@ public class RemoteDriver {
       if (jc != null) {
         job.submit();
       } else {
-        LOG.info("SparkContext not yet up, queueing job request.");
+        LOG.info("SparkContext not yet up; adding Hive on Spark job request to the queue.");
         jobQueue.add(job);
       }
     }
@@ -219,9 +222,9 @@ public class RemoteDriver {
   private synchronized void shutdown(Throwable error) {
     if (running) {
       if (error == null) {
-        LOG.info("Shutting down remote driver.");
+        LOG.info("Shutting down Spark Remote Driver.");
       } else {
-        LOG.error("Shutting down remote driver due to error: " + error, error);
+        LOG.error("Shutting down Spark Remote Driver due to error: " + error, error);
       }
       running = false;
       for (JobWrapper<?> job : activeJobs.values()) {
@@ -252,7 +255,7 @@ public class RemoteDriver {
   private String getArg(String[] args, int keyIdx) {
     int valIdx = keyIdx + 1;
     if (args.length <= valIdx) {
-      throw new IllegalArgumentException("Invalid command line: "
+      throw new IllegalArgumentException("Invalid command line arguments: "
         + Joiner.on(" ").join(args));
     }
     return args[valIdx];
@@ -293,7 +296,7 @@ public class RemoteDriver {
     private void handle(ChannelHandlerContext ctx, CancelJob msg) {
       JobWrapper<?> job = activeJobs.get(msg.id);
       if (job == null || !cancelJob(job)) {
-        LOG.info("Requested to cancel an already finished job.");
+        LOG.info("Requested to cancel an already finished client job.");
       }
     }
 
@@ -303,7 +306,7 @@ public class RemoteDriver {
     }
 
     private void handle(ChannelHandlerContext ctx, JobRequest msg) {
-      LOG.info("Received job request {}", msg.id);
+      LOG.debug("Received client job request {}", msg.id);
       JobWrapper<?> wrapper = new JobWrapper<Serializable>(msg);
       activeJobs.put(msg.id, wrapper);
       submit(wrapper);
@@ -317,7 +320,7 @@ public class RemoteDriver {
           while (jc == null) {
             jcLock.wait();
             if (!running) {
-              throw new IllegalStateException("Remote context is shutting down.");
+              throw new IllegalStateException("Remote Spark context is shutting down.");
             }
           }
         }
@@ -338,6 +341,10 @@ public class RemoteDriver {
       }
     }
 
+    @Override
+    public String name() {
+      return "Remote Spark Driver to HiveServer2 Connection";
+    }
   }
 
   private class JobWrapper<T extends Serializable> implements Callable<Void> {
@@ -403,12 +410,13 @@ public class RemoteDriver {
         if (sparkCounters != null) {
           counters = sparkCounters.snapshot();
         }
+
         protocol.jobFinished(req.id, result, null, counters);
       } catch (Throwable t) {
         // Catch throwables in a best-effort to report job status back to the client. It's
         // re-thrown so that the executor can destroy the affected thread (or the JVM can
         // die or whatever would happen if the throwable bubbled up).
-        LOG.error("Failed to run job " + req.id, t);
+        LOG.error("Failed to run client job " + req.id, t);
         protocol.jobFinished(req.id, null, t,
             sparkCounters != null ? sparkCounters.snapshot() : null);
         throw new ExecutionException(t);

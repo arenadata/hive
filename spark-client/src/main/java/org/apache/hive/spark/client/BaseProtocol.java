@@ -39,10 +39,20 @@ abstract class BaseProtocol extends RpcDispatcher {
       this(null);
     }
 
+    @Override
+    public String toString() {
+      return "CancelJob{" +
+              "id='" + id + '\'' +
+              '}';
+    }
   }
 
   protected static class EndSession implements Serializable {
 
+    @Override
+    public String toString() {
+      return "EndSession";
+    }
   }
 
   protected static class Error implements Serializable {
@@ -57,6 +67,12 @@ abstract class BaseProtocol extends RpcDispatcher {
       this(null);
     }
 
+    @Override
+    public String toString() {
+      return "Error{" +
+              "cause='" + cause + '\'' +
+              '}';
+    }
   }
 
   protected static class JobMetrics implements Serializable {
@@ -79,6 +95,16 @@ abstract class BaseProtocol extends RpcDispatcher {
       this(null, -1, -1, -1, null);
     }
 
+    @Override
+    public String toString() {
+      return "JobMetrics{" +
+              "jobId='" + jobId + '\'' +
+              ", sparkJobId=" + sparkJobId +
+              ", stageId=" + stageId +
+              ", taskId=" + taskId +
+              ", metrics=" + metrics +
+              '}';
+    }
   }
 
   protected static class JobRequest<T extends Serializable> implements Serializable {
@@ -95,6 +121,13 @@ abstract class BaseProtocol extends RpcDispatcher {
       this(null, null);
     }
 
+    @Override
+    public String toString() {
+      return "JobRequest{" +
+              "id='" + id + '\'' +
+              ", job=" + job +
+              '}';
+    }
   }
 
   protected static class JobResult<T extends Serializable> implements Serializable {
@@ -129,6 +162,12 @@ abstract class BaseProtocol extends RpcDispatcher {
       this(null);
     }
 
+    @Override
+    public String toString() {
+      return "JobStarted{" +
+              "id='" + id + '\'' +
+              '}';
+    }
   }
 
   /**
@@ -145,6 +184,14 @@ abstract class BaseProtocol extends RpcDispatcher {
 
     JobSubmitted() {
       this(null, -1);
+    }
+
+    @Override
+    public String toString() {
+      return "JobSubmitted{" +
+              "clientJobId='" + clientJobId + '\'' +
+              ", sparkJobId=" + sparkJobId +
+              '}';
     }
   }
 
