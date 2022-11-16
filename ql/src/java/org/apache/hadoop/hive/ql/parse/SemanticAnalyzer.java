@@ -67,6 +67,7 @@ import org.apache.hadoop.hive.metastore.api.SQLPrimaryKey;
 import org.apache.hadoop.hive.metastore.api.SQLUniqueConstraint;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
+import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.hadoop.hive.ql.CompilationOpContext;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
@@ -7376,6 +7377,23 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // replace the partition's dfs with the table's dfs.
       dest_path = new Path(tabPath.toUri().getScheme(), tabPath.toUri()
           .getAuthority(), partPath.toUri().getPath());
+      // Previous behavior (HIVE-1707) used to replace the partition's dfs with the table's dfs.
+      // The changes in HIVE-19891 appears to no longer support that behavior.
+      dest_path = partPath;
+
+      if (MetaStoreUtils.isArchived(dest_part.getTPartition())) {
+        try {
+          String conflictingArchive = ArchiveUtils.conflictingArchiveNameOrNull(
+                  db, dest_tab, dest_part.getSpec());
+          String message = String.format("Insert conflict with existing archive: %s",
+                  conflictingArchive);
+          throw new SemanticException(message);
+        } catch (SemanticException err) {
+          throw err;
+        } catch (HiveException err) {
+          throw new SemanticException(err);
+        }
+      }
 
       isMmTable = AcidUtils.isInsertOnlyTable(dest_tab.getParameters());
       queryTmpdir = isMmTable ? dest_path : ctx.getTempDirForFinalJobPath(dest_path);
