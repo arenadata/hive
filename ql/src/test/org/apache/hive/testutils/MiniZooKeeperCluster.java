@@ -49,7 +49,7 @@ import com.google.common.annotations.VisibleForTesting;
  *
  *XXX: copied from the only used class by qtestutil from hbase-tests
  */
-class MiniZooKeeperCluster {
+public class MiniZooKeeperCluster {
   private static final Log LOG = LogFactory.getLog(MiniZooKeeperCluster.class);
 
   private static final int TICK_TIME = 2000;
@@ -381,7 +381,7 @@ class MiniZooKeeperCluster {
   }
 
   // XXX: From o.a.zk.t.ClientBase
-  private static boolean waitForServerDown(int port, long timeout) throws IOException {
+  public static boolean waitForServerDown(int port, long timeout) throws IOException {
     long start = System.currentTimeMillis();
     while (true) {
       try {
@@ -410,7 +410,7 @@ class MiniZooKeeperCluster {
   }
 
   // XXX: From o.a.zk.t.ClientBase
-  private static boolean waitForServerUp(int port, long timeout) throws IOException {
+  public static boolean waitForServerUp(int port, long timeout) throws IOException {
     long start = System.currentTimeMillis();
     while (true) {
       try {
