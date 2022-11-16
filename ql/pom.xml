@@ -980,6 +980,16 @@
                   <include>org.apache.calcite.avatica:avatica</include>
                 </includes>
               </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>org.apache.calcite.avatica:avatica</artifact>
+                  <excludes>
+                    <exclude>org/slf4j/**</exclude>
+                    <exclude>META-INF/maven/org.slf4j/**</exclude>
+                    <exclude>META-INF/licenses/slf4j*/**</exclude>
+                  </excludes>
+                </filter>
+              </filters>
               <relocations>
                 <relocation>
                   <pattern>com.esotericsoftware</pattern>
@@ -990,18 +1000,12 @@
                   <shadedPattern>org.apache.hive.org.objenesis</shadedPattern>
                 </relocation>
                 <relocation>
-                  <pattern>com.google.guava</pattern>
-                  <shadedPattern>org.apache.hive.com.google.guava</shadedPattern>
                   <pattern>com.google.common</pattern>
                   <shadedPattern>org.apache.hive.com.google.common</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>com.google.thirdparty.publicsuffix</pattern>
                   <shadedPattern>org.apache.hive.com.google.thirdparty.publicsuffix</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.calcite</pattern>
-                  <shadedPattern>org.apache.hive.org.apache.calcite</shadedPattern>
                 </relocation>
               </relocations>
             </configuration>
