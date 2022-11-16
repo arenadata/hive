@@ -994,6 +994,10 @@
                   <pattern>com.google.thirdparty.publicsuffix</pattern>
                   <shadedPattern>org.apache.hive.com.google.thirdparty.publicsuffix</shadedPattern>
                 </relocation>
+                <relocation>
+                  <pattern>org.apache.calcite</pattern>
+                  <shadedPattern>org.apache.hive.org.apache.calcite</shadedPattern>
+                </relocation>
               </relocations>
             </configuration>
           </execution>
