@@ -20,6 +20,7 @@ package org.apache.hive.service.cli.thrift;
 
 import java.util.Arrays;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContextEvent;
