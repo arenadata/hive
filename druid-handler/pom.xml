@@ -132,6 +132,10 @@
           <groupId>io.druid</groupId>
           <artifactId>druid-aws-common</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
       </exclusions>
       <optional>true</optional>
     </dependency>
