@@ -758,6 +758,22 @@
       <version>${powermock.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.jayway.jsonpath</groupId>
+      <artifactId>json-path</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.janino</groupId>
+      <artifactId>commons-compiler</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.janino</groupId>
+      <artifactId>janino</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+    </dependency>
   </dependencies>
 
   <profiles>
@@ -959,6 +975,8 @@
                   <include>org.apache.orc:orc-shims</include>
                   <include>org.apache.orc:orc-tools</include>
                   <include>joda-time:joda-time</include>
+                  <include>org.apache.calcite:*</include>
+                  <include>org.apache.calcite.avatica:avatica</include>
                 </includes>
               </artifactSet>
               <relocations>
@@ -969,6 +987,16 @@
                 <relocation>
                   <pattern>org.objenesis</pattern>
                   <shadedPattern>org.apache.hive.org.objenesis</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>com.google.guava</pattern>
+                  <shadedPattern>org.apache.hive.com.google.guava</shadedPattern>
+                  <pattern>com.google.common</pattern>
+                  <shadedPattern>org.apache.hive.com.google.common</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>com.google.thirdparty.publicsuffix</pattern>
+                  <shadedPattern>org.apache.hive.com.google.thirdparty.publicsuffix</shadedPattern>
                 </relocation>
               </relocations>
             </configuration>
