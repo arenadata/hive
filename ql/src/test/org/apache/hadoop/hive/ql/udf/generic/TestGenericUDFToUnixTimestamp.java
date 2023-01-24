@@ -125,7 +125,6 @@ public class TestGenericUDFToUnixTimestamp extends TestCase {
     runAndVerify(udf1, new Text("1800-11-08 01:53:11 UTC"), null);
   }
 
-  @Test
   public void testStringArg2() throws HiveException {
 
     GenericUDFToUnixTimeStamp udf2 = new GenericUDFToUnixTimeStamp();
