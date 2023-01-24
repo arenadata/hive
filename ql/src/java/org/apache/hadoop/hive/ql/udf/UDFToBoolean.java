@@ -194,7 +194,9 @@ public class UDFToBoolean extends UDF {
     } else {
       TimestampTZ timestamp = UDFUtils.getTimestampTZFromTimestamp(i.getTimestamp());
       booleanWritable.set((timestamp.getEpochSecond() != 0) || (timestamp.getNanos() != 0));
+      return booleanWritable;
     }
+
   }
 
   public BooleanWritable evaluate(HiveDecimalWritable i) {
