@@ -191,6 +191,7 @@ public class UDFToShort extends UDF {
       return null;
     } else {
       final long longValue = UDFUtils.getTimestampTZFromTimestamp(i.getTimestamp()).getEpochSecond();
+      final short shortValue = (short) longValue;
       if (shortValue != longValue) {
         return null;
       }
