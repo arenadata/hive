@@ -16,6 +16,7 @@ package org.apache.hadoop.hive.ql.io.parquet.write;
 import org.apache.hadoop.hive.common.type.Date;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.Timestamp;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe;
 import org.apache.hadoop.hive.ql.io.parquet.timestamp.NanoTimeUtils;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
@@ -53,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  *
@@ -64,6 +66,7 @@ public class DataWritableWriter {
   private static final Logger LOG = LoggerFactory.getLogger(DataWritableWriter.class);
   protected final RecordConsumer recordConsumer;
   private final GroupType schema;
+  private final boolean isLegacyZoneConversion;
 
   /* This writer will be created when writing the first row in order to get
   information about how to inspect the record data.  */
@@ -72,6 +75,8 @@ public class DataWritableWriter {
   public DataWritableWriter(final RecordConsumer recordConsumer, final GroupType schema) {
     this.recordConsumer = recordConsumer;
     this.schema = schema;
+    this.isLegacyZoneConversion =
+            HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_WRITE_LEGACY_CONVERSION_ENABLED.defaultBoolVal;
   }
 
   /**
@@ -498,7 +503,8 @@ public class DataWritableWriter {
     @Override
     public void write(Object value) {
       Timestamp ts = inspector.getPrimitiveJavaObject(value);
-      recordConsumer.addBinary(NanoTimeUtils.getNanoTime(ts, false).toBinary());
+      recordConsumer.addBinary(
+              NanoTimeUtils.getNanoTime(ts, TimeZone.getDefault().toZoneId(), isLegacyZoneConversion).toBinary());
     }
   }
 

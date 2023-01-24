@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.serde2.io.ParquetHiveRecord;
 
 import org.apache.parquet.hadoop.api.WriteSupport;
@@ -34,6 +35,8 @@ public class DataWritableWriteSupport extends WriteSupport<ParquetHiveRecord> {
 
   public static final String PARQUET_HIVE_SCHEMA = "parquet.hive.schema";
   public static final String WRITER_TIMEZONE = "writer.time.zone";
+  public static final String WRITER_ZONE_CONVERSION_LEGACY = "writer.zone.conversion.legacy";
+
 
   private DataWritableWriter writer;
   private MessageType schema;
@@ -51,6 +54,8 @@ public class DataWritableWriteSupport extends WriteSupport<ParquetHiveRecord> {
     schema = getSchema(configuration);
     Map<String, String> metaData = new HashMap<>();
     metaData.put(WRITER_TIMEZONE, TimeZone.getDefault().toZoneId().toString());
+    metaData.put(WRITER_ZONE_CONVERSION_LEGACY, String
+            .valueOf(HiveConf.getBoolVar(configuration, HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_WRITE_LEGACY_CONVERSION_ENABLED)));
     return new WriteContext(schema, metaData);
   }
 
