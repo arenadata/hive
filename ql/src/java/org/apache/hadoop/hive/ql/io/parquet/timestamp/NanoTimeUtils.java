@@ -90,8 +90,8 @@ public class NanoTimeUtils {
      return new NanoTime(days, nanosOfDay);
    }
 
-  public static Timestamp getTimestamp(NanoTime nt, boolean skipConversion) {
-    return getTimestamp(nt, skipConversion, null);
+  public static Timestamp getTimestamp(NanoTime nt, ZoneId targetZone) {
+    return getTimestamp(nt, targetZone, false);
   }
 
   /**

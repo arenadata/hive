@@ -697,8 +697,11 @@ public enum ETypeConverter {
           // time zone in order to emulate time zone agnostic behavior.
           boolean skipConversion = Boolean.parseBoolean(
               metadata.get(HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_SKIP_CONVERSION.varname));
-          Timestamp ts = NanoTimeUtils.getTimestamp(nt, skipConversion,
-              DataWritableReadSupport.getWriterTimeZoneId(metadata));
+          String legacyConversion = metadata.get(DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY);
+          assert legacyConversion != null;
+          ZoneId targetZone = skipConversion ? ZoneOffset.UTC : MoreObjects
+              .firstNonNull(DataWritableReadSupport.getWriterTimeZoneId(metadata), TimeZone.getDefault().toZoneId());
+          Timestamp ts = NanoTimeUtils.getTimestamp(nt, targetZone, Boolean.parseBoolean(legacyConversion));
           return new TimestampWritableV2(ts);
         }
       };

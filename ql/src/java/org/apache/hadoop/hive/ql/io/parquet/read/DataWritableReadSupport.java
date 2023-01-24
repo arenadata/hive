@@ -487,6 +487,32 @@ public class DataWritableReadSupport extends ReadSupport<ArrayWritable> {
           + "file footer's writer time zone.");
     }
 
+    if (!metadata.containsKey(DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY)) {
+      final String legacyConversion;
+      if(keyValueMetaData.containsKey(DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY)) {
+        // If there is meta about the legacy conversion then the file should be read in the same way it was written.
+        legacyConversion = keyValueMetaData.get(DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY);
+      } else if(keyValueMetaData.containsKey(DataWritableWriteSupport.WRITER_TIMEZONE)) {
+        // If there is no meta about the legacy conversion but there is meta about the timezone then we can infer the
+        // file was written with the new rules.
+        legacyConversion = "false";
+      } else {
+        // If there is no meta at all then it is not possible to determine which rules were used to write the file.
+        // Choose between old/new rules using the respective configuration property.
+        legacyConversion = String.valueOf(
+                HiveConf.getBoolVar(configuration, HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_LEGACY_CONVERSION_ENABLED));
+      }
+      metadata.put(DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY, legacyConversion);
+    } else {
+      String ctxMeta = metadata.get(DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY);
+      String fileMeta = keyValueMetaData.get(DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY);
+      if (!Objects.equals(ctxMeta, fileMeta)) {
+        throw new IllegalStateException(
+                "Different values for " + DataWritableWriteSupport.WRITER_ZONE_CONVERSION_LEGACY + " metadata: context ["
+                        + ctxMeta + "], file [" + fileMeta + "].");
+      }
+    }
+
     return new DataWritableRecordConverter(readContext.getRequestedSchema(), metadata, hiveTypeInfo);
   }
 }
