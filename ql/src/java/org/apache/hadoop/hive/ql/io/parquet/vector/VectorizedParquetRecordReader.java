@@ -504,7 +504,7 @@ public class VectorizedParquetRecordReader extends ParquetRecordReaderBase
       }
       if (fileSchema.getColumns().contains(descriptors.get(0))) {
         return new VectorizedPrimitiveColumnReader(descriptors.get(0),
-            pages.getPageReader(descriptors.get(0)), skipTimestampConversion, writerTimezone, legacyConversionEnabled, type,
+            pages.getPageReader(descriptors.get(0)), skipTimestampConversion,legacyConversionEnabled, writerTimezone, type,
             typeInfo);
       } else {
         // Support for schema evolution
