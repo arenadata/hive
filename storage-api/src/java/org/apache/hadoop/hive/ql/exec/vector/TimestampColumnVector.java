@@ -58,6 +58,8 @@ public class TimestampColumnVector extends ColumnVector {
 
   private boolean isUTC;
 
+  private boolean usingProlepticCalendar = false;
+
   /**
    * Use this constructor by default. All column vectors
    * should normally be the default size.
@@ -545,5 +547,13 @@ public class TimestampColumnVector extends ColumnVector {
     super.shallowCopyTo(other);
     other.time = time;
     other.nanos = nanos;
+  }
+}
+
+  /**
+   * Detect whether this data is using the proleptic calendar.
+   */
+  public boolean usingProlepticCalendar() {
+    return usingProlepticCalendar;
   }
 }
