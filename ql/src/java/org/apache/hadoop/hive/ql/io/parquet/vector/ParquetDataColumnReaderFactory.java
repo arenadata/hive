@@ -22,6 +22,7 @@ import org.apache.hadoop.hive.common.type.HiveBaseChar;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.StringExpr;
+import org.apache.hadoop.hive.ql.io.parquet.convert.ETypeConverter;
 import org.apache.hadoop.hive.ql.io.parquet.timestamp.NanoTime;
 import org.apache.hadoop.hive.ql.io.parquet.timestamp.NanoTimeUtils;
 import org.apache.hadoop.hive.ql.io.parquet.timestamp.ParquetTimestampUtils;
@@ -39,7 +40,12 @@ import org.apache.parquet.bytes.ByteBufferInputStream;
 import org.apache.parquet.column.Dictionary;
 import org.apache.parquet.column.values.ValuesReader;
 import org.apache.parquet.io.api.Binary;
-import org.apache.parquet.schema.OriginalType;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.DecimalLogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.LogicalTypeAnnotationVisitor;
+import org.apache.parquet.schema.LogicalTypeAnnotation.StringLogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit;
+import org.apache.parquet.schema.LogicalTypeAnnotation.TimestampLogicalTypeAnnotation;
 import org.apache.parquet.schema.PrimitiveType;
 
 import java.io.IOException;
@@ -48,6 +54,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * Parquet file has self-describing schema which may differ from the user required schema (e.g.
@@ -1927,7 +1934,7 @@ public final class ParquetDataColumnReaderFactory {
                                                                 TypeInfo hiveType,
                                                                 ValuesReader valuesReader,
                                                                 Dictionary dictionary) {
-    OriginalType originalType = parquetType.getOriginalType();
+    LogicalTypeAnnotation logicalType = parquetType.getLogicalTypeAnnotation();
 
     // max length for varchar and char cases
     int length = getVarcharLength(hiveType);
@@ -1943,7 +1950,7 @@ public final class ParquetDataColumnReaderFactory {
     int hiveScale = (typeName.equalsIgnoreCase(serdeConstants.DECIMAL_TYPE_NAME)) ?
         ((DecimalTypeInfo) realHiveType).getScale() : 0;
 
-    if (originalType == null) {
+    if (logicalType == null) {
       return isDict ? new DefaultParquetDataColumnReader(dictionary, length) : new
           DefaultParquetDataColumnReader(valuesReader, length);
     }

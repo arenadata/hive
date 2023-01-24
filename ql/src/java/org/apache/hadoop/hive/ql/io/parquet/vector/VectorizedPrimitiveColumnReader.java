@@ -13,7 +13,6 @@
  */
 package org.apache.hadoop.hive.ql.io.parquet.vector;
 
-import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.ColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.DecimalColumnVector;
@@ -27,7 +26,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.page.PageReader;
-import org.apache.parquet.schema.DecimalMetadata;
+import org.apache.parquet.schema.LogicalTypeAnnotation.DecimalLogicalTypeAnnotation;
 import org.apache.parquet.schema.Type;
 
 import java.io.IOException;
@@ -332,8 +331,12 @@ public class VectorizedPrimitiveColumnReader extends BaseVectorizedColumnReader 
       DecimalColumnVector c,
       int rowId) throws IOException {
 
-    DecimalMetadata decimalMetadata = type.asPrimitiveType().getDecimalMetadata();
-    fillDecimalPrecisionScale(decimalMetadata, c);
+    DecimalLogicalTypeAnnotation decimalLogicalType = null;
+    if (type.getLogicalTypeAnnotation() instanceof DecimalLogicalTypeAnnotation) {
+      decimalLogicalType = (DecimalLogicalTypeAnnotation) type.getLogicalTypeAnnotation();
+    }
+    byte[] decimalData = null;
+    fillDecimalPrecisionScale(decimalLogicalType, c);
 
     int left = total;
     while (left > 0) {
@@ -450,7 +453,7 @@ public class VectorizedPrimitiveColumnReader extends BaseVectorizedColumnReader 
           break;
         default:
           throw new IOException(
-              "Unsupported parquet logical type: " + type.getOriginalType() + " for timestamp");
+              "Unsupported parquet logical type: " + type.getLogicalTypeAnnotation().toString() + " for timestamp");
         }
         c.isNull[rowId] = false;
         c.isRepeating =
@@ -575,11 +578,14 @@ public class VectorizedPrimitiveColumnReader extends BaseVectorizedColumnReader 
       }
       break;
     case DECIMAL:
-      DecimalMetadata decimalMetadata = type.asPrimitiveType().getDecimalMetadata();
+      DecimalLogicalTypeAnnotation decimalLogicalType = null;
+      if (type.getLogicalTypeAnnotation() instanceof DecimalLogicalTypeAnnotation) {
+        decimalLogicalType = (DecimalLogicalTypeAnnotation) type.getLogicalTypeAnnotation();
+      }
       DecimalColumnVector decimalColumnVector = ((DecimalColumnVector) column);
       byte[] decimalData = null;
 
-      fillDecimalPrecisionScale(decimalMetadata, decimalColumnVector);
+      fillDecimalPrecisionScale(decimalLogicalType, decimalColumnVector);
 
       for (int i = rowId; i < rowId + num; ++i) {
         decimalData = dictionary.readDecimal((int) dictionaryIds.vector[i]);
@@ -602,18 +608,24 @@ public class VectorizedPrimitiveColumnReader extends BaseVectorizedColumnReader 
     }
   }
 
-  private void fillDecimalPrecisionScale(DecimalMetadata decimalMetadata,
+  /**
+   * The decimal precision and scale is filled into decimalColumnVector.  If the data in
+   * Parquet is in decimal, the precision and scale will come in from decimalLogicalType.  If parquet
+   * is not in decimal, then this call is made because HMS shows the type as decimal.  So, the
+   * precision and scale are picked from hiveType.
+   *
+   * @param decimalLogicalType
+   * @param decimalColumnVector
+   */
+  private void fillDecimalPrecisionScale(DecimalLogicalTypeAnnotation decimalLogicalType,
       DecimalColumnVector decimalColumnVector) {
-    if (decimalMetadata != null) {
-      decimalColumnVector.precision =
-          (short) type.asPrimitiveType().getDecimalMetadata().getPrecision();
-      decimalColumnVector.scale = (short) type.asPrimitiveType().getDecimalMetadata().getScale();
-    } else if (type.asPrimitiveType().getPrimitiveTypeName() == INT32) {
-      decimalColumnVector.precision = 10;
-      decimalColumnVector.scale = 0;
-    } else if (type.asPrimitiveType().getPrimitiveTypeName() == INT64) {
-      decimalColumnVector.precision = 19;
-      decimalColumnVector.scale = 0;
+    if (decimalLogicalType != null) {
+      decimalColumnVector.precision = (short) decimalLogicalType.getPrecision();
+      decimalColumnVector.scale = (short) decimalLogicalType.getScale();
+    } else if (TypeInfoUtils.getBaseName(hiveType.getTypeName())
+        .equalsIgnoreCase(serdeConstants.DECIMAL_TYPE_NAME)) {
+      decimalColumnVector.precision = (short) ((DecimalTypeInfo) hiveType).getPrecision();
+      decimalColumnVector.scale = (short) ((DecimalTypeInfo) hiveType).getScale();
     } else {
       throw new UnsupportedOperationException(
           "The underlying Parquet type cannot be converted to Hive Decimal type: " + type);

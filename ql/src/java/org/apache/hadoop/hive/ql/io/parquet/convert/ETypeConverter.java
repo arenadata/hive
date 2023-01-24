@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.Timestamp;
@@ -47,7 +48,12 @@ import org.apache.parquet.Preconditions;
 import org.apache.parquet.column.Dictionary;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.PrimitiveConverter;
-import org.apache.parquet.schema.OriginalType;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.DecimalLogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.LogicalTypeAnnotationVisitor;
+import org.apache.parquet.schema.LogicalTypeAnnotation.StringLogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.TimestampLogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.DateLogicalTypeAnnotation;
 import org.apache.parquet.schema.PrimitiveType;
 
 /**
@@ -343,10 +349,7 @@ public enum ETypeConverter {
       return new PrimitiveConverter() {
         @Override
         public void addInt(final int value) {
-          if (value >= ((OriginalType.UINT_8 == type.getOriginalType() ||
-                          OriginalType.UINT_16 == type.getOriginalType() ||
-                          OriginalType.UINT_32 == type.getOriginalType() ||
-                          OriginalType.UINT_64 == type.getOriginalType()) ? 0 :
+          if (value >= ((ETypeConverter.isUnsignedInteger(type)) ? 0 :
               Integer.MIN_VALUE)) {
             parent.set(index, new IntWritable(value));
           } else {
@@ -450,10 +453,7 @@ public enum ETypeConverter {
       return new PrimitiveConverter() {
         @Override
         public void addLong(final long value) {
-          if (value >= ((OriginalType.UINT_8 == type.getOriginalType() ||
-                         OriginalType.UINT_16 == type.getOriginalType() ||
-                         OriginalType.UINT_32 == type.getOriginalType() ||
-                         OriginalType.UINT_64 == type.getOriginalType()) ? 0 : Long.MIN_VALUE)) {
+          if (value >= ((ETypeConverter.isUnsignedInteger(type)) ? 0 : Long.MIN_VALUE)) {
             parent.set(index, new LongWritable(value));
           } else {
             parent.set(index, null);
@@ -657,7 +657,9 @@ public enum ETypeConverter {
       return new BinaryConverter<HiveDecimalWritable>(type, parent, index) {
         @Override
         protected HiveDecimalWritable convert(Binary binary) {
-          return new HiveDecimalWritable(binary.getBytes(), type.getDecimalMetadata().getScale());
+          DecimalLogicalTypeAnnotation logicalType =
+              (DecimalLogicalTypeAnnotation) type.getLogicalTypeAnnotation();
+          return new HiveDecimalWritable(binary.getBytes(), logicalType.getScale());
         }
       };
     }
@@ -758,16 +760,37 @@ public enum ETypeConverter {
   abstract PrimitiveConverter getConverter(final PrimitiveType type, final int index, final ConverterParent parent, TypeInfo hiveTypeInfo);
 
   public static PrimitiveConverter getNewConverter(final PrimitiveType type, final int index,
-                                                   final ConverterParent parent, TypeInfo hiveTypeInfo) {
+                                                   final ConverterParent parent, final TypeInfo hiveTypeInfo) {
     if (type.isPrimitive() && (type.asPrimitiveType().getPrimitiveTypeName().equals(PrimitiveType.PrimitiveTypeName.INT96))) {
       return EINT96_TIMESTAMP_CONVERTER.getConverter(type, index, parent, hiveTypeInfo);
     }
-    if (OriginalType.DECIMAL == type.getOriginalType()) {
-      return EDECIMAL_CONVERTER.getConverter(type, index, parent, hiveTypeInfo);
-    } else if (OriginalType.UTF8 == type.getOriginalType()) {
-      return ESTRING_CONVERTER.getConverter(type, index, parent, hiveTypeInfo);
-    } else if (OriginalType.DATE == type.getOriginalType()) {
-      return EDATE_CONVERTER.getConverter(type, index, parent, hiveTypeInfo);
+    if (type.getLogicalTypeAnnotation() != null) {
+      Optional<PrimitiveConverter> converter = type.getLogicalTypeAnnotation()
+          .accept(new LogicalTypeAnnotationVisitor<PrimitiveConverter>() {
+            @Override
+            public Optional<PrimitiveConverter> visit(DecimalLogicalTypeAnnotation logicalTypeAnnotation) {
+              return Optional.of(EDECIMAL_CONVERTER.getConverter(type, index, parent, hiveTypeInfo));
+            }
+
+            @Override
+            public Optional<PrimitiveConverter> visit(StringLogicalTypeAnnotation logicalTypeAnnotation) {
+              return Optional.of(ESTRING_CONVERTER.getConverter(type, index, parent, hiveTypeInfo));
+            }
+
+            @Override
+            public Optional<PrimitiveConverter> visit(DateLogicalTypeAnnotation logicalTypeAnnotation) {
+              return Optional.of(EDATE_CONVERTER.getConverter(type, index, parent, hiveTypeInfo));
+            }
+
+            @Override
+            public Optional<PrimitiveConverter> visit(TimestampLogicalTypeAnnotation logicalTypeAnnotation) {
+              return Optional.of(EINT64_TIMESTAMP_CONVERTER.getConverter(type, index, parent, hiveTypeInfo));
+            }
+          });
+
+      if (converter.isPresent()) {
+        return converter.get();
+      }
     }
 
     Class<?> javaType = type.getPrimitiveTypeName().javaType;
@@ -780,11 +803,24 @@ public enum ETypeConverter {
     throw new IllegalArgumentException("Converter not found ... for type : " + type);
   }
 
+  public static boolean isUnsignedInteger(final PrimitiveType type) {
+    if (type.getLogicalTypeAnnotation() != null) {
+      Optional<Boolean> isUnsignedInteger = type.getLogicalTypeAnnotation()
+          .accept(new LogicalTypeAnnotationVisitor<Boolean>() {
+            @Override public Optional<Boolean> visit(
+                LogicalTypeAnnotation.IntLogicalTypeAnnotation intLogicalType) {
+              return Optional.of(!intLogicalType.isSigned());
+            }
+          });
+      if (isUnsignedInteger.isPresent()) {
+        return isUnsignedInteger.get();
+      }
+    }
+    return false;
+  }
+
   private static long getMinValue(final PrimitiveType type, String typeName, long defaultValue) {
-    if (OriginalType.UINT_8 == type.getOriginalType() ||
-        OriginalType.UINT_16 == type.getOriginalType() ||
-        OriginalType.UINT_32 == type.getOriginalType() ||
-        OriginalType.UINT_64 == type.getOriginalType()) {
+    if(isUnsignedInteger(type)) {
       return 0;
     } else {
       switch (typeName) {
