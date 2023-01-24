@@ -26,6 +26,7 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
+import java.time.ZoneId;
 
 import static java.time.temporal.ChronoField.DAY_OF_MONTH;
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
@@ -173,6 +174,10 @@ public class Timestamp implements Comparable<Timestamp> {
   public static Timestamp ofEpochSecond(long epochSecond, int nanos) {
     return new Timestamp(
         LocalDateTime.ofEpochSecond(epochSecond, nanos, ZoneOffset.UTC));
+  }
+
+  public static Timestamp ofEpochSecond(long epochSecond, long nanos, ZoneId zone) {
+    return new Timestamp(LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond, nanos), zone));
   }
 
   public static Timestamp ofEpochMilli(long epochMilli) {

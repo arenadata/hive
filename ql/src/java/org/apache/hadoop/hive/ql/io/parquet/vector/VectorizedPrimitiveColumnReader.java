@@ -394,6 +394,9 @@ public class VectorizedPrimitiveColumnReader extends BaseVectorizedColumnReader 
         case INT96:
           c.set(rowId, dataColumn.readTimestamp().toSqlTimestamp());
           break;
+        case INT64:
+          c.set(rowId, dataColumn.readTimestamp().toSqlTimestamp());
+          break;
         default:
           throw new IOException(
               "Unsupported parquet logical type: " + type.getOriginalType() + " for timestamp");

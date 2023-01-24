@@ -24,6 +24,7 @@ import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.StringExpr;
 import org.apache.hadoop.hive.ql.io.parquet.timestamp.NanoTime;
 import org.apache.hadoop.hive.ql.io.parquet.timestamp.NanoTimeUtils;
+import org.apache.hadoop.hive.ql.io.parquet.timestamp.ParquetTimestampUtils;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.typeinfo.CharTypeInfo;
@@ -261,6 +262,18 @@ public final class ParquetDataColumnReaderFactory {
 
     public TypesFromInt32PageReader(Dictionary dict, int length) {
       super(dict, length);
+    }
+
+    public TypesFromInt64PageReader(ValuesReader realReader, int length, boolean isAdjustedToUTC, TimeUnit timeUnit) {
+      super(realReader, length);
+      this.isAdjustedToUTC = isAdjustedToUTC;
+      this.timeUnit = timeUnit;
+    }
+
+    public TypesFromInt64PageReader(Dictionary dict, int length, boolean isAdjustedToUTC, TimeUnit timeUnit) {
+      super(dict, length);
+      this.isAdjustedToUTC = isAdjustedToUTC;
+      this.timeUnit = timeUnit;
     }
 
     @Override
@@ -1555,56 +1568,29 @@ public final class ParquetDataColumnReaderFactory {
         }
       }
     case INT64:
-      if (OriginalType.UINT_8 == parquetType.getOriginalType() ||
-          OriginalType.UINT_16 == parquetType.getOriginalType() ||
-          OriginalType.UINT_32 == parquetType.getOriginalType() ||
-          OriginalType.UINT_64 == parquetType.getOriginalType()) {
-        switch (typeName) {
-        case serdeConstants.INT_TYPE_NAME:
-          return isDictionary ? new Types64UInt2IntPageReader(dictionary,
-              length) : new Types64UInt2IntPageReader(valuesReader, length);
-        case serdeConstants.SMALLINT_TYPE_NAME:
-          return isDictionary ? new Types64UInt2SmallintPageReader(dictionary,
-              length) : new Types64UInt2SmallintPageReader(valuesReader, length);
-        case serdeConstants.TINYINT_TYPE_NAME:
-          return isDictionary ? new Types64UInt2TinyintPageReader(dictionary,
-              length) : new Types64UInt2TinyintPageReader(valuesReader, length);
-        case serdeConstants.DECIMAL_TYPE_NAME:
-          return isDictionary ?
-              new Types64UInt2DecimalPageReader(dictionary, length,
-                  ((DecimalTypeInfo) hiveType).getPrecision(),
-                  ((DecimalTypeInfo) hiveType).getScale()) :
-              new Types64UInt2DecimalPageReader(valuesReader, length,
-                  ((DecimalTypeInfo) hiveType).getPrecision(),
-                  ((DecimalTypeInfo) hiveType).getScale());
-        default:
-          return isDictionary ? new TypesFromUInt64PageReader(dictionary,
-              length) : new TypesFromUInt64PageReader(valuesReader, length);
-        }
-      } else {
-        switch (typeName) {
-        case serdeConstants.INT_TYPE_NAME:
-          return isDictionary ? new Types64Int2IntPageReader(dictionary,
-              length) : new Types64Int2IntPageReader(valuesReader, length);
-        case serdeConstants.SMALLINT_TYPE_NAME:
-          return isDictionary ? new Types64Int2SmallintPageReader(dictionary,
-              length) : new Types64Int2SmallintPageReader(valuesReader, length);
-        case serdeConstants.TINYINT_TYPE_NAME:
-          return isDictionary ? new Types64Int2TinyintPageReader(dictionary,
-              length) : new Types64Int2TinyintPageReader(valuesReader, length);
-        case serdeConstants.DECIMAL_TYPE_NAME:
-          return isDictionary ?
-              new Types64Int2DecimalPageReader(dictionary, length,
-                  ((DecimalTypeInfo) hiveType).getPrecision(),
-                  ((DecimalTypeInfo) hiveType).getScale()) :
-              new Types64Int2DecimalPageReader(valuesReader, length,
-                  ((DecimalTypeInfo) hiveType).getPrecision(),
-                  ((DecimalTypeInfo) hiveType).getScale());
-        default:
-          return isDictionary ? new TypesFromInt64PageReader(dictionary,
-              length) : new TypesFromInt64PageReader(valuesReader, length);
-        }
+      LogicalTypeAnnotation logicalType = parquetType.getLogicalTypeAnnotation();
+      if (logicalType instanceof TimestampLogicalTypeAnnotation) {
+        TimestampLogicalTypeAnnotation timestampLogicalType = (TimestampLogicalTypeAnnotation) logicalType;
+        boolean isAdjustedToUTC = timestampLogicalType.isAdjustedToUTC();
+        TimeUnit timeUnit = timestampLogicalType.getUnit();
+        return isDictionary ? new TypesFromInt64PageReader(dictionary, length, isAdjustedToUTC, timeUnit)
+          : new TypesFromInt64PageReader(valuesReader, length, isAdjustedToUTC, timeUnit);
       }
+
+      if (ETypeConverter.isUnsignedInteger(parquetType)) {
+        return isDictionary ? new TypesFromUInt64PageReader(dictionary, length, hivePrecision, hiveScale)
+          : new TypesFromUInt64PageReader(valuesReader, length, hivePrecision, hiveScale);
+      }
+
+      if (logicalType instanceof DecimalLogicalTypeAnnotation) {
+        DecimalLogicalTypeAnnotation decimalLogicalType = (DecimalLogicalTypeAnnotation) logicalType;
+        final short scale = (short) decimalLogicalType.getScale();
+        return isDictionary ? new TypesFromInt64DecimalPageReader(dictionary, length, scale, hivePrecision, hiveScale)
+          : new TypesFromInt64DecimalPageReader(valuesReader, length, scale, hivePrecision, hiveScale);
+      }
+
+      return isDictionary ? new TypesFromInt64PageReader(dictionary, length, hivePrecision, hiveScale)
+        : new TypesFromInt64PageReader(valuesReader, length, hivePrecision, hiveScale);
     case FLOAT:
       return isDictionary ? new TypesFromFloatPageReader(dictionary, length) : new
           TypesFromFloatPageReader(valuesReader, length);
