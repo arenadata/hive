@@ -142,9 +142,29 @@ public class TestGenericUDFToUnixTimestamp extends TestCase {
         new Text("EEE, MMM d, ''yy"),
         new LongWritable(TimestampTZUtil.parse("2001-07-04", ZoneId.systemDefault()).getEpochSecond()));
     runAndVerify(udf2,
-        new Text(val),
-        new Text(format),
-        new LongWritable(TimestampTZUtil.parse(val, ZoneId.systemDefault()).getEpochSecond()));
+        new Text("2009 Mar 20 11:30:01 AM"),
+        new Text("yyyy MMM dd h:mm:ss a"),
+        new LongWritable(TimestampTZUtil.parse("2009-03-20 11:30:01", ZoneId.systemDefault()).getEpochSecond()));
+    runAndVerify(udf2,
+        new Text("2009 Mar 20 11:30:01 pm"),
+        new Text("yyyy MMM dd h:mm:ss a"),
+        new LongWritable(TimestampTZUtil.parse("2009-03-20 23:30:01", ZoneId.systemDefault()).getEpochSecond()));
+    runAndVerify(udf2,
+        new Text("1800-02-03"),
+        new Text("yyyy-MM-dd"),
+        new LongWritable(TimestampTZUtil.parse("1800-02-03", ZoneId.systemDefault()).getEpochSecond()));
+    runAndVerify(udf2,
+        new Text("1400-02-01 00:00:00 ICT"),
+        new Text("yyyy-MM-dd HH:mm:ss z"),
+        new LongWritable(TimestampTZUtil.parse("1400-01-31 09:00:22", ZoneId.systemDefault()).getEpochSecond()));
+    runAndVerify(udf2,
+        new Text("1400-02-01 00:00:00 UTC"),
+        new Text("yyyy-MM-dd HH:mm:ss z"),
+        new LongWritable(TimestampTZUtil.parse("1400-01-31 16:07:02", ZoneId.systemDefault()).getEpochSecond()));
+    runAndVerify(udf2,
+        new Text("1400-02-01 00:00:00 GMT"),
+        new Text("yyyy-MM-dd HH:mm:ss z"),
+        new LongWritable(TimestampTZUtil.parse("1400-01-31 16:07:02", ZoneId.systemDefault()).getEpochSecond()));
 
     // test invalid values
     runAndVerify(udf2, null, null, null);

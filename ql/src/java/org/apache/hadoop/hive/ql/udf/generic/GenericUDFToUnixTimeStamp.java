@@ -20,10 +20,14 @@ package org.apache.hadoop.hive.ql.udf.generic;
 import org.apache.hadoop.hive.common.type.Date;
 import java.time.format.ResolverStyle;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.TimeZone;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
+import org.apache.hadoop.hive.common.type.Timestamp;
+import org.apache.hadoop.hive.common.type.Date;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.common.type.TimestampTZ;
@@ -51,6 +55,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampLocalTZO
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils.PrimitiveGrouping;
 import org.apache.hadoop.io.LongWritable;
+import java.time.format.DateTimeFormatterBuilder;
 
 /**
  * deterministic version of UDFUnixTimeStamp. enforces argument
@@ -170,12 +175,28 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
           formatter = getFormatter(patternVal);
           lasPattern = patternVal;
         }
+
+        try {
+          ZonedDateTime zonedDateTime = ZonedDateTime.parse(textVal, formatter.withZone(timeZone)).withZoneSameInstant(timeZone);
+          timestamp = new Timestamp(zonedDateTime.toLocalDateTime());
+        } catch (DateTimeException e1) {
+          try {
+            LocalDate localDate = LocalDate.parse(textVal, formatter);
+            timestamp = new Timestamp(localDate.atStartOfDay());
+          } catch (DateTimeException e3) {
+            return null;
+          }
+        }
+      } else {
+        try {
+          timestamp = Timestamp.valueOf(textVal);
+        } catch (IllegalArgumentException e) {
+          return null;
+        }
       }
-      try {
-        retValue.set(formatter.parse(textVal).getTime() / 1000);
-      } catch (ParseException e) {
-        return null;
-      }
+
+      TimestampTZ timestampTZ = TimestampTZUtil.convert(timestamp, timeZone);
+      retValue.set(timestampTZ.getEpochSecond());
     } else if (inputDateOI != null) {
       TimestampTZ timestampTZ = TimestampTZUtil.convert(
           inputDateOI.getPrimitiveJavaObject(arguments[0].get()), timeZone);
@@ -195,12 +216,7 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
 
   @Override
   public String getDisplayString(String[] children) {
-    StringBuilder sb = new StringBuilder(32);
-    sb.append(getName());
-    sb.append('(');
-    sb.append(StringUtils.join(children, ','));
-    sb.append(')');
-    return sb.toString();
+    return getStandardDisplayString(getName(),children);
   }
 
   public DateTimeFormatter getFormatter(String pattern){
