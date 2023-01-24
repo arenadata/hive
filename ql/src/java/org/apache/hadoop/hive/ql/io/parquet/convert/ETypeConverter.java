@@ -749,37 +749,6 @@ public enum ETypeConverter {
       };
     }
   },
-  EINT64_TIMESTAMP_CONVERTER(TimestampWritableV2.class) {
-    @Override
-    PrimitiveConverter getConverter(final PrimitiveType type, final int index, final ConverterParent parent,
-        TypeInfo hiveTypeInfo) {
-      if (hiveTypeInfo != null) {
-        String typeName = TypeInfoUtils.getBaseName(hiveTypeInfo.getTypeName());
-        switch (typeName) {
-          case serdeConstants.BIGINT_TYPE_NAME:
-            return new BinaryConverter<LongWritable>(type, parent, index) {
-              @Override
-              protected LongWritable convert(Binary binary) {
-                Preconditions.checkArgument(binary.length() == 8, "Must be 8 bytes");
-                ByteBuffer buf = binary.toByteBuffer();
-                buf.order(ByteOrder.LITTLE_ENDIAN);
-                long longVal = buf.getLong();
-                return new LongWritable(longVal);
-              }
-            };
-        }
-      }
-      return new PrimitiveConverter() {
-        @Override
-        public void addLong(final long value) {
-          TimestampLogicalTypeAnnotation logicalType = (TimestampLogicalTypeAnnotation) type.getLogicalTypeAnnotation();
-          Timestamp timestamp =
-              ParquetTimestampUtils.getTimestamp(value, logicalType.getUnit(), logicalType.isAdjustedToUTC());
-          parent.set(index, new TimestampWritableV2(timestamp));
-        }
-      };
-    }
-  },
   EDATE_CONVERTER(DateWritableV2.class) {
     @Override
     PrimitiveConverter getConverter(final PrimitiveType type, final int index, final ConverterParent parent, TypeInfo hiveTypeInfo) {
