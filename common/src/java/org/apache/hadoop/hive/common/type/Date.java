@@ -124,9 +124,8 @@ public class Date implements Comparable<Date> {
 
   public static Date valueOf(String s) {
     s = s.trim();
-    int idx = s.indexOf(" ");
-    if (idx != -1) {
-      s = s.substring(0, idx);
+    if (s.length() > 10) {
+      s = s.substring(0, 10);
     }
     LocalDate localDate;
     try {
