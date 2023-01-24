@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.HiveDecimalUtils;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.BytesWritable;
@@ -442,6 +443,21 @@ public enum ETypeConverter {
               }
             }
           };
+        case serdeConstants.TIMESTAMP_TYPE_NAME:
+        case serdeConstants.TIMESTAMPLOCALTZ_TYPE_NAME:
+          if (type.getLogicalTypeAnnotation() instanceof TimestampLogicalTypeAnnotation) {
+            TimestampLogicalTypeAnnotation logicalType =
+                (TimestampLogicalTypeAnnotation) type.getLogicalTypeAnnotation();
+            return new PrimitiveConverter() {
+              @Override
+              public void addLong(final long value) {
+                Timestamp timestamp =
+                    ParquetTimestampUtils.getTimestamp(value, logicalType.getUnit(), logicalType.isAdjustedToUTC());
+                parent.set(index, new TimestampWritableV2(timestamp));
+              }
+            };
+          }
+          throw new IllegalStateException("Cannot reliably convert INT64 value to timestamp without type annotation");
         default:
           return new PrimitiveConverter() {
             @Override
@@ -813,7 +829,8 @@ public enum ETypeConverter {
 
             @Override
             public Optional<PrimitiveConverter> visit(TimestampLogicalTypeAnnotation logicalTypeAnnotation) {
-              return Optional.of(EINT64_TIMESTAMP_CONVERTER.getConverter(type, index, parent, hiveTypeInfo));
+              TypeInfo info = hiveTypeInfo == null ? TypeInfoFactory.timestampTypeInfo : hiveTypeInfo;
+              return Optional.of(EINT64_CONVERTER.getConverter(type, index, parent, info));
             }
           });
 
