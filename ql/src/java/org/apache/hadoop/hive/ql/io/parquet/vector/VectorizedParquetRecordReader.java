@@ -442,13 +442,13 @@ public class VectorizedParquetRecordReader extends ParquetRecordReaderBase
         for (int i = 0; i < types.size(); ++i) {
           columnReaders[i] =
               buildVectorizedParquetReader(columnTypesList.get(colsToInclude.get(i)), types.get(i),
-                  pages, requestedSchema.getColumns(), skipTimestampConversion, writerTimezone, legacyConversionEnabled, 0);
+                  pages, requestedSchema.getColumns(), skipTimestampConversion, writerTimezone, skipProlepticConversion, legacyConversionEnabled, 0);
         }
       }
     } else {
       for (int i = 0; i < types.size(); ++i) {
         columnReaders[i] = buildVectorizedParquetReader(columnTypesList.get(i), types.get(i), pages,
-          requestedSchema.getColumns(), skipTimestampConversion, writerTimezone, legacyConversionEnabled, 0);
+          requestedSchema.getColumns(), skipTimestampConversion, writerTimezone, skipProlepticConversion, legacyConversionEnabled, 0);
       }
     }
 
@@ -492,6 +492,7 @@ public class VectorizedParquetRecordReader extends ParquetRecordReaderBase
     List<ColumnDescriptor> columnDescriptors,
     boolean skipTimestampConversion,
     ZoneId writerTimezone,
+    boolean skipProlepticConversion,
     boolean legacyConversionEnabled,
     int depth) throws IOException {
     List<ColumnDescriptor> descriptors =
@@ -504,7 +505,7 @@ public class VectorizedParquetRecordReader extends ParquetRecordReaderBase
       }
       if (fileSchema.getColumns().contains(descriptors.get(0))) {
         return new VectorizedPrimitiveColumnReader(descriptors.get(0),
-            pages.getPageReader(descriptors.get(0)), skipTimestampConversion,legacyConversionEnabled, writerTimezone, type,
+            pages.getPageReader(descriptors.get(0)), skipTimestampConversion, writerTimezone, skipProlepticConversion, legacyConversionEnabled, type,
             typeInfo);
       } else {
         // Support for schema evolution
@@ -518,7 +519,7 @@ public class VectorizedParquetRecordReader extends ParquetRecordReaderBase
       for (int i = 0; i < fieldTypes.size(); i++) {
         VectorizedColumnReader r =
           buildVectorizedParquetReader(fieldTypes.get(i), types.get(i), pages, descriptors,
-            skipTimestampConversion, writerTimezone, legacyConversionEnabled, depth + 1);
+            skipTimestampConversion, writerTimezone, skipProlepticConversion, legacyConversionEnabled, depth + 1);
         if (r != null) {
           fieldReaders.add(r);
         } else {
@@ -536,7 +537,7 @@ public class VectorizedParquetRecordReader extends ParquetRecordReaderBase
       }
 
       return new VectorizedListColumnReader(descriptors.get(0),
-          pages.getPageReader(descriptors.get(0)), skipTimestampConversion, writerTimezone, legacyConversionEnabled,
+          pages.getPageReader(descriptors.get(0)), skipTimestampConversion, writerTimezone, skipProlepticConversion, legacyConversionEnabled,
           getElementType(type),
           typeInfo);
     case MAP:
@@ -570,10 +571,10 @@ public class VectorizedParquetRecordReader extends ParquetRecordReaderBase
       List<Type> kvTypes = groupType.getFields();
       VectorizedListColumnReader keyListColumnReader = new VectorizedListColumnReader(
           descriptors.get(0), pages.getPageReader(descriptors.get(0)), skipTimestampConversion,
-          writerTimezone, legacyConversionEnabled, kvTypes.get(0), typeInfo);
+          writerTimezone, skipProlepticConversion, legacyConversionEnabled, kvTypes.get(0), typeInfo);
       VectorizedListColumnReader valueListColumnReader = new VectorizedListColumnReader(
           descriptors.get(1), pages.getPageReader(descriptors.get(1)), skipTimestampConversion,
-          writerTimezone, legacyConversionEnabled, kvTypes.get(1), typeInfo);
+          writerTimezone, skipProlepticConversion, legacyConversionEnabled, kvTypes.get(1), typeInfo);
       return new VectorizedMapColumnReader(keyListColumnReader, valueListColumnReader);
     case UNION:
     default:

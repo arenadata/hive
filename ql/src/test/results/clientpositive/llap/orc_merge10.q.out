@@ -343,7 +343,7 @@ POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(src)src
 POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
 POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
 Found 1 items
--rw-rw-rw-   3 ### USER ### ### GROUP ###       1754 ### HDFS DATE ### hdfs://### HDFS PATH ###
+-rw-rw-rw-   3 ### USER ### ### GROUP ###       1756 ### HDFS DATE ### hdfs://### HDFS PATH ###
 PREHOOK: query: EXPLAIN
     INSERT OVERWRITE TABLE orcfile_merge1c PARTITION (ds='1', part)
         SELECT key, value, PMOD(HASH(key), 2) as part
@@ -694,6 +694,7 @@ File Version: 0.12 with ORC_517
 Rows: 242
 Compression: SNAPPY
 Compression size: 4096
+Calendar: Julian/Gregorian
 Type: struct<key:int,value:string>
 
 Stripe Statistics:
@@ -783,6 +784,7 @@ File Version: 0.12 with ORC_517
 Rows: 242
 Compression: SNAPPY
 Compression size: 4096
+Calendar: Julian/Gregorian
 Type: struct<key:int,value:string>
 
 Stripe Statistics:

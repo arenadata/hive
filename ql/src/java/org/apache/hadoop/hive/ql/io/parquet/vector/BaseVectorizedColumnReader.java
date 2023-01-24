@@ -55,6 +55,7 @@ public abstract class BaseVectorizedColumnReader implements VectorizedColumnRead
 
   protected boolean skipTimestampConversion = false;
   protected ZoneId writerTimezone = null;
+  protected boolean skipProlepticConversion = false;
   protected boolean legacyConversionEnabled = true;
 
 
@@ -121,6 +122,7 @@ public abstract class BaseVectorizedColumnReader implements VectorizedColumnRead
       PageReader pageReader,
       boolean skipTimestampConversion,
       ZoneId writerTimezone,
+      boolean skipProlepticConversion,
       boolean legacyConversionEnabled,
       Type parquetType, TypeInfo hiveType) throws IOException {
     this.descriptor = descriptor;
@@ -129,6 +131,7 @@ public abstract class BaseVectorizedColumnReader implements VectorizedColumnRead
     this.maxDefLevel = descriptor.getMaxDefinitionLevel();
     this.skipTimestampConversion = skipTimestampConversion;
     this.writerTimezone = writerTimezone;
+    this.skipProlepticConversion = skipProlepticConversion;
     this.legacyConversionEnabled = legacyConversionEnabled;
     this.hiveType = hiveType;
 

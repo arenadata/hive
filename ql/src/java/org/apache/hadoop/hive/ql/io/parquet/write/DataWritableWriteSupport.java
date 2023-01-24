@@ -35,11 +35,13 @@ public class DataWritableWriteSupport extends WriteSupport<ParquetHiveRecord> {
 
   public static final String PARQUET_HIVE_SCHEMA = "parquet.hive.schema";
   public static final String WRITER_TIMEZONE = "writer.time.zone";
+  public static final String WRITER_DATE_PROLEPTIC = "writer.date.proleptic";
   public static final String WRITER_ZONE_CONVERSION_LEGACY = "writer.zone.conversion.legacy";
 
 
   private DataWritableWriter writer;
   private MessageType schema;
+  private boolean defaultDateProleptic;
 
   public static void setSchema(final MessageType schema, final Configuration configuration) {
     configuration.set(PARQUET_HIVE_SCHEMA, schema.toString());
@@ -54,6 +56,9 @@ public class DataWritableWriteSupport extends WriteSupport<ParquetHiveRecord> {
     schema = getSchema(configuration);
     Map<String, String> metaData = new HashMap<>();
     metaData.put(WRITER_TIMEZONE, TimeZone.getDefault().toZoneId().toString());
+    defaultDateProleptic = HiveConf.getBoolVar(
+            configuration, HiveConf.ConfVars.HIVE_PARQUET_DATE_PROLEPTIC_GREGORIAN);
+    metaData.put(WRITER_DATE_PROLEPTIC, String.valueOf(defaultDateProleptic));
     metaData.put(WRITER_ZONE_CONVERSION_LEGACY, String
             .valueOf(HiveConf.getBoolVar(configuration, HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_WRITE_LEGACY_CONVERSION_ENABLED)));
     return new WriteContext(schema, metaData);
@@ -61,7 +66,7 @@ public class DataWritableWriteSupport extends WriteSupport<ParquetHiveRecord> {
 
   @Override
   public void prepareForWrite(final RecordConsumer recordConsumer) {
-    writer = new DataWritableWriter(recordConsumer, schema);
+    writer = new DataWritableWriter(recordConsumer, schema, defaultDateProleptic);
   }
 
   @Override

@@ -49,9 +49,9 @@ public class VectorizedListColumnReader extends BaseVectorizedColumnReader {
   boolean isFirstRow = true;
 
   public VectorizedListColumnReader(ColumnDescriptor descriptor, PageReader pageReader,
-      boolean skipTimestampConversion, ZoneId writerTimezone, boolean legacyConversionEnabled, Type type, TypeInfo hiveType)
+      boolean skipTimestampConversion, ZoneId writerTimezone, boolean skipProlepticConversion, boolean legacyConversionEnabled, Type type, TypeInfo hiveType)
       throws IOException {
-    super(descriptor, pageReader, skipTimestampConversion, writerTimezone, legacyConversionEnabled, type, hiveType);
+    super(descriptor, pageReader, skipTimestampConversion, writerTimezone, skipProlepticConversion, legacyConversionEnabled, type, hiveType);
   }
 
   @Override
