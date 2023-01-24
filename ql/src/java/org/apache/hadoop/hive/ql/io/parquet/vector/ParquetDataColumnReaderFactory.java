@@ -1852,9 +1852,9 @@ public final class ParquetDataColumnReaderFactory {
                                                                          TypeInfo hiveType,
                                                                          Dictionary dictionary,
                                                                          ValuesReader valuesReader,
-                                                                         boolean
-                                                                             skipTimestampConversion,
-                                                                         ZoneId writerTimezone)
+                                                                         boolean skipTimestampConversion,
+                                                                         ZoneId writerTimezone,
+                                                                         boolean legacyConversionEnabled)
       throws IOException {
     // max length for varchar and char cases
     int length = getVarcharLength(hiveType);
@@ -1993,20 +1993,21 @@ public final class ParquetDataColumnReaderFactory {
       TypeInfo hiveType,
       Dictionary realReader,
       boolean skipTimestampConversion,
-      ZoneId writerTimezone)
+      ZoneId writerTimezone,
+      boolean legacyConversionEnabled)
       throws IOException {
     return getDataColumnReaderByTypeHelper(true, parquetType, hiveType, realReader, null,
-        skipTimestampConversion, writerTimezone);
+        skipTimestampConversion, writerTimezone, legacyConversionEnabled);
   }
 
   public static ParquetDataColumnReader getDataColumnReaderByType(PrimitiveType parquetType,
                                                                   TypeInfo hiveType,
                                                                   ValuesReader realReader,
                                                                   boolean skipTimestampConversion,
-                                                                  ZoneId writerTimezone)
+                                                                  ZoneId writerTimezone, boolean legacyConversionEnabled)
       throws IOException {
     return getDataColumnReaderByTypeHelper(false, parquetType, hiveType, null, realReader,
-        skipTimestampConversion, writerTimezone);
+        skipTimestampConversion, writerTimezone, legacyConversionEnabled);
   }
 
 

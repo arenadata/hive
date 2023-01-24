@@ -50,6 +50,7 @@ public class ParquetRecordReaderBase {
   protected Path file;
   protected ProjectionPusher projectionPusher;
   protected boolean skipTimestampConversion = false;
+  protected Boolean legacyConversionEnabled;
   protected SerDeStats serDeStats;
   protected JobConf jobConf;
 

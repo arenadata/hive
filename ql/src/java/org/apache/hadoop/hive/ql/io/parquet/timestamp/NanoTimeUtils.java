@@ -87,13 +87,7 @@ public class NanoTimeUtils {
    * @param legacyConversion when true the conversion to the target timezone is done with legacy (backwards compatible)
    * method.
    */
-   public static Timestamp getTimestamp(NanoTime nt, boolean skipConversion, ZoneId timeZoneId) {
-     if (skipConversion) {
-       timeZoneId = ZoneOffset.UTC;
-     } else if (timeZoneId == null) {
-       timeZoneId = TimeZone.getDefault().toZoneId();
-     }
-
+  public static Timestamp getTimestamp(NanoTime nt, ZoneId targetZone, boolean legacyConversion) {
      int julianDay = nt.getJulianDay();
      long nanosOfDay = nt.getTimeOfDayNanos();
 
@@ -123,7 +117,7 @@ public class NanoTimeUtils {
      calendar.set(Calendar.SECOND, seconds);
 
      Timestamp ts = Timestamp.ofEpochMilli(calendar.getTimeInMillis(), (int) nanos);
-     ts = TimestampTZUtil.convertTimestampToZone(ts, ZoneOffset.UTC, timeZoneId);
+     ts = TimestampTZUtil.convertTimestampToZone(ts, ZoneOffset.UTC, targetZone, legacyConversion);
      return ts;
    }
 }

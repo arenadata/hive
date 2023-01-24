@@ -335,16 +335,19 @@ class AvroDeserializer {
       } else {
         skipConversion = HiveConf.ConfVars.HIVE_AVRO_TIMESTAMP_SKIP_CONVERSION.defaultBoolVal;
       }
+      boolean legacyConversion = false;
       ZoneId convertToTimeZone;
       if (writerTimezone != null) {
         convertToTimeZone = writerTimezone;
       } else if (skipConversion) {
         convertToTimeZone = ZoneOffset.UTC;
       } else {
+        legacyConversion = configuration != null && HiveConf.getBoolVar(
+            configuration, HiveConf.ConfVars.HIVE_AVRO_TIMESTAMP_LEGACY_CONVERSION_ENABLED);
         convertToTimeZone = TimeZone.getDefault().toZoneId();
       }
       Timestamp timestamp = Timestamp.ofEpochMilli((Long)datum);
-      return TimestampTZUtil.convertTimestampToZone(timestamp, ZoneOffset.UTC, convertToTimeZone);
+      return TimestampTZUtil.convertTimestampToZone(timestamp, ZoneOffset.UTC, convertToTimeZone, legacyConversion);
     default:
       return datum;
     }

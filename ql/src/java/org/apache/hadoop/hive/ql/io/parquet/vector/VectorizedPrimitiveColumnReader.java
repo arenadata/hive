@@ -47,11 +47,12 @@ public class VectorizedPrimitiveColumnReader extends BaseVectorizedColumnReader 
       ColumnDescriptor descriptor,
       PageReader pageReader,
       boolean skipTimestampConversion,
+      boolean legacyConversionEnabled,
       ZoneId writerTimezone,
       Type type,
       TypeInfo hiveType)
       throws IOException {
-    super(descriptor, pageReader, skipTimestampConversion, writerTimezone, type, hiveType);
+    super(descriptor, pageReader, skipTimestampConversion, writerTimezone, legacyConversionEnabled, type, hiveType);
   }
 
   @Override
