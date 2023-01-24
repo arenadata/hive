@@ -589,7 +589,7 @@ public class VectorizedBatchUtil {
           decColVector.scale);
     } else if (source instanceof Decimal64ColumnVector) {
         Decimal64ColumnVector dec64ColVector = (Decimal64ColumnVector) source;
-        return new DecimalColumnVector(dec64ColVector.vector.length,
+        return new Decimal64ColumnVector(dec64ColVector.vector.length,
             dec64ColVector.precision,
             dec64ColVector.scale);
     } else if (source instanceof TimestampColumnVector) {
