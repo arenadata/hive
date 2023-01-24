@@ -47,7 +47,7 @@ public class NanoTimeUtils {
    }
 
    public static NanoTime getNanoTime(Timestamp ts, boolean skipConversion) {
-     return getNanoTime(ts, skipConversion, null);
+     return getNanoTime(ts,null, skipConversion);
    }
 
   /**
