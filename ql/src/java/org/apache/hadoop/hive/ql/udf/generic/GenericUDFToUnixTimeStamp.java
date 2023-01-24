@@ -17,6 +17,8 @@
  */
 
 package org.apache.hadoop.hive.ql.udf.generic;
+import org.apache.hadoop.hive.common.type.Date;
+import java.time.format.ResolverStyle;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -66,8 +68,8 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
   private transient Converter patternConverter;
   private transient ZoneId timeZone;
 
-  private transient String lasPattern = "yyyy-MM-dd HH:mm:ss";
-  private transient final SimpleDateFormat formatter = new SimpleDateFormat(lasPattern);
+  private transient String lasPattern = "uuuu-MM-dd HH:mm:ss";
+  private transient DateTimeFormatter formatter;
 
 
   @Override
@@ -123,8 +125,9 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     }
 
     if (timeZone == null) {
-      timeZone = SessionState.get().getConf().getLocalTimeZone();
-      formatter.setTimeZone(TimeZone.getTimeZone(timeZone));
+      timeZone = SessionState.get() == null ? new HiveConf().getLocalTimeZone() : SessionState.get().getConf()
+              .getLocalTimeZone();
+      formatter = getFormatter(lasPattern);
     }
   }
 
@@ -133,7 +136,6 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     if (context != null) {
       String timeZoneStr = HiveConf.getVar(context.getJobConf(), HiveConf.ConfVars.HIVE_LOCAL_TIME_ZONE);
       timeZone = TimestampTZUtil.parseTimeZone(timeZoneStr);
-      formatter.setTimeZone(TimeZone.getTimeZone(timeZone));
     }
   }
 
@@ -150,10 +152,12 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     }
 
     if (inputTextConverter != null) {
+      Timestamp timestamp;
       String textVal = (String) inputTextConverter.convert(arguments[0].get());
       if (textVal == null) {
         return null;
       }
+
       if (patternConverter != null) {
         if (arguments[1].get() == null) {
           return null;
@@ -163,7 +167,7 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
           return null;
         }
         if (!patternVal.equals(lasPattern)) {
-          formatter.applyPattern(patternVal);
+          formatter = getFormatter(patternVal);
           lasPattern = patternVal;
         }
       }
@@ -197,5 +201,12 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     sb.append(StringUtils.join(children, ','));
     sb.append(')');
     return sb.toString();
+  }
+
+  public DateTimeFormatter getFormatter(String pattern){
+    return new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern(pattern)
+        .toFormatter();
   }
 }
