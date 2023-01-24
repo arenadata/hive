@@ -19,9 +19,12 @@
 package org.apache.hadoop.hive.common.type;
 
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
+import org.apache.hive.common.util.DateParser;
 
 import java.math.BigDecimal;
 import java.time.DateTimeException;
+import java.time.format.DateTimeParseException;
+import java.util.Objects;
 
 /**
  * Utilities for Timestamps and the relevant conversions.
@@ -110,8 +113,8 @@ public class TimestampUtils {
    * @return
    */
   public static Timestamp decimalToTimestamp(
-      HiveDecimalWritable decWritable,
-      HiveDecimalWritable scratchDecWritable1, HiveDecimalWritable scratchDecWritable2) {
+          HiveDecimalWritable decWritable,
+          HiveDecimalWritable scratchDecWritable1, HiveDecimalWritable scratchDecWritable2) {
 
     HiveDecimalWritable nanosWritable = scratchDecWritable1;
     nanosWritable.set(decWritable);
@@ -148,7 +151,7 @@ public class TimestampUtils {
         nanos += 1000000000;
       }
       long seconds =
-          nanoInstant.subtract(new BigDecimal(nanos)).divide(BILLION_BIG_DECIMAL).longValue();
+              nanoInstant.subtract(new BigDecimal(nanos)).divide(BILLION_BIG_DECIMAL).longValue();
 
       return Timestamp.ofEpochSecond(seconds, nanos);
     } catch (IllegalArgumentException | DateTimeException nfe) {
@@ -168,4 +171,43 @@ public class TimestampUtils {
     }
   }
 
+  private static final int DATE_LENGTH = "YYYY-MM-DD".length();
+
+  /**
+   * Convert (parse) a String into a Timestamp.
+   *
+   * @param text The text to parse
+   * @return The Timestamp parsed from the string
+   * @throws IllegalArgumentException if {@code text} cannot be parsed
+   * @throws NullPointerException if {@code text} is null
+   */
+  public static Timestamp stringToTimestamp(final String text) {
+    final String s = Objects.requireNonNull(text).trim();
+    DateParser dateParser = new DateParser();
+    // Handle simpler cases directly avoiding exceptions
+    if (s.length() == DATE_LENGTH) {
+      Date d = dateParser.parseDate(s);
+      if (d == null) {
+        throw new IllegalArgumentException("Cannot parse date: " + text);
+      }
+      return Timestamp.ofEpochMilli(d.toEpochMilli());
+    }
+    try {
+      return Timestamp.valueOf(s);
+    } catch (IllegalArgumentException eT) {
+      // Try zoned timestamp
+      try {
+        return Timestamp.valueOf(
+                TimestampTZUtil.parse(s).getZonedDateTime().toLocalDateTime().toString());
+      } catch (IllegalArgumentException | DateTimeException eTZ) {
+        try {
+          // Try HH:mm:ss format (For Hour, Minute & Second UDF).
+          return Timestamp.getTimestampFromTime(s);
+        } catch(DateTimeException e) {
+          // Last attempt
+          return Timestamp.ofEpochMilli(Date.valueOf(s).toEpochMilli());
+        }
+      }
+    }
+  }
 }
