@@ -17,7 +17,9 @@
  */
 
 package org.apache.hadoop.hive.ql.udf;
-
+import org.apache.hadoop.hive.common.type.TimestampTZ;
+import org.apache.hadoop.hive.common.type.TimestampTZUtil;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.UDF;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedExpressions;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.CastDecimalToLong;
@@ -37,7 +39,9 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-
+import org.apache.hadoop.hive.common.type.TimestampTZ;
+import org.apache.hadoop.hive.common.type.TimestampTZUtil;
+import org.apache.hadoop.hive.conf.HiveConf;
 /**
  * UDFToByte.
  *
@@ -187,7 +191,7 @@ public class UDFToByte extends UDF {
     if (i == null) {
       return null;
     } else {
-      final long longValue = i.getSeconds();
+      final long longValue = UDFUtils.getTimestampTZFromTimestamp(i.getTimestamp()).getEpochSecond();
       final byte byteValue = (byte) longValue;
       if (byteValue != longValue) {
         return null;

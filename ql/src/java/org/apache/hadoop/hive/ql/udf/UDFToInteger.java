@@ -39,6 +39,10 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.hive.common.type.TimestampTZ;
+import org.apache.hadoop.hive.common.type.TimestampTZUtil;
+import org.apache.hadoop.hive.conf.HiveConf;
+import java.time.ZoneId;
 
 /**
  * UDFToInteger.
@@ -197,7 +201,7 @@ public class UDFToInteger extends UDF {
     if (i == null) {
       return null;
     } else {
-      final long longValue = i.getSeconds();
+      final long longValue = UDFUtils.getTimestampTZFromTimestamp(i.getTimestamp()).getEpochSecond();
       final int intValue = (int) longValue;
       if (intValue != longValue) {
         return null;
