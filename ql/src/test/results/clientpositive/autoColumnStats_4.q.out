@@ -204,7 +204,7 @@ Table Type:         	MANAGED_TABLE
 Table Parameters:	 	 
 	bucketing_version   	2                   
 	numFiles            	2                   
-	totalSize           	1899                
+	totalSize           	1903
 	transactional       	true                
 	transactional_properties	default             
 #### A masked pattern was here ####

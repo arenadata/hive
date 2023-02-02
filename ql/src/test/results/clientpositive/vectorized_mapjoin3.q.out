@@ -14,7 +14,15 @@ POSTHOOK: query: create temporary table table_6 (int_col_0 int) stored as orc
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@table_6
-PREHOOK: query: insert into table_19 values 
+PREHOOK: query: CREATE TEMPORARY TABLE table_27 (t_id STRING, f_id STRING, type STRING) stored as orc
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@table_27
+POSTHOOK: query: CREATE TEMPORARY TABLE table_27 (t_id STRING, f_id STRING, type STRING) stored as orc
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@table_27
+PREHOOK: query: insert into table_19 values
 (418.9,	1000),
 (418.9,	-759),
 (418.9,	-663),
@@ -43,6 +51,21 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@table_6
 POSTHOOK: Lineage: table_6.int_col_0 SCRIPT []
+PREHOOK: query: INSERT INTO table_27 values
+('A','F','TEST'),('B','F','TEST'),('C','F','TEST'),('D','F','TEST'),('E','F','TEST'),
+('F','F','TEST'),('G','F','TEST'),('H','F','TEST'),('I','F','TEST'),('J','F','TEST')
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Output: default@table_27
+POSTHOOK: query: INSERT INTO table_27 values
+('A','F','TEST'),('B','F','TEST'),('C','F','TEST'),('D','F','TEST'),('E','F','TEST'),
+('F','F','TEST'),('G','F','TEST'),('H','F','TEST'),('I','F','TEST'),('J','F','TEST')
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+POSTHOOK: Output: default@table_27
+POSTHOOK: Lineage: table_27.f_id SCRIPT []
+POSTHOOK: Lineage: table_27.t_id SCRIPT []
+POSTHOOK: Lineage: table_27.type SCRIPT []
 PREHOOK: query: SELECT t1.decimal0801_col
 FROM table_19 t1
 WHERE (SELECT max(tt1.int_col_0) AS int_col FROM table_6 tt1) IN (t1.int_col_1) AND decimal0801_col is not null
@@ -88,6 +111,51 @@ POSTHOOK: Input: default@table_19
 POSTHOOK: Input: default@table_6
 #### A masked pattern was here ####
 418.9
+Warning: Map Join MAPJOIN[25][bigTable=?] in task 'Stage-6:MAPRED' is a cross product
+PREHOOK: query: SELECT
+  t1.t_id,
+  null
+  FROM table_27 t1
+  JOIN table_27 t2 ON (t1.t_id = t2.t_id and t1.f_id = t2.f_id)
+  JOIN
+  (SELECT 'TEST-1' id, 'TEST' r_type UNION ALL SELECT 'TEST-2' id, 'TEST' r_type) t3
+  ON (t3.r_type = t1.type and t3.id in ('TEST-1', 'TEST-2'))
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Input: default@table_27
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT
+  t1.t_id,
+  null
+  FROM table_27 t1
+  JOIN table_27 t2 ON (t1.t_id = t2.t_id and t1.f_id = t2.f_id)
+  JOIN
+  (SELECT 'TEST-1' id, 'TEST' r_type UNION ALL SELECT 'TEST-2' id, 'TEST' r_type) t3
+  ON (t3.r_type = t1.type and t3.id in ('TEST-1', 'TEST-2'))
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+POSTHOOK: Input: default@table_27
+#### A masked pattern was here ####
+A	NULL
+A	NULL
+B	NULL
+B	NULL
+C	NULL
+C	NULL
+D	NULL
+D	NULL
+E	NULL
+E	NULL
+F	NULL
+F	NULL
+G	NULL
+G	NULL
+H	NULL
+H	NULL
+I	NULL
+I	NULL
+J	NULL
+J	NULL
 PREHOOK: query: EXPLAIN VECTORIZATION DETAIL
 SELECT t1.decimal0801_col
 FROM table_19 t1

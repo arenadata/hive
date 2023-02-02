@@ -87,6 +87,10 @@
       <artifactId>hive-spark-client</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hive</groupId>
+      <artifactId>hive-storage-api</artifactId>
+    </dependency>
     <!-- inter-project -->
     <dependency>
       <groupId>com.esotericsoftware</groupId>
@@ -321,7 +325,7 @@
     </dependency>
     <dependency>
       <groupId>org.jodd</groupId>
-      <artifactId>jodd-core</artifactId>
+      <artifactId>jodd-util</artifactId>
       <version>${jodd.version}</version>
     </dependency>
     <dependency>
@@ -729,6 +733,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.glassfish.jersey.core</groupId>
       <artifactId>jersey-server</artifactId>
       <version>${glassfish.jersey.version}</version>
@@ -938,7 +947,7 @@
                   <include>javax.jdo:jdo-api</include>
                   <include>commons-lang:commons-lang</include>
                   <include>org.apache.commons:commons-lang3</include>
-                  <include>org.jodd:jodd-core</include>
+                  <include>org.jodd:jodd-util</include>
                   <include>com.tdunning:json</include>
                   <include>org.apache.avro:avro</include>
                   <include>org.apache.avro:avro-mapred</include>
@@ -955,6 +964,7 @@
                   <include>net.sf.opencsv:opencsv</include>
                   <include>org.apache.hive:hive-spark-client</include>
                   <include>org.apache.hive:hive-storage-api</include>
+                  <include>org.threeten:threeten-extra</include>
                   <include>org.apache.orc:orc-core</include>
                   <include>org.apache.orc:orc-shims</include>
                   <include>org.apache.orc:orc-tools</include>

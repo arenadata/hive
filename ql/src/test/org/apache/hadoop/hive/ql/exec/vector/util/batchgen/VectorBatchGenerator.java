@@ -28,7 +28,7 @@ import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.hadoop.hive.ql.exec.vector.util.batchgen.VectorBatchGenerator.GenerateType.GenerateCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
-
+import org.apache.hadoop.hive.ql.exec.vector.DateColumnVector;
 import com.google.common.base.Preconditions;
 
 public class VectorBatchGenerator {
@@ -183,6 +183,10 @@ public class VectorBatchGenerator {
       colVector = new LongColumnVector();
       break;
 
+    case DATE:
+      colVector = new DateColumnVector();
+      break;
+
     case FLOAT:
     case DOUBLE:
       colVector = new DoubleColumnVector();
@@ -193,7 +197,6 @@ public class VectorBatchGenerator {
       break;
 
     // UNDONE
-    case DATE:
     case TIMESTAMP:
     case BINARY:
     case DECIMAL:

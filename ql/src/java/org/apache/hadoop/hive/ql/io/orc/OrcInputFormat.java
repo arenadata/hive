@@ -117,6 +117,7 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hive.common.util.Ref;
 import org.apache.orc.ColumnStatistics;
 import org.apache.orc.FileFormatException;
+import org.apache.orc.OrcConf;
 import org.apache.orc.OrcProto;
 import org.apache.orc.OrcProto.Footer;
 import org.apache.orc.OrcProto.Type;
@@ -1655,7 +1656,11 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
         }
       }
       stripes = orcTail.getStripes();
-      stripeStats = orcTail.getStripeStatistics();
+      OrcProto.Footer footer = orcTail.getFooter();
+      boolean writerUsedProlepticGregorian = footer.hasCalendar()
+              ? footer.getCalendar() == OrcProto.CalendarKind.PROLEPTIC_GREGORIAN
+              : OrcConf.PROLEPTIC_GREGORIAN_DEFAULT.getBoolean(context.conf);
+      stripeStats = orcTail.getStripeStatistics(writerUsedProlepticGregorian, true);
       fileTypes = orcTail.getTypes();
       TypeDescription fileSchema = OrcUtils.convertTypeFromProtobuf(fileTypes, 0);
       Reader.Options readerOptions = new Reader.Options(context.conf);

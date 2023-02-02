@@ -18,12 +18,14 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.TimeZone;
-
-import org.apache.commons.lang.StringUtils;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.common.type.TimestampTZ;
 import org.apache.hadoop.hive.common.type.TimestampTZUtil;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -54,8 +56,8 @@ import org.apache.hadoop.io.LongWritable;
  * deterministic version of UDFUnixTimeStamp. enforces argument
  */
 @Description(name = "to_unix_timestamp",
-    value = "_FUNC_(date[, pattern]) - Returns the UNIX timestamp",
-    extended = "Converts the specified time to number of seconds since 1970-01-01.")
+        value = "_FUNC_(date[, pattern]) - Returns the UNIX timestamp",
+        extended = "Converts the specified time to number of seconds since 1970-01-01.")
 @VectorizedExpressions({VectorUDFUnixTimeStampDate.class, VectorUDFUnixTimeStampString.class, VectorUDFUnixTimeStampTimestamp.class})
 public class GenericUDFToUnixTimeStamp extends GenericUDF {
 
@@ -66,8 +68,8 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
   private transient Converter patternConverter;
   private transient ZoneId timeZone;
 
-  private transient String lasPattern = "yyyy-MM-dd HH:mm:ss";
-  private transient final SimpleDateFormat formatter = new SimpleDateFormat(lasPattern);
+  private transient String lasPattern = "uuuu-MM-dd HH:mm:ss";
+  private transient DateTimeFormatter formatter;
 
 
   @Override
@@ -79,12 +81,12 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
   protected void initializeInput(ObjectInspector[] arguments) throws UDFArgumentException {
     if (arguments.length < 1) {
       throw new UDFArgumentLengthException("The function " + getName().toUpperCase() +
-          "requires at least one argument");
+              "requires at least one argument");
     }
     for (ObjectInspector argument : arguments) {
       if (argument.getCategory() != Category.PRIMITIVE) {
         throw new UDFArgumentException(getName().toUpperCase() +
-            " only takes string/date/timestamp types, got " + argument.getTypeName());
+                " only takes string/date/timestamp types, got " + argument.getTypeName());
       }
     }
 
@@ -94,16 +96,16 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
       case VARCHAR:
       case STRING:
         inputTextConverter = ObjectInspectorConverters.getConverter(arg1OI,
-            PrimitiveObjectInspectorFactory.javaStringObjectInspector);
+                PrimitiveObjectInspectorFactory.javaStringObjectInspector);
         if (arguments.length > 1) {
           PrimitiveObjectInspector arg2OI = (PrimitiveObjectInspector) arguments[1];
           if (PrimitiveObjectInspectorUtils.getPrimitiveGrouping(arg2OI.getPrimitiveCategory())
-              != PrimitiveGrouping.STRING_GROUP) {
+                  != PrimitiveGrouping.STRING_GROUP) {
             throw new UDFArgumentException(
-              "The time pattern for " + getName().toUpperCase() + " should be string type");
+                    "The time pattern for " + getName().toUpperCase() + " should be string type");
           }
           patternConverter = ObjectInspectorConverters.getConverter(arg2OI,
-              PrimitiveObjectInspectorFactory.javaStringObjectInspector);
+                  PrimitiveObjectInspectorFactory.javaStringObjectInspector);
         }
         break;
 
@@ -118,14 +120,13 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
         break;
       default:
         throw new UDFArgumentException("The function " + getName().toUpperCase()
-            + " takes only string/date/timestamp/timestampwltz types. Got Type:" + arg1OI
-            .getPrimitiveCategory().name());
+                + " takes only string/date/timestamp/timestampwltz types. Got Type:" + arg1OI
+                .getPrimitiveCategory().name());
     }
 
-    if (timeZone == null) {
-      timeZone = SessionState.get().getConf().getLocalTimeZone();
-      formatter.setTimeZone(TimeZone.getTimeZone(timeZone));
-    }
+    timeZone = SessionState.get() == null ? new HiveConf().getLocalTimeZone() : SessionState.get().getConf()
+            .getLocalTimeZone();
+    formatter = getFormatter(lasPattern);
   }
 
   @Override
@@ -133,7 +134,6 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     if (context != null) {
       String timeZoneStr = HiveConf.getVar(context.getJobConf(), HiveConf.ConfVars.HIVE_LOCAL_TIME_ZONE);
       timeZone = TimestampTZUtil.parseTimeZone(timeZoneStr);
-      formatter.setTimeZone(TimeZone.getTimeZone(timeZone));
     }
   }
 
@@ -150,10 +150,12 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     }
 
     if (inputTextConverter != null) {
+      Timestamp timestamp;
       String textVal = (String) inputTextConverter.convert(arguments[0].get());
       if (textVal == null) {
         return null;
       }
+
       if (patternConverter != null) {
         if (arguments[1].get() == null) {
           return null;
@@ -163,26 +165,42 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
           return null;
         }
         if (!patternVal.equals(lasPattern)) {
-          formatter.applyPattern(patternVal);
+          formatter = getFormatter(patternVal);
           lasPattern = patternVal;
         }
+
+        try {
+          ZonedDateTime zonedDateTime = ZonedDateTime.parse(textVal, formatter.withZone(timeZone)).withZoneSameInstant(timeZone);
+          timestamp = new Timestamp(zonedDateTime.toLocalDateTime());
+        } catch (DateTimeException e1) {
+          try {
+            LocalDate localDate = LocalDate.parse(textVal, formatter);
+            timestamp = new Timestamp(localDate.atStartOfDay());
+          } catch (DateTimeException e3) {
+            return null;
+          }
+        }
+      } else {
+        try {
+          timestamp = Timestamp.valueOf(textVal);
+        } catch (IllegalArgumentException e) {
+          return null;
+        }
       }
-      try {
-        retValue.set(formatter.parse(textVal).getTime() / 1000);
-      } catch (ParseException e) {
-        return null;
-      }
+
+      TimestampTZ timestampTZ = TimestampTZUtil.convert(timestamp, timeZone);
+      retValue.set(timestampTZ.getEpochSecond());
     } else if (inputDateOI != null) {
       TimestampTZ timestampTZ = TimestampTZUtil.convert(
-          inputDateOI.getPrimitiveJavaObject(arguments[0].get()), timeZone);
+              inputDateOI.getPrimitiveJavaObject(arguments[0].get()), timeZone);
       retValue.set(timestampTZ.getEpochSecond());
     } else if (inputTimestampOI != null)  {
       TimestampTZ timestampTZ = TimestampTZUtil.convert(
-          inputTimestampOI.getPrimitiveJavaObject(arguments[0].get()), timeZone);
+              inputTimestampOI.getPrimitiveJavaObject(arguments[0].get()), timeZone);
       retValue.set(timestampTZ.getEpochSecond());
     } else {
       TimestampTZ timestampTZ =
-          inputTimestampLocalTzOI.getPrimitiveJavaObject(arguments[0].get());
+              inputTimestampLocalTzOI.getPrimitiveJavaObject(arguments[0].get());
       retValue.set(timestampTZ.getEpochSecond());
     }
 
@@ -191,11 +209,13 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
 
   @Override
   public String getDisplayString(String[] children) {
-    StringBuilder sb = new StringBuilder(32);
-    sb.append(getName());
-    sb.append('(');
-    sb.append(StringUtils.join(children, ','));
-    sb.append(')');
-    return sb.toString();
+    return getStandardDisplayString(getName(),children);
+  }
+
+  public DateTimeFormatter getFormatter(String pattern){
+    return new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendPattern(pattern)
+            .toFormatter();
   }
 }
