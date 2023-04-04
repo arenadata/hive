@@ -40,6 +40,15 @@ import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.Pr
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.io.Text;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils.PrimitiveGrouping.DATE_GROUP;
+import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils.PrimitiveGrouping.STRING_GROUP;
+
 /**
  * GenericUDFDateFormat.
  *
@@ -49,18 +58,17 @@ import org.apache.hadoop.io.Text;
  */
 @Description(name = "date_format", value = "_FUNC_(date/timestamp/string, fmt) - converts a date/timestamp/string "
     + "to a value of string in the format specified by the date format fmt.",
-    extended = "Supported formats are SimpleDateFormat formats - "
-        + "https://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html. "
+    extended = "Supported formats are DateTimeFormatter formats - "
+        + "https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html. "
         + "Second argument fmt should be constant.\n"
         + "Example: > SELECT _FUNC_('2015-04-08', 'y');\n '2015'")
 public class GenericUDFDateFormat extends GenericUDF {
-  private transient Converter[] tsConverters = new Converter[2];
-  private transient PrimitiveCategory[] tsInputTypes = new PrimitiveCategory[2];
-  private transient Converter[] dtConverters = new Converter[2];
-  private transient PrimitiveCategory[] dtInputTypes = new PrimitiveCategory[2];
-  private final java.util.Date date = new java.util.Date();
+  private final transient Converter[] tsConverters = new Converter[2];
+  private final transient PrimitiveCategory[] tsInputTypes = new PrimitiveCategory[2];
+
   private final Text output = new Text();
-  private transient SimpleDateFormat formatter;
+  private transient ZoneId timeZone;
+  private transient DateTimeFormatter formatter;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -72,12 +80,9 @@ public class GenericUDFDateFormat extends GenericUDF {
     // the function should support both short date and full timestamp format
     // time part of the timestamp should not be skipped
     checkArgGroups(arguments, 0, tsInputTypes, STRING_GROUP, DATE_GROUP);
-    checkArgGroups(arguments, 0, dtInputTypes, STRING_GROUP, DATE_GROUP);
-
     checkArgGroups(arguments, 1, tsInputTypes, STRING_GROUP);
 
     obtainTimestampConverter(arguments, 0, tsInputTypes, tsConverters);
-    obtainDateConverter(arguments, 0, dtInputTypes, dtConverters);
 
     if (arguments[1] instanceof ConstantObjectInspector) {
       String fmtStr = getConstantStringValue(arguments, 1);
@@ -93,12 +98,10 @@ public class GenericUDFDateFormat extends GenericUDF {
         }
       }
     } else {
-      throw new UDFArgumentTypeException(1, getFuncName() + " only takes constant as "
-          + getArgOrder(1) + " argument");
+      throw new UDFArgumentTypeException(1, getFuncName() + " only takes constant as " + getArgOrder(1) + " argument");
     }
 
-    ObjectInspector outputOI = PrimitiveObjectInspectorFactory.writableStringObjectInspector;
-    return outputOI;
+    return PrimitiveObjectInspectorFactory.writableStringObjectInspector;
   }
 
   @Override
@@ -110,6 +113,7 @@ public class GenericUDFDateFormat extends GenericUDF {
     // the function should support both short date and full timestamp format
     // time part of the timestamp should not be skipped
     Timestamp ts = getTimestampValue(arguments, 0, tsConverters);
+
     if (ts == null) {
       return null;
     }
