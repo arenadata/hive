@@ -71,14 +71,14 @@ public class TestGenericUDFToUnixTimestamp extends TestCase {
     Timestamp ts = Timestamp.valueOf("1970-01-01 00:00:00");
     TimestampTZ tstz = TimestampTZUtil.convert(ts, ZoneId.systemDefault());
     runAndVerify(udf,
-        new TimestampWritableV2(ts),
-        new LongWritable(tstz.getEpochSecond()));
+            new TimestampWritableV2(ts),
+            new LongWritable(tstz.getEpochSecond()));
 
     ts = Timestamp.valueOf("2001-02-03 01:02:03");
     tstz = TimestampTZUtil.convert(ts, ZoneId.systemDefault());
     runAndVerify(udf,
-        new TimestampWritableV2(ts),
-        new LongWritable(tstz.getEpochSecond()));
+            new TimestampWritableV2(ts),
+            new LongWritable(tstz.getEpochSecond()));
 
     // test null values
     runAndVerify(udf, null, null);
@@ -93,8 +93,8 @@ public class TestGenericUDFToUnixTimestamp extends TestCase {
     Date date = Date.valueOf("1970-01-01");
     TimestampTZ tstz = TimestampTZUtil.convert(date, ZoneId.systemDefault());
     runAndVerify(udf,
-        new DateWritableV2(date),
-        new LongWritable(tstz.getEpochSecond()));
+            new DateWritableV2(date),
+            new LongWritable(tstz.getEpochSecond()));
 
     // test null values
     runAndVerify(udf, null, null);
