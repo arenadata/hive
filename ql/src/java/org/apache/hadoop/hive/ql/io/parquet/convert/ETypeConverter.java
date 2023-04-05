@@ -854,12 +854,6 @@ public enum ETypeConverter {
               TypeInfo info = hiveTypeInfo == null ? TypeInfoFactory.timestampTypeInfo : hiveTypeInfo;
               return Optional.of(EINT64_CONVERTER.getConverter(type, index, parent, info));
             }
-
-            @Override
-            public Optional<PrimitiveConverter> visit(TimestampLogicalTypeAnnotation logicalTypeAnnotation) {
-              TypeInfo info = hiveTypeInfo == null ? TypeInfoFactory.timestampTypeInfo : hiveTypeInfo;
-              return Optional.of(EINT64_CONVERTER.getConverter(type, index, parent, info));
-            }
           });
 
       if (converter.isPresent()) {
