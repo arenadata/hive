@@ -17,13 +17,12 @@
  */
 package org.apache.hadoop.hive.shims;
 
-import org.apache.hadoop.util.VersionInfo;
-import org.apache.log4j.AppenderSkeleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.hadoop.util.VersionInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ShimLoader.
@@ -34,15 +33,12 @@ public abstract class ShimLoader {
   public static final String HADOOP23VERSIONNAME = "0.23";
 
   private static volatile HadoopShims hadoopShims;
-  private static JettyShims jettyShims;
-  private static AppenderSkeleton eventCounter;
-  private static SchedulerShim schedulerShim;
 
   /**
    * The names of the classes for shimming Hadoop for each major version.
    */
   private static final HashMap<String, String> HADOOP_SHIM_CLASSES =
-      new HashMap<String, String>();
+          new HashMap<String, String>();
 
   static {
     HADOOP_SHIM_CLASSES.put(HADOOP23VERSIONNAME, "org.apache.hadoop.hive.shims.Hadoop23Shims");
@@ -52,27 +48,27 @@ public abstract class ShimLoader {
    * The names of the classes for shimming Hadoop's event counter
    */
   private static final HashMap<String, String> EVENT_COUNTER_SHIM_CLASSES =
-      new HashMap<String, String>();
+          new HashMap<String, String>();
 
   static {
     EVENT_COUNTER_SHIM_CLASSES.put(HADOOP23VERSIONNAME, "org.apache.hadoop.log.metrics" +
-        ".EventCounter");
+            ".EventCounter");
   }
 
   /**
    * The names of the classes for shimming HadoopThriftAuthBridge
    */
   private static final HashMap<String, String> HADOOP_THRIFT_AUTH_BRIDGE_CLASSES =
-      new HashMap<String, String>();
+          new HashMap<String, String>();
 
   static {
     HADOOP_THRIFT_AUTH_BRIDGE_CLASSES.put(HADOOP23VERSIONNAME,
-        "org.apache.hadoop.hive.thrift.HadoopThriftAuthBridge23");
+            "org.apache.hadoop.hive.metastore.security.HadoopThriftAuthBridge23");
   }
 
 
   private static final String SCHEDULER_SHIM_CLASSE =
-    "org.apache.hadoop.hive.schshim.FairSchedulerShim";
+          "org.apache.hadoop.hive.schshim.FairSchedulerShim";
 
   /**
    * Factory method to get an instance of HadoopShims based on the
@@ -94,19 +90,6 @@ public abstract class ShimLoader {
     return hadoopShims;
   }
 
-  public static synchronized AppenderSkeleton getEventCounter() {
-    if (eventCounter == null) {
-      eventCounter = loadShims(EVENT_COUNTER_SHIM_CLASSES, AppenderSkeleton.class);
-    }
-    return eventCounter;
-  }
-
-  public static synchronized SchedulerShim getSchedulerShims() {
-    if (schedulerShim == null) {
-      schedulerShim = createShim(SCHEDULER_SHIM_CLASSE, SchedulerShim.class);
-    }
-    return schedulerShim;
-  }
 
   private static <T> T loadShims(Map<String, String> classMap, Class<T> xface) {
     String vers = getMajorVersion();
@@ -135,15 +118,15 @@ public abstract class ShimLoader {
     String[] parts = vers.split("\\.");
     if (parts.length < 2) {
       throw new RuntimeException("Illegal Hadoop Version: " + vers +
-          " (expected A.B.* format)");
+              " (expected A.B.* format)");
     }
 
     switch (Integer.parseInt(parts[0])) {
-    case 2:
-    case 3:
-      return HADOOP23VERSIONNAME;
-    default:
-      throw new IllegalArgumentException("Unrecognized Hadoop major version number: " + vers);
+      case 2:
+      case 3:
+        return HADOOP23VERSIONNAME;
+      default:
+        throw new IllegalArgumentException("Unrecognized Hadoop major version number: " + vers);
     }
   }
 
