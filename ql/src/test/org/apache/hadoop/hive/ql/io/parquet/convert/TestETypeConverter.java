@@ -72,7 +72,7 @@ public class TestETypeConverter {
   public void testGetDecimalConverter() throws Exception {
     TypeInfo hiveTypeInfo = new DecimalTypeInfo(7, 2);
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.BINARY)
-        .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
+            .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
     Writable writable = getWritableFromBinaryConverter(hiveTypeInfo, primitiveType, Binary.fromString("155"));
     HiveDecimalWritable decimalWritable = (HiveDecimalWritable) writable;
     assertEquals(2, decimalWritable.getScale());
@@ -81,9 +81,9 @@ public class TestETypeConverter {
   @Test
   public void testGetDecimalConverterIntHiveType() throws Exception {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.BINARY)
-        .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
+            .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
     Writable writable =
-        getWritableFromPrimitiveConverter(createHiveTypeInfo("int"), primitiveType, 2200);
+            getWritableFromPrimitiveConverter(createHiveTypeInfo("int"), primitiveType, 2200);
     IntWritable intWritable = (IntWritable) writable;
     assertEquals(22, intWritable.get());
   }
@@ -91,9 +91,9 @@ public class TestETypeConverter {
   @Test
   public void testGetDecimalConverterBigIntHiveType() throws Exception {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.BINARY)
-        .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
+            .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
     Writable writable =
-        getWritableFromPrimitiveConverter(createHiveTypeInfo("bigint"), primitiveType, 2200);
+            getWritableFromPrimitiveConverter(createHiveTypeInfo("bigint"), primitiveType, 2200);
     LongWritable longWritable = (LongWritable) writable;
     assertEquals(22, longWritable.get());
   }
@@ -101,9 +101,9 @@ public class TestETypeConverter {
   @Test
   public void testGetDecimalConverterFloatHiveType() throws Exception {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.BINARY)
-        .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
+            .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
     Writable writable =
-        getWritableFromPrimitiveConverter(createHiveTypeInfo("float"), primitiveType, 2200);
+            getWritableFromPrimitiveConverter(createHiveTypeInfo("float"), primitiveType, 2200);
     FloatWritable floatWritable = (FloatWritable) writable;
     assertEquals(22, (int)floatWritable.get());
   }
@@ -111,9 +111,9 @@ public class TestETypeConverter {
   @Test
   public void testGetDecimalConverterDoubleHiveType() throws Exception {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.BINARY)
-        .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
+            .as(LogicalTypeAnnotation.decimalType(2, 7)).named("value");
     Writable writable =
-        getWritableFromPrimitiveConverter(createHiveTypeInfo("double"), primitiveType, 2200);
+            getWritableFromPrimitiveConverter(createHiveTypeInfo("double"), primitiveType, 2200);
     DoubleWritable doubleWritable = (DoubleWritable) writable;
     assertEquals(22, (int) doubleWritable.get());
   }
@@ -167,7 +167,7 @@ public class TestETypeConverter {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT64).named("int64");
     getWritableFromPrimitiveConverter(TypeInfoFactory.timestampTypeInfo, primitiveType, ts.toEpochMilli());
   }
-  
+
   private void testGetInt64TimestampConverterNumericHiveType(String timestamp, String type, Object expected) {
     Timestamp ts = Timestamp.valueOf(timestamp);
     PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MILLIS);
@@ -175,25 +175,25 @@ public class TestETypeConverter {
     Writable writable = getWritableFromPrimitiveConverter(info, primitiveType, ts.toEpochMilli());
     final Object actual;
     switch (info.getPrimitiveCategory()) {
-    case BYTE:
-    case SHORT:
-    case INT:
-      actual = ((IntWritable) writable).get();
-      break;
-    case LONG:
-      actual = ((LongWritable) writable).get();
-      break;
-    case FLOAT:
-      actual = ((FloatWritable) writable).get();
-      break;
-    case DOUBLE:
-      actual = ((DoubleWritable) writable).get();
-      break;
-    case DECIMAL:
-      actual = ((HiveDecimalWritable) writable).getHiveDecimal();
-      break;
-    default:
-      throw new IllegalStateException(info.toString());
+      case BYTE:
+      case SHORT:
+      case INT:
+        actual = ((IntWritable) writable).get();
+        break;
+      case LONG:
+        actual = ((LongWritable) writable).get();
+        break;
+      case FLOAT:
+        actual = ((FloatWritable) writable).get();
+        break;
+      case DOUBLE:
+        actual = ((DoubleWritable) writable).get();
+        break;
+      case DECIMAL:
+        actual = ((HiveDecimalWritable) writable).getHiveDecimal();
+        break;
+      default:
+        throw new IllegalStateException(info.toString());
     }
     assertEquals(expected, actual);
   }
@@ -202,82 +202,6 @@ public class TestETypeConverter {
   public void testGetInt96TimestampConverterBigIntHiveType() {
     Timestamp timestamp = Timestamp.valueOf("1998-10-03 09:58:31.231");
     NanoTime nanoTime = NanoTimeUtils.getNanoTime(timestamp, ZoneOffset.UTC, false);
-    PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT96).named("value");
-    Writable writable = getWritableFromBinaryConverter(createHiveTypeInfo("bigint"), primitiveType, nanoTime.toBinary());
-    // Retrieve as BigInt
-    LongWritable longWritable = (LongWritable) writable;
-    assertEquals(nanoTime.getTimeOfDayNanos(), longWritable.get());
-  }
-
-  @Test
-  public void testGetInt64TimestampConverterBigIntHiveType() {
-    testGetInt64TimestampConverterNumericHiveType("1998-10-03 09:58:31.231", "bigint", 907408711231L);
-  }
-
-  @Test
-  public void testGetInt64TimestampConverterFloatHiveType() {
-    testGetInt64TimestampConverterNumericHiveType("1970-01-01 00:00:00.005", "float", 5.0f);
-  }
-
-  @Test
-  public void testGetInt64TimestampConverterDoubleHiveType() {
-    testGetInt64TimestampConverterNumericHiveType("1970-01-01 00:00:00.005", "double", 5.0d);
-  }
-
-  @Test
-  public void testGetInt64TimestampConverterDecimalHiveType() {
-    testGetInt64TimestampConverterNumericHiveType("1970-01-01 00:00:00.005", "decimal(1,0)", HiveDecimal.create(5));
-  }
-
-  @Test
-  public void testGetInt64TimestampConverterNoHiveType() {
-    Timestamp ts = Timestamp.valueOf("2022-10-24 11:35:00.005");
-    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MILLIS);
-    Writable writable = getWritableFromPrimitiveConverter(null, primitiveType, ts.toEpochMilli());
-    assertEquals("2022-10-24 11:35:00.005", ((TimestampWritableV2) writable).getTimestamp().toString());
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void testGetInt64NoLogicalAnnotationTimestampHiveType() {
-    Timestamp ts = Timestamp.valueOf("2022-10-24 11:43:00.005");
-    PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT64).named("int64");
-    getWritableFromPrimitiveConverter(TypeInfoFactory.timestampTypeInfo, primitiveType, ts.toEpochMilli());
-  }
-  
-  private void testGetInt64TimestampConverterNumericHiveType(String timestamp, String type, Object expected) {
-    Timestamp ts = Timestamp.valueOf(timestamp);
-    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MILLIS);
-    PrimitiveTypeInfo info = getPrimitiveTypeInfo(type);
-    Writable writable = getWritableFromPrimitiveConverter(info, primitiveType, ts.toEpochMilli());
-    final Object actual;
-    switch (info.getPrimitiveCategory()) {
-    case BYTE:
-    case SHORT:
-    case INT:
-      actual = ((IntWritable) writable).get();
-      break;
-    case LONG:
-      actual = ((LongWritable) writable).get();
-      break;
-    case FLOAT:
-      actual = ((FloatWritable) writable).get();
-      break;
-    case DOUBLE:
-      actual = ((DoubleWritable) writable).get();
-      break;
-    case DECIMAL:
-      actual = ((HiveDecimalWritable) writable).getHiveDecimal();
-      break;
-    default:
-      throw new IllegalStateException(info.toString());
-    }
-    assertEquals(expected, actual);
-  }
-
-  @Test
-  public void testGetInt96TimestampConverterBigIntHiveType() {
-    Timestamp timestamp = Timestamp.valueOf("1998-10-03 09:58:31.231");
-    NanoTime nanoTime = NanoTimeUtils.getNanoTime(timestamp, true);
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT96).named("value");
     Writable writable = getWritableFromBinaryConverter(createHiveTypeInfo("bigint"), primitiveType, nanoTime.toBinary());
     // Retrieve as BigInt
@@ -292,69 +216,6 @@ public class TestETypeConverter {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT96).named("value");
     Writable writable = getWritableFromBinaryConverter(null, primitiveType, nanoTime.toBinary());
     TimestampWritableV2 timestampWritable = (TimestampWritableV2) writable;
-    assertEquals(timestamp.getNanos(), timestampWritable.getNanos());
-  }
-
-  @Test
-  public void testGetTimestampProlepticConverter() throws Exception {
-    Timestamp timestamp = Timestamp.valueOf("1572-06-15 15:12:20.0");
-    NanoTime nanoTime = NanoTimeUtils.getNanoTime(timestamp, true);
-    PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT96).named("value");
-    Writable writable = getWritableFromBinaryConverter(null, primitiveType, nanoTime.toBinary());
-    TimestampWritableV2 timestampWritable = (TimestampWritableV2) writable;
-    assertEquals(timestamp.getNanos(), timestampWritable.getNanos());
-  }
-
-  @Test
-  public void testGetInt64MillisTimestampConverter() throws Exception {
-    Timestamp timestamp = Timestamp.valueOf("2018-07-15 15:12:20.112");
-    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MILLIS);
-    Writable writable = getWritableFromPrimitiveConverter(null, primitiveType, timestamp.toEpochMilli());
-    TimestampWritableV2 timestampWritable = (TimestampWritableV2) writable;
-    assertEquals(timestamp.toEpochMilli(), timestampWritable.getTimestamp().toEpochMilli());
-  }
-
-  @Test
-  public void testGetInt64MillisTimestampProlepticConverter() throws Exception {
-    Timestamp timestamp = Timestamp.valueOf("1572-07-15 15:12:20.112");
-    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MILLIS);
-    Writable writable = getWritableFromPrimitiveConverter(null, primitiveType, timestamp.toEpochMilli());
-    TimestampWritableV2 timestampWritable = (TimestampWritableV2) writable;
-    assertEquals(timestamp.toEpochMilli(), timestampWritable.getTimestamp().toEpochMilli());
-  }
-
-  @Test
-  public void testGetInt64MicrosTimestampConverter() throws Exception {
-    Timestamp timestamp = Timestamp.valueOf("2018-07-15 15:12:20.112233");
-    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MICROS);
-    long time = timestamp.toEpochSecond() * 1000000 + timestamp.getNanos() / 1000;
-    Writable writable = getWritableFromPrimitiveConverter(null, primitiveType, time);
-    TimestampWritableV2 timestampWritable = (TimestampWritableV2) writable;
-    assertEquals(timestamp.toEpochMilli(), timestampWritable.getTimestamp().toEpochMilli());
-    assertEquals(timestamp.getNanos(), timestampWritable.getNanos());
-  }
-
-  @Test
-  public void testGetInt64NanosTimestampConverter() throws Exception {
-    Timestamp timestamp = Timestamp.valueOf("2018-07-15 15:12:20.11223344");
-    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.NANOS);
-    long time = timestamp.toEpochSecond() * 1000000000 + timestamp.getNanos();
-    Writable writable = getWritableFromPrimitiveConverter(null, primitiveType, time);
-    TimestampWritableV2 timestampWritable = (TimestampWritableV2) writable;
-    assertEquals(timestamp.toEpochMilli(), timestampWritable.getTimestamp().toEpochMilli());
-    assertEquals(timestamp.getNanos(), timestampWritable.getNanos());
-  }
-
-  @Test
-  public void testGetInt64NanosAdjustedToUTCTimestampConverter() throws Exception {
-    ZoneId zone = ZoneId.systemDefault();
-    Timestamp timestamp = Timestamp.valueOf("2018-07-15 15:12:20.11223344");
-    PrimitiveType primitiveType = createInt64TimestampType(true, TimeUnit.NANOS);
-    long time = timestamp.toEpochSecond() * 1000000000 + timestamp.getNanos();
-    Writable writable = getWritableFromPrimitiveConverter(null, primitiveType, time);
-    TimestampWritableV2 timestampWritable = (TimestampWritableV2) writable;
-    timestamp = Timestamp.ofEpochSecond(timestamp.toEpochSecond(), timestamp.getNanos(), zone);
-    assertEquals(timestamp.toEpochMilli(), timestampWritable.getTimestamp().toEpochMilli());
     assertEquals(timestamp.getNanos(), timestampWritable.getNanos());
   }
 
@@ -474,7 +335,7 @@ public class TestETypeConverter {
   @Test
   public void testGetTextConverterNoHiveTypeInfo() {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.BINARY)
-        .as(LogicalTypeAnnotation.stringType()).named("value");
+            .as(LogicalTypeAnnotation.stringType()).named("value");
     String value = "this_is_a_value";
     Text textWritable = (Text) getWritableFromBinaryConverter(null, primitiveType, Binary.fromString(value));
     assertEquals(value, textWritable.toString());
@@ -483,9 +344,9 @@ public class TestETypeConverter {
   @Test
   public void testGetIntConverterForTinyInt() throws Exception {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT32)
-        .as(LogicalTypeAnnotation.intType(8, false)).named("value");
+            .as(LogicalTypeAnnotation.intType(8, false)).named("value");
     Writable writable =
-        getWritableFromPrimitiveConverter(createHiveTypeInfo("tinyint"), primitiveType, 125);
+            getWritableFromPrimitiveConverter(createHiveTypeInfo("tinyint"), primitiveType, 125);
     IntWritable intWritable = (IntWritable) writable;
     assertEquals(125, intWritable.get());
   }
@@ -517,9 +378,9 @@ public class TestETypeConverter {
   @Test
   public void testGetIntConverterForSmallint() throws Exception {
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT32)
-        .as(LogicalTypeAnnotation.intType(16, false)).named("value");
+            .as(LogicalTypeAnnotation.intType(16, false)).named("value");
     Writable writable =
-        getWritableFromPrimitiveConverter(createHiveTypeInfo("smallint"), primitiveType, 32766);
+            getWritableFromPrimitiveConverter(createHiveTypeInfo("smallint"), primitiveType, 32766);
     IntWritable intWritable = (IntWritable) writable;
     assertEquals(32766, intWritable.get());
   }
@@ -570,7 +431,7 @@ public class TestETypeConverter {
     MyConverterParent converterParent = new MyConverterParent();
     PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.FLOAT).named("value");
     PrimitiveConverter converter =
-        ETypeConverter.getNewConverter(primitiveType, 1, converterParent, createHiveTypeInfo("double"));
+            ETypeConverter.getNewConverter(primitiveType, 1, converterParent, createHiveTypeInfo("double"));
     ((PrimitiveConverter) converter).addFloat(3276f);
     Writable writable = converterParent.getValue();
     DoubleWritable doubleWritable = (DoubleWritable) writable;
@@ -600,7 +461,7 @@ public class TestETypeConverter {
   public void testGetConverterForList() {
     MyConverterParent converterParent = new MyConverterParent();
     GroupType type =
-        Types.optionalList().element(Types.optional(PrimitiveTypeName.INT64).named("value")).named("array");
+            Types.optionalList().element(Types.optional(PrimitiveTypeName.INT64).named("value")).named("array");
     HiveGroupConverter f = HiveGroupConverter.getConverterFromDescription(type, 1, converterParent, null);
     assertTrue(f instanceof HiveCollectionConverter);
   }
@@ -609,7 +470,7 @@ public class TestETypeConverter {
   public void testGetConverterForMap() {
     MyConverterParent converterParent = new MyConverterParent();
     GroupType type = Types.optionalMap().key(Types.optional(PrimitiveTypeName.INT64).named("key"))
-        .value(Types.optional(PrimitiveTypeName.INT64).named("value")).named("map");
+            .value(Types.optional(PrimitiveTypeName.INT64).named("value")).named("map");
     HiveGroupConverter f = HiveGroupConverter.getConverterFromDescription(type, 1, converterParent, null);
     assertTrue(f instanceof HiveCollectionConverter);
   }
@@ -623,7 +484,7 @@ public class TestETypeConverter {
   }
 
   private Writable getWritableFromBinaryConverter(TypeInfo hiveTypeInfo, PrimitiveType primitiveType,
-      Binary valueToAdd) {
+                                                  Binary valueToAdd) {
     MyConverterParent converterParent = new MyConverterParent();
     PrimitiveConverter converter = ETypeConverter.getNewConverter(primitiveType, 1, converterParent, hiveTypeInfo);
     ((BinaryConverter) converter).addBinary(valueToAdd);
@@ -631,7 +492,7 @@ public class TestETypeConverter {
   }
 
   private Writable getWritableFromPrimitiveConverter(TypeInfo hiveTypeInfo, PrimitiveType primitiveType,
-      Integer valueToAdd) {
+                                                     Integer valueToAdd) {
     MyConverterParent converterParent = new MyConverterParent();
     PrimitiveConverter converter = ETypeConverter.getNewConverter(primitiveType, 1, converterParent, hiveTypeInfo);
     ((PrimitiveConverter) converter).addInt(valueToAdd);
@@ -639,15 +500,7 @@ public class TestETypeConverter {
   }
 
   private Writable getWritableFromPrimitiveConverter(TypeInfo hiveTypeInfo, PrimitiveType primitiveType,
-      Long valueToAdd) {
-    MyConverterParent converterParent = new MyConverterParent();
-    PrimitiveConverter converter = ETypeConverter.getNewConverter(primitiveType, 1, converterParent, hiveTypeInfo);
-    ((PrimitiveConverter) converter).addLong(valueToAdd);
-    return converterParent.getValue();
-  }
-
-  private Writable getWritableFromPrimitiveConverter(TypeInfo hiveTypeInfo, PrimitiveType primitiveType,
-      Long valueToAdd) {
+                                                     Long valueToAdd) {
     MyConverterParent converterParent = new MyConverterParent();
     PrimitiveConverter converter = ETypeConverter.getNewConverter(primitiveType, 1, converterParent, hiveTypeInfo);
     ((PrimitiveConverter) converter).addLong(valueToAdd);
