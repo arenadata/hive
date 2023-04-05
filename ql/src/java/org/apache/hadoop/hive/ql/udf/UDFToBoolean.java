@@ -42,6 +42,10 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.hive.common.type.TimestampTZ;
+import org.apache.hadoop.hive.common.type.TimestampTZUtil;
+import org.apache.hadoop.hive.conf.HiveConf;
+import java.time.ZoneId;
 
 /**
  * UDFToBoolean.
@@ -188,9 +192,11 @@ public class UDFToBoolean extends UDF {
     if (i == null) {
       return null;
     } else {
-      booleanWritable.set(i.getSeconds() != 0 || i.getNanos() != 0);
+      TimestampTZ timestamp = UDFUtils.getTimestampTZFromTimestamp(i.getTimestamp());
+      booleanWritable.set((timestamp.getEpochSecond() != 0) || (timestamp.getNanos() != 0));
       return booleanWritable;
     }
+
   }
 
   public BooleanWritable evaluate(HiveDecimalWritable i) {

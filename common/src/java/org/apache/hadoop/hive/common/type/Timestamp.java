@@ -17,13 +17,16 @@
  */
 package org.apache.hadoop.hive.common.type;
 
+
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
@@ -36,43 +39,66 @@ import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
 import static java.time.temporal.ChronoField.YEAR;
 
 /**
- * This is the internal type for Timestamp.
- * The full qualified input format of Timestamp is
- * "yyyy-MM-dd HH:mm:ss[.SSS...]", where the time part is optional.
+ * This is the internal type for Timestamp. The full qualified input format of
+ * Timestamp is "uuuu-MM-dd HH:mm:ss[.SSS...]", where the time part is optional.
  * If time part is absent, a default '00:00:00.0' will be used.
+ *
+ * <table border="2" summary="">
+ * <tr>
+ * <th>Field</th>
+ * <th>Format</th>
+ * <th>Description</th>
+ * </tr>
+ * <tr>
+ * <td>Year</td>
+ * <td>uuuu</td>
+ * <td>The proleptic year, such as 2012. This represents the concept of the
+ * year, counting sequentially and using negative numbers.</td>
+ * </tr>
+ * <tr>
+ * <td>Month of Year</td>
+ * <td>MM</td>
+ * <td>The month-of-year, such as March. This represents the concept of the
+ * month within the year. In the default ISO calendar system, this has values
+ * from January (1) to December (12).</td>
+ * </tr>
+ * <tr>
+ * <td>Day of Month</td>
+ * <td>dd</td>
+ * <td>This represents the concept of the day within the month. In the default
+ * ISO calendar system, this has values from 1 to 31 in most months.</td>
+ * </tr>
+ * </table>
+ * <p>
+ * The {@link ChronoField#YEAR} and "uuuu" format string indicate the year. This
+ * is not to be confused with the more common "yyyy" which standard for
+ * "year-of-era" in Java. One important difference is that "year" includes
+ * negative numbers whereas the "year-of-era" value should typically always be
+ * positive.
+ * </p>
+ *
+ * @see java.time.temporal.ChronoField#YEAR
+ * @see java.time.temporal.ChronoField#YEAR_OF_ERA
  */
 public class Timestamp implements Comparable<Timestamp> {
-  
-  private static final LocalDateTime EPOCH = LocalDateTime.of(1970, 1, 1, 0, 0, 0);
-  private static final DateTimeFormatter PARSE_FORMATTER;
-  private static final DateTimeFormatter PRINT_FORMATTER;
 
-  static {
-    DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder();
-    // Date part
-    builder.appendValue(YEAR, 1, 10, SignStyle.NORMAL)
-        .appendLiteral('-')
-        .appendValue(MONTH_OF_YEAR, 1, 2, SignStyle.NORMAL)
-        .appendLiteral('-')
-        .appendValue(DAY_OF_MONTH, 1, 2, SignStyle.NORMAL);
-    // Time part
-    builder
-        .optionalStart().appendLiteral(" ")
-        .appendValue(HOUR_OF_DAY, 1, 2, SignStyle.NORMAL)
-        .appendLiteral(':')
-        .appendValue(MINUTE_OF_HOUR, 1, 2, SignStyle.NORMAL)
-        .appendLiteral(':')
-        .appendValue(SECOND_OF_MINUTE, 1, 2, SignStyle.NORMAL)
-        .optionalStart().appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true).optionalEnd()
-        .optionalEnd();
-    PARSE_FORMATTER = builder.toFormatter().withResolverStyle(ResolverStyle.LENIENT);
-    builder = new DateTimeFormatterBuilder();
-    // Date and time parts
-    builder.append(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-    // Fractional part
-    builder.optionalStart().appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true).optionalEnd();
-    PRINT_FORMATTER = builder.toFormatter();
-  }
+  private static final LocalDateTime EPOCH = LocalDateTime.of(1970, 1, 1, 0, 0, 0);
+  private static final DateTimeFormatter PARSE_FORMATTER = new DateTimeFormatterBuilder()
+          // Date
+          .appendValue(YEAR, 1, 10, SignStyle.NORMAL).appendLiteral('-').appendValue(MONTH_OF_YEAR, 1, 2, SignStyle.NORMAL)
+          .appendLiteral('-').appendValue(DAY_OF_MONTH, 1, 2, SignStyle.NORMAL)
+          // Time (Optional)
+          .optionalStart().appendLiteral(" ").appendValue(HOUR_OF_DAY, 1, 2, SignStyle.NORMAL).appendLiteral(':')
+          .appendValue(MINUTE_OF_HOUR, 1, 2, SignStyle.NORMAL).appendLiteral(':')
+          .appendValue(SECOND_OF_MINUTE, 1, 2, SignStyle.NORMAL).optionalStart()
+          .appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true).optionalEnd().optionalEnd().toFormatter()
+          .withResolverStyle(ResolverStyle.STRICT);
+
+  private static final DateTimeFormatter PRINT_FORMATTER = new DateTimeFormatterBuilder()
+          // Date and Time Parts
+          .append(DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss"))
+          // Fractional Part (Optional)
+          .optionalStart().appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true).optionalEnd().toFormatter();
 
   private LocalDateTime localDateTime;
 
@@ -128,7 +154,7 @@ public class Timestamp implements Comparable<Timestamp> {
 
   public void setTimeInSeconds(long epochSecond, int nanos) {
     localDateTime = LocalDateTime.ofEpochSecond(
-        epochSecond, nanos, ZoneOffset.UTC);
+            epochSecond, nanos, ZoneOffset.UTC);
   }
 
   public long toEpochMilli() {
@@ -141,13 +167,13 @@ public class Timestamp implements Comparable<Timestamp> {
 
   public void setTimeInMillis(long epochMilli) {
     localDateTime = LocalDateTime.ofInstant(
-        Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC);
+            Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC);
   }
 
   public void setTimeInMillis(long epochMilli, int nanos) {
     localDateTime = LocalDateTime
-        .ofInstant(Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC)
-        .withNano(nanos);
+            .ofInstant(Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC)
+            .withNano(nanos);
   }
 
   public int getNanos() {
@@ -159,15 +185,20 @@ public class Timestamp implements Comparable<Timestamp> {
     LocalDateTime localDateTime;
     try {
       localDateTime = LocalDateTime.parse(s, PARSE_FORMATTER);
-    } catch (DateTimeParseException e) {
+    } catch (DateTimeException e) {
       // Try ISO-8601 format
       try {
         localDateTime = LocalDateTime.parse(s);
-      } catch (DateTimeParseException e2) {
-        throw new IllegalArgumentException("Cannot create timestamp, parsing error");
+      } catch (DateTimeException e2) {
+        throw new IllegalArgumentException("Cannot create timestamp, parsing error " + s);
       }
     }
     return new Timestamp(localDateTime);
+  }
+
+  public static Timestamp getTimestampFromTime(String s) {
+    return new Timestamp(LocalDateTime.of(LocalDate.now(),
+            LocalTime.parse(s, DateTimeFormatter.ISO_LOCAL_TIME)));
   }
 
   public static Timestamp ofEpochSecond(long epochSecond) {
@@ -176,23 +207,27 @@ public class Timestamp implements Comparable<Timestamp> {
 
   public static Timestamp ofEpochSecond(long epochSecond, int nanos) {
     return new Timestamp(
-        LocalDateTime.ofEpochSecond(epochSecond, nanos, ZoneOffset.UTC));
+            LocalDateTime.ofEpochSecond(epochSecond, nanos, ZoneOffset.UTC));
+  }
+
+  public static Timestamp ofEpochSecond(long epochSecond, long nanos, ZoneId zone) {
+    return new Timestamp(LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond, nanos), zone));
   }
 
   public static Timestamp ofEpochMilli(long epochMilli) {
     return new Timestamp(LocalDateTime
-        .ofInstant(Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC));
+            .ofInstant(Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC));
   }
 
   public static Timestamp ofEpochMilli(long epochMilli, ZoneId id) {
     return new Timestamp(LocalDateTime
-        .ofInstant(Instant.ofEpochMilli(epochMilli), id));
+            .ofInstant(Instant.ofEpochMilli(epochMilli), id));
   }
 
   public static Timestamp ofEpochMilli(long epochMilli, int nanos) {
     return new Timestamp(LocalDateTime
-        .ofInstant(Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC)
-        .withNano(nanos));
+            .ofInstant(Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC)
+            .withNano(nanos));
   }
 
   public void setNanos(int nanos) {

@@ -59,6 +59,7 @@ public final class OrcFile extends org.apache.orc.OrcFile {
     public ReaderOptions(Configuration conf) {
       super(conf);
       useUTCTimestamp(true);
+      convertToProlepticGregorian(true);
     }
 
     public ReaderOptions filesystem(FileSystem fs) {
@@ -83,6 +84,11 @@ public final class OrcFile extends org.apache.orc.OrcFile {
 
     public ReaderOptions useUTCTimestamp(boolean value) {
       super.useUTCTimestamp(value);
+      return this;
+    }
+
+    public ReaderOptions convertToProlepticGregorian(boolean value) {
+      super.convertToProlepticGregorian(value);
       return this;
     }
   }
@@ -284,6 +290,11 @@ public final class OrcFile extends org.apache.orc.OrcFile {
 
     public WriterOptions useUTCTimestamp(boolean value) {
       super.useUTCTimestamp(value);
+      return this;
+    }
+
+    public WriterOptions setProlepticGregorian(boolean value) {
+      super.setProlepticGregorian(value);
       return this;
     }
 
