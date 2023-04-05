@@ -129,7 +129,7 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     timeZone = SessionState.get() == null ? new HiveConf().getLocalTimeZone() : SessionState.get().getConf()
             .getLocalTimeZone();
     formatter = getFormatter(lasPattern);
-    
+
   }
 
   @Override
