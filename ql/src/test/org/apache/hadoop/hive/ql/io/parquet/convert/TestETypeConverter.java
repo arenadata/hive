@@ -210,6 +210,82 @@ public class TestETypeConverter {
   }
 
   @Test
+  public void testGetInt64TimestampConverterBigIntHiveType() {
+    testGetInt64TimestampConverterNumericHiveType("1998-10-03 09:58:31.231", "bigint", 907408711231L);
+  }
+
+  @Test
+  public void testGetInt64TimestampConverterFloatHiveType() {
+    testGetInt64TimestampConverterNumericHiveType("1970-01-01 00:00:00.005", "float", 5.0f);
+  }
+
+  @Test
+  public void testGetInt64TimestampConverterDoubleHiveType() {
+    testGetInt64TimestampConverterNumericHiveType("1970-01-01 00:00:00.005", "double", 5.0d);
+  }
+
+  @Test
+  public void testGetInt64TimestampConverterDecimalHiveType() {
+    testGetInt64TimestampConverterNumericHiveType("1970-01-01 00:00:00.005", "decimal(1,0)", HiveDecimal.create(5));
+  }
+
+  @Test
+  public void testGetInt64TimestampConverterNoHiveType() {
+    Timestamp ts = Timestamp.valueOf("2022-10-24 11:35:00.005");
+    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MILLIS);
+    Writable writable = getWritableFromPrimitiveConverter(null, primitiveType, ts.toEpochMilli());
+    assertEquals("2022-10-24 11:35:00.005", ((TimestampWritableV2) writable).getTimestamp().toString());
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testGetInt64NoLogicalAnnotationTimestampHiveType() {
+    Timestamp ts = Timestamp.valueOf("2022-10-24 11:43:00.005");
+    PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT64).named("int64");
+    getWritableFromPrimitiveConverter(TypeInfoFactory.timestampTypeInfo, primitiveType, ts.toEpochMilli());
+  }
+  
+  private void testGetInt64TimestampConverterNumericHiveType(String timestamp, String type, Object expected) {
+    Timestamp ts = Timestamp.valueOf(timestamp);
+    PrimitiveType primitiveType = createInt64TimestampType(false, TimeUnit.MILLIS);
+    PrimitiveTypeInfo info = getPrimitiveTypeInfo(type);
+    Writable writable = getWritableFromPrimitiveConverter(info, primitiveType, ts.toEpochMilli());
+    final Object actual;
+    switch (info.getPrimitiveCategory()) {
+    case BYTE:
+    case SHORT:
+    case INT:
+      actual = ((IntWritable) writable).get();
+      break;
+    case LONG:
+      actual = ((LongWritable) writable).get();
+      break;
+    case FLOAT:
+      actual = ((FloatWritable) writable).get();
+      break;
+    case DOUBLE:
+      actual = ((DoubleWritable) writable).get();
+      break;
+    case DECIMAL:
+      actual = ((HiveDecimalWritable) writable).getHiveDecimal();
+      break;
+    default:
+      throw new IllegalStateException(info.toString());
+    }
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testGetInt96TimestampConverterBigIntHiveType() {
+    Timestamp timestamp = Timestamp.valueOf("1998-10-03 09:58:31.231");
+    NanoTime nanoTime = NanoTimeUtils.getNanoTime(timestamp, true);
+    PrimitiveType primitiveType = Types.optional(PrimitiveTypeName.INT96).named("value");
+    Writable writable = getWritableFromBinaryConverter(createHiveTypeInfo("bigint"), primitiveType, nanoTime.toBinary());
+    // Retrieve as BigInt
+    LongWritable longWritable = (LongWritable) writable;
+    assertEquals(nanoTime.getTimeOfDayNanos(), longWritable.get());
+  }
+
+  @Test
   public void testGetTimestampConverter() throws Exception {
     Timestamp timestamp = Timestamp.valueOf("2018-06-15 15:12:20.0");
     NanoTime nanoTime = NanoTimeUtils.getNanoTime(timestamp, ZoneOffset.UTC, false);
