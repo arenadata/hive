@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.common.type.TimestampTZ;
 import org.apache.hadoop.hive.common.type.TimestampTZUtil;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -128,7 +129,7 @@ public class GenericUDFToUnixTimeStamp extends GenericUDF {
     timeZone = SessionState.get() == null ? new HiveConf().getLocalTimeZone() : SessionState.get().getConf()
             .getLocalTimeZone();
     formatter = getFormatter(lasPattern);
-    }
+    
   }
 
   @Override
