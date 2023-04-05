@@ -13,6 +13,7 @@
  */
 package org.apache.hadoop.hive.ql.io.parquet.write;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.common.type.Date;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.Timestamp;
@@ -20,6 +21,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe;
 import org.apache.hadoop.hive.ql.io.parquet.timestamp.NanoTimeUtils;
 import org.apache.hadoop.hive.common.type.CalendarUtils;
+import org.apache.hadoop.hive.ql.io.parquet.timestamp.ParquetTimestampUtils;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
 import org.apache.hadoop.hive.serde2.io.ParquetHiveRecord;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
@@ -73,16 +75,22 @@ public class DataWritableWriter {
   /* This writer will be created when writing the first row in order to get
   information about how to inspect the record data.  */
   private DataWriter messageWriter;
+  private Configuration conf;
 
   public DataWritableWriter(final RecordConsumer recordConsumer, final GroupType schema,
-      final boolean defaultDateProleptic) {
+      final boolean defaultDateProleptic, final Configuration conf) {
     this.recordConsumer = recordConsumer;
     this.schema = schema;
     this.defaultDateProleptic = defaultDateProleptic;
-    this.isLegacyZoneConversion =
-            HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_WRITE_LEGACY_CONVERSION_ENABLED.defaultBoolVal;
+    this.conf = conf;
+    if (conf != null) {
+      this.isLegacyZoneConversion =
+              HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_WRITE_LEGACY_CONVERSION_ENABLED);
+    }
+    else {
+      this.isLegacyZoneConversion = HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_WRITE_LEGACY_CONVERSION_ENABLED.defaultBoolVal;
+    }
   }
-
   /**
    * It writes a record to Parquet.
    * @param record Contains the record that is going to be written.
@@ -206,16 +214,23 @@ public class DataWritableWriter {
       for (int i = 0; i < structFields.size(); i++) {
         StructField field = structFields.get(i);
         Object fieldValue = inspector.getStructFieldData(value, field);
+        DataWriter writer = structWriters[i];
 
-        if (fieldValue != null) {
+        if (fieldValue != null && isValidValue(fieldValue, writer)) {
           String fieldName = field.getFieldName();
-          DataWriter writer = structWriters[i];
 
           recordConsumer.startField(fieldName, i);
           writer.write(fieldValue);
           recordConsumer.endField(fieldName, i);
         }
       }
+    }
+
+    private boolean isValidValue(Object fieldValue, DataWriter writer) {
+      if (writer instanceof TimestampDataWriter) {
+        return ((TimestampDataWriter) writer).isValidTimestamp(fieldValue);
+      }
+      return true;
     }
   }
 
@@ -499,18 +514,43 @@ public class DataWritableWriter {
 
   private class TimestampDataWriter implements DataWriter {
     private TimestampObjectInspector inspector;
+    boolean useInt64;
+    LogicalTypeAnnotation.TimeUnit timeUnit;
 
     public TimestampDataWriter(TimestampObjectInspector inspector) {
       this.inspector = inspector;
+      String timeUnitVal;
+      if (conf != null) {
+        useInt64 = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_PARQUET_WRITE_INT64_TIMESTAMP);
+        timeUnitVal = HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_TIME_UNIT);
+      } else { //use defaults
+        useInt64 = HiveConf.ConfVars.HIVE_PARQUET_WRITE_INT64_TIMESTAMP.defaultBoolVal;
+        timeUnitVal = HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_TIME_UNIT.defaultStrVal;
+      }
+      timeUnit = LogicalTypeAnnotation.TimeUnit.valueOf(timeUnitVal.toUpperCase());
     }
 
     @Override
     public void write(Object value) {
       Timestamp ts = inspector.getPrimitiveJavaObject(value);
-      recordConsumer.addBinary(
-              NanoTimeUtils.getNanoTime(ts, TimeZone.getDefault().toZoneId(), isLegacyZoneConversion).toBinary());
+      if (useInt64) {
+        Long int64value = ParquetTimestampUtils.getInt64(ts, timeUnit);
+        recordConsumer.addLong(int64value);
+      } else {
+        recordConsumer.addBinary(
+                NanoTimeUtils.getNanoTime(ts, TimeZone.getDefault().toZoneId(), isLegacyZoneConversion).toBinary());      }
+    }
+
+    boolean isValidTimestamp(Object fieldValue) {
+      // only check if int64 time unit is nanos
+      if (useInt64 && timeUnit == LogicalTypeAnnotation.TimeUnit.NANOS) {
+        Timestamp ts = inspector.getPrimitiveJavaObject(fieldValue);
+        return ParquetTimestampUtils.getInt64(ts, timeUnit) != null;
+      }
+      return true;
     }
   }
+
 
   private class DecimalDataWriter implements DataWriter {
     private HiveDecimalObjectInspector inspector;
