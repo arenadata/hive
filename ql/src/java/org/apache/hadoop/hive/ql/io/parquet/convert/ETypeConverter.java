@@ -345,6 +345,21 @@ public enum ETypeConverter {
               }
             }
           };
+        case serdeConstants.TIMESTAMP_TYPE_NAME:
+        case serdeConstants.TIMESTAMPLOCALTZ_TYPE_NAME:
+          if (type.getLogicalTypeAnnotation() instanceof TimestampLogicalTypeAnnotation) {
+            TimestampLogicalTypeAnnotation logicalType =
+                (TimestampLogicalTypeAnnotation) type.getLogicalTypeAnnotation();
+            return new PrimitiveConverter() {
+              @Override
+              public void addLong(final long value) {
+                Timestamp timestamp =
+                    ParquetTimestampUtils.getTimestamp(value, logicalType.getUnit(), logicalType.isAdjustedToUTC());
+                parent.set(index, new TimestampWritableV2(timestamp));
+              }
+            };
+          }
+          throw new IllegalStateException("Cannot reliably convert INT64 value to timestamp without type annotation");
         default:
           return new PrimitiveConverter() {
             @Override
