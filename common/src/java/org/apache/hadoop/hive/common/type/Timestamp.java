@@ -224,11 +224,6 @@ public class Timestamp implements Comparable<Timestamp> {
             .ofInstant(Instant.ofEpochMilli(epochMilli), id));
   }
 
-  public static Timestamp ofEpochMilli(long epochMilli, ZoneId id) {
-    return new Timestamp(LocalDateTime
-        .ofInstant(Instant.ofEpochMilli(epochMilli), id));
-  }
-
   public static Timestamp ofEpochMilli(long epochMilli, int nanos) {
     return new Timestamp(LocalDateTime
             .ofInstant(Instant.ofEpochMilli(epochMilli), ZoneOffset.UTC)
