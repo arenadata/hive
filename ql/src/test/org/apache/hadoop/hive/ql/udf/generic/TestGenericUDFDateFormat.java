@@ -174,4 +174,18 @@ public class TestGenericUDFDateFormat extends TestCase {
     Text output = (Text) udf.evaluate(args);
     assertEquals("date_format() test ", expResult, output != null ? output.toString() : null);
   }
+
+  public void testDateFormatTsWithTimeZone() throws HiveException {
+    GenericUDFDateFormat udf = new GenericUDFDateFormat();
+    ObjectInspector valueOI0 = PrimitiveObjectInspectorFactory.writableTimestampObjectInspector;
+    Text fmtText = new Text("yyyy-MM-dd HH:mm:ss.SSS z");
+    ObjectInspector valueOI1 = PrimitiveObjectInspectorFactory
+            .getPrimitiveWritableConstantObjectInspector(TypeInfoFactory.stringTypeInfo, fmtText);
+    ObjectInspector[] arguments = { valueOI0, valueOI1 };
+
+    udf.initialize(arguments);
+
+    runAndVerifyTs("2015-04-08 10:30:45", fmtText, "2015-04-08 10:30:45.000 PDT", udf);
+
+  }
 }
