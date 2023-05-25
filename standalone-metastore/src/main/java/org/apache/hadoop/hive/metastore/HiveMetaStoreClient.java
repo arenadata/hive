@@ -457,8 +457,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
                   trustStorePath, trustStorePassword );
               LOG.info("Opened an SSL connection to metastore, current connections: " + connCount.incrementAndGet());
               if (LOG.isTraceEnabled()) {
-                LOG.trace("", new LogUtils.StackTraceLogger("METASTORE SSL CONNECTION TRACE - open - " +
-                        System.identityHashCode(this)));
+                LOG.trace("METASTORE SSL CONNECTION TRACE - open - " +
+                        System.identityHashCode(this));
               }
             } catch(IOException e) {
               throw new IllegalArgumentException(e);
@@ -521,8 +521,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
               transport.open();
               LOG.info("Opened a connection to metastore, current connections: " + connCount.incrementAndGet());
               if (LOG.isTraceEnabled()) {
-                LOG.trace("", new LogUtils.StackTraceLogger("METASTORE CONNECTION TRACE - open - " +
-                        System.identityHashCode(this)));
+                LOG.trace("METASTORE CONNECTION TRACE - open - " +
+                        System.identityHashCode(this));
               }
             }
             isConnected = true;
@@ -608,8 +608,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
       transport.close();
       LOG.info("Closed a connection to metastore, current connections: " + connCount.decrementAndGet());
       if (LOG.isTraceEnabled()) {
-        LOG.trace("", new LogUtils.StackTraceLogger("METASTORE CONNECTION TRACE - close - " +
-                System.identityHashCode(this)));
+        LOG.trace("METASTORE CONNECTION TRACE - close - " +
+                System.identityHashCode(this));
       }
     }
   }
