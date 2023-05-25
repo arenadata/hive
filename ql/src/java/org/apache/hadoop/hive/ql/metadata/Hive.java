@@ -2226,10 +2226,10 @@ private void constructOneLBLocationMap(FileStatus fSta,
     final SessionState parentSession = SessionState.get();
 
     final List<Future<Void>> futures = Lists.newLinkedList();
+    // for each dynamically created DP directory, construct a full partition spec
+    // and load the partition based on that
+    final Map<Long, RawStore> rawStoreMap = new ConcurrentHashMap<>();
     try {
-      // for each dynamically created DP directory, construct a full partition spec
-      // and load the partition based on that
-      final Map<Long, RawStore> rawStoreMap = new ConcurrentHashMap<>();
       for(final Path partPath : validPartitions) {
         // generate a full partition specification
         final LinkedHashMap<String, String> fullPartSpec = Maps.newLinkedHashMap(partSpec);
@@ -2260,12 +2260,6 @@ private void constructOneLBLocationMap(FileStatus fSta,
                       + partsToLoad + " partitions.");
                 }
               }
-              // Add embedded rawstore, so we can cleanup later to avoid memory leak
-              if (getMSC().isLocalMetaStore()) {
-                if (!rawStoreMap.containsKey(Thread.currentThread().getId())) {
-                  rawStoreMap.put(Thread.currentThread().getId(), HiveMetaStore.HMSHandler.getRawStore());
-                }
-              }
               return null;
             } catch (Exception t) {
               LOG.error("Exception when loading partition with parameters "
@@ -2289,8 +2283,6 @@ private void constructOneLBLocationMap(FileStatus fSta,
       for (Future future : futures) {
         future.get();
       }
-
-      rawStoreMap.forEach((k, rs) -> rs.shutdown());
     } catch (InterruptedException | ExecutionException e) {
       LOG.debug("Cancelling " + futures.size() + " dynamic loading tasks");
       //cancel other futures
@@ -2300,6 +2292,8 @@ private void constructOneLBLocationMap(FileStatus fSta,
       throw new HiveException("Exception when loading "
           + partsToLoad + " in table " + tbl.getTableName()
           + " with loadPath=" + loadPath, e);
+    } finally {
+      rawStoreMap.forEach((k, rs) -> rs.shutdown());
     }
 
     try {
