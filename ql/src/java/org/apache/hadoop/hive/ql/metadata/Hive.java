@@ -2422,7 +2422,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
         //for fullAcid we don't want to delete any files even for OVERWRITE see HIVE-14988/HIVE-17361
         boolean isAutopurge = "true".equalsIgnoreCase(tbl.getProperty("auto.purge"));
         boolean needRecycle = !tbl.isTemporary()
-                && ReplChangeManager.isSourceOfReplication(Hive.get().getDatabase(tbl.getDbName()));
+                && ReplChangeManager.isSourceOfReplication(getDatabase(tbl.getDbName()));
         replaceFiles(tblPath, loadPath, destPath, tblPath, conf, isSrcLocal, isAutopurge,
             newFiles, FileUtils.HIDDEN_FILES_PATH_FILTER, needRecycle, isManaged);
       } else {
