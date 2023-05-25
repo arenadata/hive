@@ -2277,6 +2277,8 @@ private void constructOneLBLocationMap(FileStatus fSta,
                   + " isAcid=" + isAcid + ", "
                   + " hasFollowingStatsTask=" + hasFollowingStatsTask, t);
               throw t;
+            } finally {
+              closeCurrent();
             }
           }
         }));
