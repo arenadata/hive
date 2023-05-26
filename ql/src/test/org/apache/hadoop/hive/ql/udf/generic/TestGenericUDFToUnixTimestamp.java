@@ -159,11 +159,11 @@ public class TestGenericUDFToUnixTimestamp extends TestCase {
     runAndVerify(udf2,
         new Text("1400-02-01 00:00:00 UTC"),
         new Text("yyyy-MM-dd HH:mm:ss z"),
-        new LongWritable(TimestampTZUtil.parse("1400-01-31 16:07:12", ZoneId.systemDefault()).getEpochSecond()));
+        new LongWritable(TimestampTZUtil.parse("1400-01-31 16:07:02", ZoneId.systemDefault()).getEpochSecond()));
     runAndVerify(udf2,
         new Text("1400-02-01 00:00:00 GMT"),
         new Text("yyyy-MM-dd HH:mm:ss z"),
-        new LongWritable(TimestampTZUtil.parse("1400-01-31 16:07:12", ZoneId.systemDefault()).getEpochSecond()));
+        new LongWritable(TimestampTZUtil.parse("1400-01-31 16:07:02", ZoneId.systemDefault()).getEpochSecond()));
 
     // test invalid values
     runAndVerify(udf2, null, null, null);
