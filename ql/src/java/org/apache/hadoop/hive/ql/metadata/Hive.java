@@ -217,24 +217,40 @@ public class Hive {
   private IMetaStoreClient metaStoreClient;
   private SynchronizedMetaStoreClient syncMetaStoreClient;
   private UserGroupInformation owner;
+  private boolean isAllowClose = true;
 
   // metastore calls timing information
   private final ConcurrentHashMap<String, Long> metaCallTimeMap = new ConcurrentHashMap<>();
 
-  private static ThreadLocal<Hive> hiveDB = new ThreadLocal<Hive>() {
+  // Static class to store thread local Hive object.
+  private static class ThreadLocalHive extends ThreadLocal<Hive> {
     @Override
     protected Hive initialValue() {
       return null;
     }
 
     @Override
-    public synchronized void remove() {
-      if (this.get() != null) {
-        this.get().close();
+    public synchronized void set(Hive hiveObj) {
+      Hive currentHive = this.get();
+      if (currentHive != hiveObj) {
+        // Remove/close current thread-local Hive object before overwriting with new Hive object.
+        remove();
+        super.set(hiveObj);
       }
-      super.remove();
     }
-  };
+
+    @Override
+    public synchronized void remove() {
+      Hive currentHive = this.get();
+      if (currentHive != null) {
+        // Close the metastore connections before removing it from thread local hiveDB.
+        currentHive.close(false);
+        super.remove();
+      }
+    }
+  }
+
+  private static ThreadLocalHive hiveDB = new ThreadLocalHive();
 
   // Note that while this is an improvement over static initialization, it is still not,
   // technically, valid, cause nothing prevents us from connecting to several metastores in
@@ -359,7 +375,12 @@ public class Hive {
     Hive db = hiveDB.get();
     if (db == null || !db.isCurrentUserOwner() || needsRefresh
         || (c != null && !isCompatible(db, c, isFastCheck))) {
-      db = create(c, false, db, doRegisterAllFns);
+      if (db != null) {
+        LOG.debug("Creating new db. db = " + db + ", needsRefresh = " + needsRefresh +
+                ", db.isCurrentUserOwner = " + db.isCurrentUserOwner());
+        closeCurrent();
+      }
+      db = create(c, doRegisterAllFns);
     }
     if (c != null) {
       db.conf = c;
@@ -367,14 +388,7 @@ public class Hive {
     return db;
   }
 
-  private static Hive create(HiveConf c, boolean needsRefresh, Hive db, boolean doRegisterAllFns)
-      throws HiveException {
-    if (db != null) {
-      LOG.debug("Creating new db. db = " + db + ", needsRefresh = " + needsRefresh +
-        ", db.isCurrentUserOwner = " + db.isCurrentUserOwner());
-      db.close();
-    }
-    closeCurrent();
+  private static Hive create(HiveConf c, boolean doRegisterAllFns) throws HiveException {
     if (c == null) {
       c = createHiveConf();
     }
@@ -383,7 +397,6 @@ public class Hive {
     hiveDB.set(newdb);
     return newdb;
   }
-
 
   private static HiveConf createHiveConf() {
     SessionState session = SessionState.get();
@@ -398,6 +411,18 @@ public class Hive {
       return (db.metaStoreClient == null || db.metaStoreClient.isCompatibleWith(c))
           && (db.syncMetaStoreClient == null || db.syncMetaStoreClient.isCompatibleWith(c));
     }
+  }
+
+  private boolean isCurrentUserOwner() throws HiveException {
+    try {
+      return owner == null || owner.equals(UserGroupInformation.getCurrentUser());
+    } catch(IOException e) {
+      throw new HiveException("Error getting current user: " + e.getMessage(), e);
+    }
+  }
+
+  public static Hive getThreadLocal() {
+    return hiveDB.get();
   }
 
   public static Hive get() throws HiveException {
@@ -443,31 +468,49 @@ public class Hive {
     }
   }
 
-
-  private boolean isCurrentUserOwner() throws HiveException {
-    try {
-      return owner == null || owner.equals(UserGroupInformation.getCurrentUser());
-    } catch(IOException e) {
-      throw new HiveException("Error getting current user: " + e.getMessage(), e);
-    }
+  /**
+   * GC is attempting to destroy the object.
+   * No one references this Hive anymore, so HMS connection from this Hive object can be closed.
+   * @throws Throwable
+   */
+  @Override
+  protected void finalize() throws Throwable {
+    close(true);
+    super.finalize();
   }
 
-
+  /**
+   * Marks if the given Hive object is allowed to close metastore connections.
+   * @param allowClose
+   */
+  public void setAllowClose(boolean allowClose) {
+    isAllowClose = allowClose;
+  }
 
   /**
-   * closes the connection to metastore for the calling thread
+   * Gets the allowClose flag which determines if it is allowed to close metastore connections.
+   * @returns allowClose flag
    */
-  private void close() {
-    LOG.debug("Closing current thread's connection to Hive Metastore.");
-    if (metaStoreClient != null) {
-      metaStoreClient.close();
-      metaStoreClient = null;
-    }
-    if (syncMetaStoreClient != null) {
-      syncMetaStoreClient.close();
-    }
-    if (owner != null) {
-      owner = null;
+  public boolean allowClose() {
+    return isAllowClose;
+  }
+
+  /**
+   * Closes the connection to metastore for the calling thread if allow to close.
+   * @param forceClose - Override the isAllowClose flag to forcefully close the MS connections.
+   */
+  public void close(boolean forceClose) {
+    if (allowClose() || forceClose) {
+      LOG.debug("Closing current thread's connection to Hive Metastore.");
+      if (metaStoreClient != null) {
+        metaStoreClient.close();
+        metaStoreClient = null;
+      }
+      // syncMetaStoreClient is wrapped on metaStoreClient. So, it is enough to close it once.
+      syncMetaStoreClient = null;
+      if (owner != null) {
+        owner = null;
+      }
     }
   }
 
@@ -1813,7 +1856,7 @@ public class Hive {
           // base_x.  (there is Insert Overwrite and Load Data Overwrite)
           boolean isAutoPurge = "true".equalsIgnoreCase(tbl.getProperty("auto.purge"));
           boolean needRecycle = !tbl.isTemporary()
-                  && ReplChangeManager.isSourceOfReplication(Hive.get().getDatabase(tbl.getDbName()));
+                  && ReplChangeManager.isSourceOfReplication(getDatabase(tbl.getDbName()));
           replaceFiles(tbl.getPath(), loadPath, destPath, oldPartPath, getConf(), isSrcLocal,
               isAutoPurge, newFiles, FileUtils.HIDDEN_FILES_PATH_FILTER, needRecycle, isManaged);
         } else {
@@ -2223,10 +2266,10 @@ private void constructOneLBLocationMap(FileStatus fSta,
     final SessionState parentSession = SessionState.get();
 
     final List<Future<Void>> futures = Lists.newLinkedList();
+    // for each dynamically created DP directory, construct a full partition spec
+    // and load the partition based on that
+    final Map<Long, RawStore> rawStoreMap = new ConcurrentHashMap<>();
     try {
-      // for each dynamically created DP directory, construct a full partition spec
-      // and load the partition based on that
-      final Map<Long, RawStore> rawStoreMap = new ConcurrentHashMap<>();
       for(final Path partPath : validPartitions) {
         // generate a full partition specification
         final LinkedHashMap<String, String> fullPartSpec = Maps.newLinkedHashMap(partSpec);
@@ -2257,12 +2300,6 @@ private void constructOneLBLocationMap(FileStatus fSta,
                       + partsToLoad + " partitions.");
                 }
               }
-              // Add embedded rawstore, so we can cleanup later to avoid memory leak
-              if (getMSC().isLocalMetaStore()) {
-                if (!rawStoreMap.containsKey(Thread.currentThread().getId())) {
-                  rawStoreMap.put(Thread.currentThread().getId(), HiveMetaStore.HMSHandler.getRawStore());
-                }
-              }
               return null;
             } catch (Exception t) {
               LOG.error("Exception when loading partition with parameters "
@@ -2274,6 +2311,8 @@ private void constructOneLBLocationMap(FileStatus fSta,
                   + " isAcid=" + isAcid + ", "
                   + " hasFollowingStatsTask=" + hasFollowingStatsTask, t);
               throw t;
+            } finally {
+              closeCurrent();
             }
           }
         }));
@@ -2284,8 +2323,6 @@ private void constructOneLBLocationMap(FileStatus fSta,
       for (Future future : futures) {
         future.get();
       }
-
-      rawStoreMap.forEach((k, rs) -> rs.shutdown());
     } catch (InterruptedException | ExecutionException e) {
       LOG.debug("Cancelling " + futures.size() + " dynamic loading tasks");
       //cancel other futures
@@ -2295,6 +2332,8 @@ private void constructOneLBLocationMap(FileStatus fSta,
       throw new HiveException("Exception when loading "
           + partsToLoad + " in table " + tbl.getTableName()
           + " with loadPath=" + loadPath, e);
+    } finally {
+      rawStoreMap.forEach((k, rs) -> rs.shutdown());
     }
 
     try {
@@ -2383,7 +2422,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
         //for fullAcid we don't want to delete any files even for OVERWRITE see HIVE-14988/HIVE-17361
         boolean isAutopurge = "true".equalsIgnoreCase(tbl.getProperty("auto.purge"));
         boolean needRecycle = !tbl.isTemporary()
-                && ReplChangeManager.isSourceOfReplication(Hive.get().getDatabase(tbl.getDbName()));
+                && ReplChangeManager.isSourceOfReplication(getDatabase(tbl.getDbName()));
         replaceFiles(tblPath, loadPath, destPath, tblPath, conf, isSrcLocal, isAutopurge,
             newFiles, FileUtils.HIDDEN_FILES_PATH_FILTER, needRecycle, isManaged);
       } else {
@@ -2590,8 +2629,9 @@ private void constructOneLBLocationMap(FileStatus fSta,
     }
     org.apache.hadoop.hive.metastore.api.Partition tpart = null;
     try {
+      String userName = getUserName();
       tpart = getSynchronizedMSC().getPartitionWithAuthInfo(tbl.getDbName(),
-          tbl.getTableName(), pvals, getUserName(), getGroupNames());
+          tbl.getTableName(), pvals, userName, getGroupNames());
     } catch (NoSuchObjectException nsoe) {
       // this means no partition exists for the given partition
       // key value pairs - thrift cannot handle null return values, hence
@@ -2610,8 +2650,9 @@ private void constructOneLBLocationMap(FileStatus fSta,
             tpart = getSynchronizedMSC().appendPartition(tbl.getDbName(), tbl.getTableName(), pvals);
           } catch (AlreadyExistsException aee) {
             LOG.debug("Caught already exists exception, trying to alter partition instead");
+            String userName = getUserName();
             tpart = getSynchronizedMSC().getPartitionWithAuthInfo(tbl.getDbName(),
-              tbl.getTableName(), pvals, getUserName(), getGroupNames());
+              tbl.getTableName(), pvals, userName, getGroupNames());
             alterPartitionSpec(tbl, partSpec, tpart, inheritTableSpecs, partPath);
           } catch (Exception e) {
             if (CheckJDOException.isJDODataStoreException(e)) {
@@ -2619,8 +2660,9 @@ private void constructOneLBLocationMap(FileStatus fSta,
               // have to be used here. This helps avoid adding jdo dependency for
               // hcatalog client uses
               LOG.debug("Caught JDO exception, trying to alter partition instead");
+              String userName = getUserName();
               tpart = getSynchronizedMSC().getPartitionWithAuthInfo(tbl.getDbName(),
-                tbl.getTableName(), pvals, getUserName(), getGroupNames());
+                tbl.getTableName(), pvals, userName, getGroupNames());
               if (tpart == null) {
                 // This means the exception was caused by something other than a race condition
                 // in creating the partition, since the partition still doesn't exist.
@@ -2954,8 +2996,9 @@ private void constructOneLBLocationMap(FileStatus fSta,
     if (tbl.isPartitioned()) {
       List<org.apache.hadoop.hive.metastore.api.Partition> tParts;
       try {
+        String userName = getUserName();
         tParts = getMSC().listPartitionsWithAuthInfo(tbl.getDbName(), tbl.getTableName(),
-            (short) -1, getUserName(), getGroupNames());
+            (short) -1, userName, getGroupNames());
       } catch (Exception e) {
         LOG.error(StringUtils.stringifyException(e));
         throw new HiveException(e);
@@ -3019,8 +3062,9 @@ private void constructOneLBLocationMap(FileStatus fSta,
 
     List<org.apache.hadoop.hive.metastore.api.Partition> partitions = null;
     try {
+      String userName = getUserName();
       partitions = getMSC().listPartitionsWithAuthInfo(tbl.getDbName(), tbl.getTableName(),
-          partialPvals, limit, getUserName(), getGroupNames());
+          partialPvals, limit, userName, getGroupNames());
     } catch (Exception e) {
       throw new HiveException(e);
     }
