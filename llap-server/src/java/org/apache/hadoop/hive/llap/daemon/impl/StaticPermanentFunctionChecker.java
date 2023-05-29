@@ -28,8 +28,6 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBridge.UdfWhitelistChecke
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jdi.InvocationException;
-
 public class StaticPermanentFunctionChecker implements UdfWhitelistChecker {
   private static final Logger LOG = LoggerFactory.getLogger(StaticPermanentFunctionChecker.class);
 

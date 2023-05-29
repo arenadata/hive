@@ -67,6 +67,7 @@ import org.apache.hadoop.hive.metastore.utils.JavaUtils;
 import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.utils.ObjectPair;
 import org.apache.hadoop.hive.metastore.utils.SecurityUtils;
+import org.apache.hadoop.hive.metastore.utils.LogUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
@@ -455,6 +456,10 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
               transport = SecurityUtils.getSSLSocket(store.getHost(), store.getPort(), clientSocketTimeout,
                   trustStorePath, trustStorePassword );
               LOG.info("Opened an SSL connection to metastore, current connections: " + connCount.incrementAndGet());
+              if (LOG.isTraceEnabled()) {
+                LOG.trace("METASTORE SSL CONNECTION TRACE - open - " +
+                        System.identityHashCode(this));
+              }
             } catch(IOException e) {
               throw new IllegalArgumentException(e);
             } catch(TTransportException e) {
@@ -515,6 +520,10 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
             if (!transport.isOpen()) {
               transport.open();
               LOG.info("Opened a connection to metastore, current connections: " + connCount.incrementAndGet());
+              if (LOG.isTraceEnabled()) {
+                LOG.trace("METASTORE CONNECTION TRACE - open - " +
+                        System.identityHashCode(this));
+              }
             }
             isConnected = true;
           } catch (TTransportException e) {
@@ -598,6 +607,10 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
     if ((transport != null) && transport.isOpen()) {
       transport.close();
       LOG.info("Closed a connection to metastore, current connections: " + connCount.decrementAndGet());
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("METASTORE CONNECTION TRACE - close - " +
+                System.identityHashCode(this));
+      }
     }
   }
 

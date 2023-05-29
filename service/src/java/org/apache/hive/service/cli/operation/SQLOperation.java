@@ -55,6 +55,7 @@ import org.apache.hadoop.hive.ql.QueryState;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.metadata.Hive;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
@@ -292,6 +293,11 @@ public class SQLOperation extends ExecuteStatementOperation {
     private BackgroundWork(UserGroupInformation currentUGI,
         Hive parentHive, PerfLogger parentPerfLogger,
         SessionState parentSessionState, boolean asyncPrepare) {
+      // Note: parentHive can be shared by multiple threads and so it should be protected from any
+      // thread closing metastore connections when some other thread still accessing it. So, it is
+      // expected that allowClose flag in parentHive is set to false by caller and it will be caller's
+      // responsibility to close it explicitly with forceClose flag as true.
+      // Shall refer to sessionHive in HiveSessionImpl.java for the usage.
       this.currentUGI = currentUGI;
       this.parentHive = parentHive;
       this.parentPerfLogger = parentPerfLogger;
@@ -304,6 +310,7 @@ public class SQLOperation extends ExecuteStatementOperation {
       PrivilegedExceptionAction<Object> doAsAction = new PrivilegedExceptionAction<Object>() {
         @Override
         public Object run() throws HiveSQLException {
+          assert (!parentHive.allowClose());
           Hive.set(parentHive);
           // TODO: can this result in cross-thread reuse of session state?
           SessionState.setCurrentSessionState(parentSessionState);
@@ -320,6 +327,11 @@ public class SQLOperation extends ExecuteStatementOperation {
             LOG.error("Error running hive query: ", e);
           } finally {
             LogUtils.unregisterLoggingContext();
+
+            // If new hive object is created  by the child thread, then we need to close it as it might
+            // have created a hms connection. Call Hive.closeCurrent() that closes the HMS connection, causes
+            // HMS connection leaks otherwise.
+            Hive.closeCurrent();
           }
           return null;
         }
