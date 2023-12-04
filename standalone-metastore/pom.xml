@@ -596,7 +596,7 @@
       <plugin>
         <groupId>com.github.os72</groupId>
         <artifactId>protoc-jar-maven-plugin</artifactId>
-        <version>3.5.1.1</version>
+        <version>3.11.4</version>
         <executions>
           <execution>
             <phase>generate-sources</phase>
@@ -604,7 +604,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
-              <protocArtifact>com.google.protobuf:protoc:2.5.0</protocArtifact>
+              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
               <addSources>none</addSources>
               <inputDirectories>
                 <include>${basedir}/src/main/protobuf/org/apache/hadoop/hive/metastore</include>
