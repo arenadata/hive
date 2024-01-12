@@ -454,7 +454,7 @@ public class HttpServer {
     if (!b.useSSL) {
       connector = new ServerConnector(webServer, http);
     } else {
-      SslContextFactory sslContextFactory = new SslContextFactory();
+      SslContextFactory sslContextFactory = new SslContextFactory.Server();
       sslContextFactory.setKeyStorePath(b.keyStorePath);
       Set<String> excludedSSLProtocols = Sets.newHashSet(
         Splitter.on(",").trimResults().omitEmptyStrings().split(
