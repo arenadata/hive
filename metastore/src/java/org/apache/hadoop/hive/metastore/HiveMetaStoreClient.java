@@ -47,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.security.PrivilegedExceptionAction;
 
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
 import javax.security.auth.login.LoginException;
 
 import org.apache.hadoop.hive.common.ObjectPair;
@@ -76,8 +78,7 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.thrift.transport.TSSLTransportFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -390,82 +391,96 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     client.rename_partition(dbname, name, part_vals, newPart);
   }
 
+  private static TSocket getSSLSocketWithHttps(TSocket tSSLSocket) throws TTransportException {
+    SSLSocket sslSocket = (SSLSocket) tSSLSocket.getSocket();
+    SSLParameters sslParams = sslSocket.getSSLParameters();
+    sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+    sslSocket.setSSLParameters(sslParams);
+    return new TSocket(sslSocket);
+  }
+
+  private static TTransport getSSLSocket(String host, int port, int loginTimeout,
+                                         String trustStorePath, String trustStorePassWord) throws TTransportException {
+    TSSLTransportFactory.TSSLTransportParameters params =
+            new TSSLTransportFactory.TSSLTransportParameters();
+    params.setTrustStore(trustStorePath, trustStorePassWord);
+    params.requireClientAuth(true);
+    // The underlying SSLSocket object is bound to host:port with the given SO_TIMEOUT and
+    // SSLContext created with the given params
+    TSocket tSSLSocket = TSSLTransportFactory.getClientSocket(host, port, loginTimeout, params);
+    return getSSLSocketWithHttps(tSSLSocket);
+  }
+
+
+
   private void open() throws MetaException {
     isConnected = false;
     TTransportException tte = null;
-    boolean useSSL = conf.getBoolVar(ConfVars.HIVE_METASTORE_USE_SSL);
+    boolean useSSL = conf.getBoolVar(ConfVars.USE_SSL);
     boolean useSasl = conf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_SASL);
     boolean useFramedTransport = conf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_FRAMED_TRANSPORT);
     boolean useCompactProtocol = conf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_COMPACT_PROTOCOL);
     int clientSocketTimeout = (int) conf.getTimeVar(
-        ConfVars.METASTORE_CLIENT_SOCKET_TIMEOUT, TimeUnit.MILLISECONDS);
+            ConfVars.METASTORE_CLIENT_SOCKET_TIMEOUT, TimeUnit.MILLISECONDS);
 
     for (int attempt = 0; !isConnected && attempt < retries; ++attempt) {
       for (URI store : metastoreUris) {
         LOG.info("Trying to connect to metastore with URI " + store);
-
         try {
+          if (useSSL) {
+            try {
+              String trustStorePath = conf.getVar(ConfVars.SSL_TRUSTSTORE_PATH).trim();
+              if (trustStorePath.isEmpty()) {
+                throw new IllegalArgumentException(ConfVars.SSL_TRUSTSTORE_PATH
+                        + " Not configured for SSL connection");
+              }
+              String trustStorePassword =
+                      conf.getVar(HiveConf.ConfVars.SSL_TRUSTSTORE_PASSWORD).trim();
+
+              // Create an SSL socket and connect
+              transport = getSSLSocket(store.getHost(), store.getPort(), clientSocketTimeout,
+                      trustStorePath, trustStorePassword);
+              LOG.info("Opened an SSL connection to metastore");
+            } catch(TTransportException e) {
+              tte = e;
+              throw new MetaException(e.toString());
+            }
+          } else {
+            transport = new TSocket(store.getHost(), store.getPort(), clientSocketTimeout);
+          }
           if (useSasl) {
             // Wrap thrift connection with SASL for secure connection.
             try {
               HadoopThriftAuthBridge.Client authBridge =
-                ShimLoader.getHadoopThriftAuthBridge().createClient();
+                      ShimLoader.getHadoopThriftAuthBridge().createClient();
 
               // check if we should use delegation tokens to authenticate
               // the call below gets hold of the tokens if they are set up by hadoop
               // this should happen on the map/reduce tasks if the client added the
               // tokens into hadoop's credential store in the front end during job
               // submission.
-              String tokenSig = conf.getVar(ConfVars.METASTORE_TOKEN_SIGNATURE);
+              String tokenSig = conf.get("hive.metastore.token.signature");
               // tokenSig could be null
               tokenStrForm = Utils.getTokenStrForm(tokenSig);
-              transport = new TSocket(store.getHost(), store.getPort(), clientSocketTimeout);
-
               if(tokenStrForm != null) {
                 // authenticate using delegation tokens via the "DIGEST" mechanism
                 transport = authBridge.createClientTransport(null, store.getHost(),
-                    "DIGEST", tokenStrForm, transport,
+                        "DIGEST", tokenStrForm, transport,
                         MetaStoreUtils.getMetaStoreSaslProperties(conf));
               } else {
                 String principalConfig =
-                    conf.getVar(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL);
+                        conf.getVar(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL);
                 transport = authBridge.createClientTransport(
-                    principalConfig, store.getHost(), "KERBEROS", null,
-                    transport, MetaStoreUtils.getMetaStoreSaslProperties(conf));
+                        principalConfig, store.getHost(), "KERBEROS", null,
+                        transport, MetaStoreUtils.getMetaStoreSaslProperties(conf));
               }
             } catch (IOException ioe) {
               LOG.error("Couldn't create client transport", ioe);
               throw new MetaException(ioe.toString());
             }
-          } else {
-            if (useSSL) {
-              try {
-                String trustStorePath = conf.getVar(ConfVars.HIVE_METASTORE_SSL_TRUSTSTORE_PATH).trim();
-                if (trustStorePath.isEmpty()) {
-                  throw new IllegalArgumentException(ConfVars.HIVE_METASTORE_SSL_TRUSTSTORE_PATH.varname
-                      + " Not configured for SSL connection");
-                }
-                String trustStorePassword = ShimLoader.getHadoopShims().getPassword(conf,
-                    HiveConf.ConfVars.HIVE_METASTORE_SSL_TRUSTSTORE_PASSWORD.varname);
-
-                // Create an SSL socket and connect
-                transport = HiveAuthUtils.getSSLSocket(store.getHost(), store.getPort(), clientSocketTimeout, trustStorePath, trustStorePassword );
-                LOG.info("Opened an SSL connection to metastore, current connections: " + connCount.incrementAndGet());
-              } catch(IOException e) {
-                throw new IllegalArgumentException(e);
-              } catch(TTransportException e) {
-                tte = e;
-                throw new MetaException(e.toString());
-              }
-            } else {
-              transport = new TSocket(store.getHost(), store.getPort(), clientSocketTimeout);
-            }
-
-            if (useFramedTransport) {
-              transport = new TFramedTransport(transport);
-            }
+          } else if (useFramedTransport) {
+            transport = new TFramedTransport(transport);
           }
-
           final TProtocol protocol;
           if (useCompactProtocol) {
             protocol = new TCompactProtocol(transport);
@@ -476,7 +491,6 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
           try {
             if (!transport.isOpen()) {
               transport.open();
-              LOG.info("Opened a connection to metastore, current connections: " + connCount.incrementAndGet());
             }
             isConnected = true;
           } catch (TTransportException e) {
@@ -496,18 +510,18 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
               client.set_ugi(ugi.getUserName(), Arrays.asList(ugi.getGroupNames()));
             } catch (LoginException e) {
               LOG.warn("Failed to do login. set_ugi() is not successful, " +
-                       "Continuing without it.", e);
+                      "Continuing without it.", e);
             } catch (IOException e) {
               LOG.warn("Failed to find ugi of client set_ugi() is not successful, " +
-                  "Continuing without it.", e);
+                      "Continuing without it.", e);
             } catch (TException e) {
               LOG.warn("set_ugi() not successful, Likely cause: new client talking to old server. "
-                  + "Continuing without it.", e);
+                      + "Continuing without it.", e);
             }
           }
         } catch (MetaException e) {
           LOG.error("Unable to connect to metastore with URI " + store
-                    + " in attempt " + attempt, e);
+                  + " in attempt " + attempt, e);
         }
         if (isConnected) {
           break;
@@ -524,13 +538,14 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
 
     if (!isConnected) {
       throw new MetaException("Could not connect to meta store using any of the URIs provided." +
-        " Most recent failure: " + StringUtils.stringifyException(tte));
+              " Most recent failure: " + StringUtils.stringifyException(tte));
     }
 
     snapshotActiveConf();
 
     LOG.info("Connected to metastore.");
   }
+
 
   private void snapshotActiveConf() {
     currentMetaVars = new HashMap<String, String>(HiveConf.metaVars.length);

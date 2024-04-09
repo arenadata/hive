@@ -696,7 +696,12 @@ public class HiveConf extends Configuration {
         "Maximum number of worker threads in the Thrift server's pool."),
     METASTORE_TCP_KEEP_ALIVE("hive.metastore.server.tcp.keepalive", true,
         "Whether to enable TCP keepalive for the metastore server. Keepalive will prevent accumulation of half-open connections."),
-
+    SSL_TRUSTSTORE_PATH("metastore.truststore.path","",
+            "Metastore SSL certificate truststore location."),
+    SSL_TRUSTSTORE_PASSWORD("metastore.truststore.password", "",
+            "Metastore SSL certificate truststore password."),
+    USE_SSL("metastore.use.SSL", false,
+            "Set this to true for using SSL encryption in HMS server."),
     METASTORE_INT_ORIGINAL("hive.metastore.archive.intermediate.original",
         "_INTERMEDIATE_ORIGINAL",
         "Intermediate dir suffixes used for archiving. Not important what they\n" +
