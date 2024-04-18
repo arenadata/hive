@@ -873,9 +873,9 @@
                   <include>com.tdunning:json</include>
                   <include>org.apache.avro:avro</include>
                   <include>org.apache.avro:avro-mapred</include>
-                  <include>org.apache.hive.shims:hive-shims-0.23</include>
-                  <include>org.apache.hive.shims:hive-shims-0.23</include>
-                  <include>org.apache.hive.shims:hive-shims-common</include>
+                  <include>io.arenadata.hive.shims:hive-shims-0.23</include>
+                  <include>io.arenadata.hive.shims:hive-shims-0.23</include>
+                  <include>io.arenadata.hive.shims:hive-shims-common</include>
                   <include>com.googlecode.javaewah:JavaEWAH</include>
                   <include>javolution:javolution</include>
                   <include>com.google.protobuf:protobuf-java</include>

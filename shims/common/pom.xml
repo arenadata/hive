@@ -23,7 +23,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <groupId>org.apache.hive.shims</groupId>
+  <groupId>io.arenadata.hive.shims</groupId>
   <artifactId>hive-shims-common</artifactId>
   <packaging>jar</packaging>
   <name>Hive Shims Common</name>

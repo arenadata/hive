@@ -156,13 +156,13 @@
               <shadedClassifierName>${hive.jdbc.driver.classifier}</shadedClassifierName>
               <filters>
                 <filter>
-                  <artifact>org.apache.hive.shims:hive-shims-common</artifact>
+                  <artifact>io.arenadata.hive.shims:hive-shims-common</artifact>
                   <includes>
                     <include>**</include>
                   </includes>
                 </filter>
                 <filter>
-                  <artifact>org.apache.hive.shims:hive-shims-0.23</artifact>
+                  <artifact>io.arenadata.hive.shims:hive-shims-0.23</artifact>
                   <includes>
                     <include>**</include>
                   </includes>

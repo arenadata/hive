@@ -23,7 +23,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <groupId>org.apache.hive.shims</groupId>
+  <groupId>io.arenadata.hive.shims</groupId>
   <artifactId>hive-shims-0.23</artifactId>
   <packaging>jar</packaging>
   <name>Hive Shims 0.23</name>
@@ -36,7 +36,7 @@
     <!-- dependencies are always listed in sorted order by groupId, artifectId -->
     <!-- intra-project -->
     <dependency>
-      <groupId>org.apache.hive.shims</groupId>
+      <groupId>io.arenadata.hive.shims</groupId>
       <artifactId>hive-shims-common</artifactId>
       <version>${project.version}</version>
     </dependency>
