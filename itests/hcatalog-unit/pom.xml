@@ -41,32 +41,32 @@
     <!-- dependencies are always listed in sorted order by groupId, artifectId -->
     <!-- test intra-project -->
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-hcatalog-core</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-hcatalog-core</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-hcatalog-pig-adapter</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-hcatalog-server-extensions</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-webhcat-java-client</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

@@ -91,17 +91,17 @@
       <type>test-jar</type>
     </dependency>
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-hcatalog-core</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-hcatalog-streaming</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
+      <groupId>io.arenadata.hive.hcatalog</groupId>
       <artifactId>hive-hcatalog-server-extensions</artifactId>
       <version>${project.version}</version>
     </dependency>
