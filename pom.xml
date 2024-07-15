@@ -109,7 +109,7 @@
     <apache-directory-server.version>1.5.7</apache-directory-server.version>
     <!-- Include arrow for LlapOutputFormatService -->
     <arrow.version>12.0.0</arrow.version>
-    <avatica.version>1.12.0</avatica.version>
+    <avatica.version>1.15.0</avatica.version>
     <avro.version>1.11.3</avro.version>
     <bcprov-jdk18on.version>1.77</bcprov-jdk18on.version>
     <calcite.version>1.25.0</calcite.version>
@@ -136,13 +136,13 @@
     <druid.version>0.17.1</druid.version>
     <esri.version>2.2.4</esri.version>
     <flatbuffers.version>1.12.0</flatbuffers.version>
-    <guava.version>22.0</guava.version>
+    <guava.version>32.0.1-jre</guava.version>
     <groovy.version>2.4.21</groovy.version>
     <h2database.version>2.2.220</h2database.version>
     <hadoop.version>3.3.6</hadoop.version>
     <hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop</hadoop.bin.path>
     <hamcrest.version>1.3</hamcrest.version>
-    <hbase.version>2.5.6-hadoop3</hbase.version>
+    <hbase.version>2.5.8-hadoop3</hbase.version>
     <hppc.version>0.7.2</hppc.version>
     <!-- required for logging test to avoid including hbase which pulls disruptor transitively -->
     <disruptor.version>3.3.7</disruptor.version>
@@ -206,7 +206,7 @@
     <velocity.version>2.3</velocity.version>
     <xerces.version>2.12.2</xerces.version>
     <xmlsec.version>2.3.4</xmlsec.version>
-    <zookeeper.version>3.8.3</zookeeper.version>
+    <zookeeper.version>3.8.4</zookeeper.version>
     <jpam.version>1.1</jpam.version>
     <felix.version>2.4.0</felix.version>
     <curator.version>5.2.0</curator.version>
