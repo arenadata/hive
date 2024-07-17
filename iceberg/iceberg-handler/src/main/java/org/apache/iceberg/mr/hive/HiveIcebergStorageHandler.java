@@ -47,7 +47,6 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.StatsSetupConst;
@@ -550,6 +549,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     } catch (Exception e) {
       LOG.warn("Unable to invalidate or merge stats: {}", e.getMessage());
     }
+    return false;
   }
 
   @Override
@@ -581,7 +581,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     } catch (Exception e) {
       LOG.warn(" Unable to read col stats: ", e);
     }
-    return false;
+    return new ColumnStatistics();
   }
 
   @Override
@@ -1018,7 +1018,6 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
         throw new UnsupportedOperationException(String.format(
             "Operation type %s is not supported", alterTableSnapshotRefSpec.getOperationType().getName()));
     }
-    return new ColumnStatistics();
   }
 
   @Override
