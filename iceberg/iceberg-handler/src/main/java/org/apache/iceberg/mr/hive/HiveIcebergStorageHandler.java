@@ -549,6 +549,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     } catch (Exception e) {
       LOG.warn("Unable to invalidate or merge stats: {}", e.getMessage());
     }
+    return false;
   }
 
   @Override
@@ -580,7 +581,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     } catch (Exception e) {
       LOG.warn(" Unable to read col stats: ", e);
     }
-    return false;
+    return new ColumnStatistics();
   }
 
   @Override
@@ -1017,7 +1018,6 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
         throw new UnsupportedOperationException(String.format(
             "Operation type %s is not supported", alterTableSnapshotRefSpec.getOperationType().getName()));
     }
-    return new ColumnStatistics();
   }
 
   @Override
