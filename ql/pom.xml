@@ -1179,6 +1179,10 @@
                   <pattern>org.apache.datasketches</pattern>
                   <shadedPattern>org.apache.hive.org.apache.datasketches</shadedPattern>
                 </relocation>
+                <relocation>
+                  <pattern>org.apache.calcite</pattern>
+                  <shadedPattern>org.apache.hive.org.apache.calcite</shadedPattern>
+                </relocation>
               </relocations>
             </configuration>
           </execution>
