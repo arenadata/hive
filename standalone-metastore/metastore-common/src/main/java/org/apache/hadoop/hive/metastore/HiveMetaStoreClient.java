@@ -101,7 +101,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Client;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
@@ -5317,5 +5317,17 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
     }
     PropertyGetResponse response = client.get_properties(request);
     return response.getProperties();
+  }
+
+  @Override
+  public ThriftHiveMetastore.Client getThriftClient() throws MetaException {
+    if (client == null) {
+      throw new MetaException("Client is not initialized");
+    }
+    if (!(client instanceof ThriftHiveMetastore.Client)) {
+      throw new MetaException("getThriftClient is only supported in remote metastore "
+              + "mode.");
+    }
+    return (Client) client;
   }
 }
