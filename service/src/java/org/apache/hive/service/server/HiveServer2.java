@@ -127,6 +127,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,6 +153,7 @@ public class HiveServer2 extends CompositeService {
   private CLIService cliService;
   private ThriftCLIService thriftCLIService;
   private CuratorFramework zKClientForPrivSync = null;
+  private LeaderLatch privilegeSynchronizerLatch = null;
   private HttpServer webServer; // Web UI
   private TezSessionPoolManager tezSessionPoolManager;
   private WorkloadManager wm;
@@ -1009,6 +1011,15 @@ public class HiveServer2 extends CompositeService {
     if (zKClientForPrivSync != null) {
       zKClientForPrivSync.close();
     }
+
+  if (privilegeSynchronizerLatch != null) {
+      try {
+          privilegeSynchronizerLatch.close();
+      } catch (IOException e) {
+          LOG.error("Error close privilegeSynchronizerLatch");
+      }
+    }
+
     if (hiveConf != null && AuthType.isSamlAuthMode(hiveConf)) {
       // this is mostly for testing purposes to make sure that SAML client is
       // reinitialized after a HS2 is restarted.
@@ -1074,10 +1085,21 @@ public class HiveServer2 extends CompositeService {
     if (policyContainer.size() > 0) {
       setUpZooKeeperAuth(hiveConf);
       zKClientForPrivSync = hiveConf.getZKConfig().startZookeeperClient(zooKeeperAclProvider, true);
-      String rootNamespace = hiveConf.getVar(HiveConf.ConfVars.HIVE_SERVER2_ZOOKEEPER_NAMESPACE);
+      String rootNamespace = hiveConf.getVar(HiveConf.ConfVars.HIVE_SERVER2_LEADER_ZOOKEEPER_NAMESPACE);
+      // Create the parent znodes recursively; ignore if the parent already exists.
+      try {
+        zKClientForPrivSync.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
+                .forPath(ZooKeeperHiveHelper.ZOOKEEPER_PATH_SEPARATOR + rootNamespace);
+        LOG.info("Created the root name space: " + rootNamespace + " on ZooKeeper for HiveServer2");
+      } catch (KeeperException e) {
+        if (e.code() != KeeperException.Code.NODEEXISTS) {
+          LOG.error("Unable to create HiveServer2 namespace: " + rootNamespace + " on ZooKeeper", e);
+          throw e;
+        }
+      }
       String path = ZooKeeperHiveHelper.ZOOKEEPER_PATH_SEPARATOR + rootNamespace
-          + ZooKeeperHiveHelper.ZOOKEEPER_PATH_SEPARATOR + "leader";
-      LeaderLatch privilegeSynchronizerLatch = new LeaderLatch(zKClientForPrivSync, path);
+              + ZooKeeperHiveHelper.ZOOKEEPER_PATH_SEPARATOR + "privilege_synchonizer";
+      privilegeSynchronizerLatch = new LeaderLatch(zKClientForPrivSync, path);
       privilegeSynchronizerLatch.start();
       LOG.info("Find " + policyContainer.size() + " policy to synchronize, start PrivilegeSynchronizer");
       Thread privilegeSynchronizerThread = new Thread(
