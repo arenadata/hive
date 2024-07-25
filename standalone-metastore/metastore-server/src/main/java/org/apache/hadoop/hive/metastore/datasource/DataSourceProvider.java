@@ -80,6 +80,10 @@ public interface DataSourceProvider {
     return MetastoreConf.getVar(conf, MetastoreConf.ConfVars.CONNECT_URL_KEY);
   }
 
+  static String getMetastoreDriverClassName(Configuration conf) {
+    return MetastoreConf.getVar(conf, MetastoreConf.ConfVars.CONNECTION_DRIVER);
+  }
+
   static String getDataSourceName(Configuration conf) {
     return conf.get(DataSourceNameConfigurator.DATA_SOURCE_NAME);
   }

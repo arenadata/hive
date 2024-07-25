@@ -21,36 +21,7 @@ package org.apache.hadoop.hive.metastore.messaging.json;
 
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 
-import org.apache.hadoop.hive.metastore.messaging.AbortTxnMessage;
-import org.apache.hadoop.hive.metastore.messaging.AddCheckConstraintMessage;
-import org.apache.hadoop.hive.metastore.messaging.AddDefaultConstraintMessage;
-import org.apache.hadoop.hive.metastore.messaging.AddForeignKeyMessage;
-import org.apache.hadoop.hive.metastore.messaging.AddNotNullConstraintMessage;
-import org.apache.hadoop.hive.metastore.messaging.AddPartitionMessage;
-import org.apache.hadoop.hive.metastore.messaging.AddPrimaryKeyMessage;
-import org.apache.hadoop.hive.metastore.messaging.AddUniqueConstraintMessage;
-import org.apache.hadoop.hive.metastore.messaging.AllocWriteIdMessage;
-import org.apache.hadoop.hive.metastore.messaging.AlterDatabaseMessage;
-import org.apache.hadoop.hive.metastore.messaging.AlterPartitionMessage;
-import org.apache.hadoop.hive.metastore.messaging.AlterTableMessage;
-import org.apache.hadoop.hive.metastore.messaging.CommitCompactionMessage;
-import org.apache.hadoop.hive.metastore.messaging.CommitTxnMessage;
-import org.apache.hadoop.hive.metastore.messaging.CreateDatabaseMessage;
-import org.apache.hadoop.hive.metastore.messaging.CreateFunctionMessage;
-import org.apache.hadoop.hive.metastore.messaging.CreateTableMessage;
-import org.apache.hadoop.hive.metastore.messaging.DropConstraintMessage;
-import org.apache.hadoop.hive.metastore.messaging.DropDatabaseMessage;
-import org.apache.hadoop.hive.metastore.messaging.DropFunctionMessage;
-import org.apache.hadoop.hive.metastore.messaging.DropPartitionMessage;
-import org.apache.hadoop.hive.metastore.messaging.DropTableMessage;
-import org.apache.hadoop.hive.metastore.messaging.InsertMessage;
-import org.apache.hadoop.hive.metastore.messaging.MessageDeserializer;
-import org.apache.hadoop.hive.metastore.messaging.OpenTxnMessage;
-import org.apache.hadoop.hive.metastore.messaging.AcidWriteMessage;
-import org.apache.hadoop.hive.metastore.messaging.UpdateTableColumnStatMessage;
-import org.apache.hadoop.hive.metastore.messaging.DeleteTableColumnStatMessage;
-import org.apache.hadoop.hive.metastore.messaging.UpdatePartitionColumnStatMessage;
-import org.apache.hadoop.hive.metastore.messaging.DeletePartitionColumnStatMessage;
+import org.apache.hadoop.hive.metastore.messaging.*;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -340,6 +311,15 @@ public class JSONMessageDeserializer extends MessageDeserializer {
       return mapper.readValue(messageBody, JSONCommitCompactionMessage.class);
     } catch (Exception e) {
       throw new IllegalArgumentException("Could not construct CommitCompactionMessage", e);
+    }
+  }
+
+  @Override
+  public ReloadMessage getReloadMessage(String messageBody) {
+    try {
+      return mapper.readValue(messageBody, JSONReloadMessage.class);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Could not construct ReloadMessage", e);
     }
   }
 }

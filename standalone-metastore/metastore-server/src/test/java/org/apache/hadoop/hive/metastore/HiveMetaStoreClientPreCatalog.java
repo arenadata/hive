@@ -88,7 +88,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Client;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
@@ -4076,5 +4076,17 @@ public class HiveMetaStoreClientPreCatalog implements IMetaStoreClient, AutoClos
   @Override
   public void seedTxnId(long seedTxnId) throws TException {
     throw new NotImplementedException("");
+  }
+
+  @Override
+  public ThriftHiveMetastore.Client getThriftClient() throws MetaException {
+    if (client == null) {
+      throw new MetaException("Client is not initialized");
+    }
+    if (!(client instanceof ThriftHiveMetastore.Client)) {
+      throw new MetaException("getThriftClient is only supported in remote metastore "
+              + "mode.");
+    }
+    return (Client) client;
   }
 }
