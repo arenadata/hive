@@ -169,13 +169,13 @@ final class HiveGBOpConvUtil {
     // 1. Collect GB Keys
     RelNode aggInputRel = aggRel.getInput();
     ExprNodeConverter exprConv = new ExprNodeConverter(inputOpAf.tabAlias,
-        aggInputRel.getRowType(), new HashSet<Integer>(), aggRel.getCluster().getTypeFactory(),
-        true);
+            aggInputRel.getRowType(), new HashSet<Integer>(), aggRel.getCluster().getTypeFactory(),
+            true);
 
     ExprNodeDesc tmpExprNodeDesc;
     for (int i : aggRel.getGroupSet()) {
       RexInputRef iRef = new RexInputRef(i, aggInputRel.getRowType().getFieldList()
-          .get(i).getType());
+              .get(i).getType());
       tmpExprNodeDesc = iRef.accept(exprConv);
       gbInfo.gbKeys.add(tmpExprNodeDesc);
       gbInfo.gbKeyColNamesInInput.add(aggInputRel.getRowType().getFieldNames().get(i));
@@ -198,11 +198,11 @@ final class HiveGBOpConvUtil {
 
       // 2.2 Check if GRpSet require additional MR Job
       gbInfo.grpSetRqrAdditionalMRJob = gbInfo.grpSets.size() > hc
-          .getIntVar(HiveConf.ConfVars.HIVE_NEW_JOB_GROUPING_SET_CARDINALITY);
+              .getIntVar(HiveConf.ConfVars.HIVE_NEW_JOB_GROUPING_SET_CARDINALITY);
 
       // 2.3 Check if GROUPING_ID needs to be projected out
       if (!aggRel.getAggCallList().isEmpty()
-          && (aggRel.getAggCallList().get(aggRel.getAggCallList().size() - 1).getAggregation() == HiveGroupingID.INSTANCE)) {
+              && (aggRel.getAggCallList().get(aggRel.getAggCallList().size() - 1).getAggregation() == HiveGroupingID.INSTANCE)) {
         gbInfo.grpIdFunctionNeeded = true;
       }
     }
@@ -242,7 +242,7 @@ final class HiveGBOpConvUtil {
 
       UDAFAttrs udafAttrs = new UDAFAttrs();
       List<ExprNodeDesc> argExps = HiveCalciteUtil.getExprNodes(aggCall.getArgList(), aggInputRel,
-          inputOpAf.tabAlias);
+              inputOpAf.tabAlias);
       udafAttrs.udafParams.addAll(argExps);
       udafAttrs.udafName = aggCall.getAggregation().getName();
       udafAttrs.isDistinctUDAF = aggCall.isDistinct();
@@ -255,12 +255,12 @@ final class HiveGBOpConvUtil {
           ExprNodeDesc argExpr = argExps.get(i);
           int found = ExprNodeDescUtils.indexOf(argExpr, gbInfo.gbKeys);
           distColIndicesOfUDAF.add(found < 0 ? distParamInRefsToOutputPos.get(argLst.get(i)) + gbInfo.gbKeys.size() +
-              (gbInfo.grpSets.size() > 0 ? 1 : 0) : found);
+                  (gbInfo.grpSets.size() > 0 ? 1 : 0) : found);
           distUDAFParamsIndxInDistExprs.add(distParamInRefsToOutputPos.get(argLst.get(i)));
         } else {
           // TODO: this seems wrong (following what Hive Regular does)
           if (!distParamInRefsToOutputPos.containsKey(argLst.get(i))
-              && !deDupedNonDistIrefsSet.contains(argLst.get(i))) {
+                  && !deDupedNonDistIrefsSet.contains(argLst.get(i))) {
             deDupedNonDistIrefsSet.add(argLst.get(i));
             gbInfo.deDupedNonDistIrefs.add(udafAttrs.udafParams.get(i));
           }
@@ -276,9 +276,9 @@ final class HiveGBOpConvUtil {
 
       // special handling for count, similar to PlanModifierForASTConv::replaceEmptyGroupAggr()
       udafAttrs.udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafAttrs.udafName,
-          new ArrayList<ExprNodeDesc>(udafAttrs.udafParams), new ASTNode(),
-          udafAttrs.isDistinctUDAF, udafAttrs.udafParams.size() == 0 &&
-          "count".equalsIgnoreCase(udafAttrs.udafName) ? true : false);
+              new ArrayList<ExprNodeDesc>(udafAttrs.udafParams), new ASTNode(),
+              udafAttrs.isDistinctUDAF, udafAttrs.udafParams.size() == 0 &&
+                      "count".equalsIgnoreCase(udafAttrs.udafName) ? true : false);
       gbInfo.udafAttrs.add(udafAttrs);
     }
 
@@ -297,29 +297,29 @@ final class HiveGBOpConvUtil {
   }
 
   static OpAttr translateGB(OpAttr inputOpAf, HiveAggregate aggRel, HiveConf hc)
-      throws SemanticException {
+          throws SemanticException {
     OpAttr translatedGBOpAttr = null;
     GBInfo gbInfo = getGBInfo(aggRel, inputOpAf, hc);
 
     switch (gbInfo.gbPhysicalPipelineMode) {
-    case MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB:
-      translatedGBOpAttr = genMapSideGBNoSkewNoAddMRJob(inputOpAf, aggRel, gbInfo);
-      break;
-    case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
-      translatedGBOpAttr = genMapSideGBNoSkewAddMRJob(inputOpAf, aggRel, gbInfo);
-      break;
-    case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
-      translatedGBOpAttr = genMapSideGBSkewGBKeysOrDistUDAFPresent(inputOpAf, aggRel, gbInfo);
-      break;
-    case MAP_SIDE_GB_SKEW_GBKEYS_AND_DIST_UDAF_NOT_PRESENT:
-      translatedGBOpAttr = genMapSideGBSkewGBKeysAndDistUDAFNotPresent(inputOpAf, aggRel, gbInfo);
-      break;
-    case NO_MAP_SIDE_GB_NO_SKEW:
-      translatedGBOpAttr = genNoMapSideGBNoSkew(inputOpAf, aggRel, gbInfo);
-      break;
-    case NO_MAP_SIDE_GB_SKEW:
-      translatedGBOpAttr = genNoMapSideGBSkew(inputOpAf, aggRel, gbInfo);
-      break;
+      case MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB:
+        translatedGBOpAttr = genMapSideGBNoSkewNoAddMRJob(inputOpAf, aggRel, gbInfo);
+        break;
+      case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
+        translatedGBOpAttr = genMapSideGBNoSkewAddMRJob(inputOpAf, aggRel, gbInfo);
+        break;
+      case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
+        translatedGBOpAttr = genMapSideGBSkewGBKeysOrDistUDAFPresent(inputOpAf, aggRel, gbInfo);
+        break;
+      case MAP_SIDE_GB_SKEW_GBKEYS_AND_DIST_UDAF_NOT_PRESENT:
+        translatedGBOpAttr = genMapSideGBSkewGBKeysAndDistUDAFNotPresent(inputOpAf, aggRel, gbInfo);
+        break;
+      case NO_MAP_SIDE_GB_NO_SKEW:
+        translatedGBOpAttr = genNoMapSideGBNoSkew(inputOpAf, aggRel, gbInfo);
+        break;
+      case NO_MAP_SIDE_GB_SKEW:
+        translatedGBOpAttr = genNoMapSideGBSkew(inputOpAf, aggRel, gbInfo);
+        break;
     }
 
     return translatedGBOpAttr;
@@ -338,7 +338,7 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static OpAttr genMapSideGBNoSkewNoAddMRJob(OpAttr inputOpAf, HiveAggregate aggRel,
-      GBInfo gbInfo) throws SemanticException {
+                                                     GBInfo gbInfo) throws SemanticException {
     OpAttr mapSideGB = null;
     OpAttr mapSideRS = null;
     OpAttr reduceSideGB = null;
@@ -359,7 +359,7 @@ final class HiveGBOpConvUtil {
    * GB-RS-GB1-RS-GB2
    */
   private static OpAttr genGBRSGBRSGBOpPipeLine(OpAttr inputOpAf, HiveAggregate aggRel,
-      GBInfo gbInfo) throws SemanticException {
+                                                GBInfo gbInfo) throws SemanticException {
     OpAttr mapSideGB = null;
     OpAttr mapSideRS = null;
     OpAttr reduceSideGB1 = null;
@@ -395,13 +395,13 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static OpAttr genMapSideGBNoSkewAddMRJob(OpAttr inputOpAf, HiveAggregate aggRel,
-      GBInfo gbInfo) throws SemanticException {
+                                                   GBInfo gbInfo) throws SemanticException {
     // 1. Sanity check
     if (gbInfo.containsDistinctAggr) {
       String errorMsg = "The number of rows per input row due to grouping sets is "
-          + gbInfo.grpSets.size();
+              + gbInfo.grpSets.size();
       throw new SemanticException(
-          ErrorMsg.HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_DISTINCTS.getMsg(errorMsg));
+              ErrorMsg.HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_DISTINCTS.getMsg(errorMsg));
     }
 
     // 2. Gen GB-RS-GB-RS-GB pipeline
@@ -418,13 +418,13 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static OpAttr genMapSideGBSkewGBKeysOrDistUDAFPresent(OpAttr inputOpAf,
-      HiveAggregate aggRel, GBInfo gbInfo) throws SemanticException {
+                                                                HiveAggregate aggRel, GBInfo gbInfo) throws SemanticException {
     // 1. Sanity check
     if (gbInfo.grpSetRqrAdditionalMRJob) {
       String errorMsg = "The number of rows per input row due to grouping sets is "
-          + gbInfo.grpSets.size();
+              + gbInfo.grpSets.size();
       throw new SemanticException(
-          ErrorMsg.HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_SKEW.getMsg(errorMsg));
+              ErrorMsg.HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_SKEW.getMsg(errorMsg));
     }
 
     // 2. Gen GB-RS-GB-RS-GB pipeline
@@ -441,7 +441,7 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static OpAttr genMapSideGBSkewGBKeysAndDistUDAFNotPresent(OpAttr inputOpAf,
-      HiveAggregate aggRel, GBInfo gbInfo) throws SemanticException {
+                                                                    HiveAggregate aggRel, GBInfo gbInfo) throws SemanticException {
     OpAttr mapSideGB = null;
     OpAttr mapSideRS = null;
     OpAttr reduceSideGB2 = null;
@@ -449,9 +449,9 @@ final class HiveGBOpConvUtil {
     // 1. Sanity check
     if (gbInfo.grpSetRqrAdditionalMRJob) {
       String errorMsg = "The number of rows per input row due to grouping sets is "
-          + gbInfo.grpSets.size();
+              + gbInfo.grpSets.size();
       throw new SemanticException(
-          ErrorMsg.HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_SKEW.getMsg(errorMsg));
+              ErrorMsg.HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_SKEW.getMsg(errorMsg));
     }
 
     // 1. Insert MapSide GB
@@ -476,7 +476,7 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static OpAttr genNoMapSideGBNoSkew(OpAttr inputOpAf, HiveAggregate aggRel, GBInfo gbInfo)
-      throws SemanticException {
+          throws SemanticException {
     OpAttr mapSideRS = null;
     OpAttr reduceSideGB1NoMapGB = null;
 
@@ -499,7 +499,7 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static OpAttr genNoMapSideGBSkew(OpAttr inputOpAf, HiveAggregate aggRel, GBInfo gbInfo)
-      throws SemanticException {
+          throws SemanticException {
     OpAttr mapSideRS = null;
     OpAttr reduceSideGB1NoMapGB = null;
     OpAttr reduceSideRS = null;
@@ -524,19 +524,19 @@ final class HiveGBOpConvUtil {
     int degreeOfParallelism = 0;
 
     switch (gbInfo.gbPhysicalPipelineMode) {
-    case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
-    case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
-    case NO_MAP_SIDE_GB_SKEW:
-      if (gbInfo.gbKeys.isEmpty()) {
-        degreeOfParallelism = 1;
-      } else {
-        degreeOfParallelism = -1;
-      }
-      break;
-    default:
-      throw new RuntimeException(
-          "Unable to determine Reducer Parallelism - Invalid Physical Mode: "
-              + gbInfo.gbPhysicalPipelineMode);
+      case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
+      case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
+      case NO_MAP_SIDE_GB_SKEW:
+        if (gbInfo.gbKeys.isEmpty()) {
+          degreeOfParallelism = 1;
+        } else {
+          degreeOfParallelism = -1;
+        }
+        break;
+      default:
+        throw new RuntimeException(
+                "Unable to determine Reducer Parallelism - Invalid Physical Mode: "
+                        + gbInfo.gbPhysicalPipelineMode);
     }
 
     return degreeOfParallelism;
@@ -546,26 +546,26 @@ final class HiveGBOpConvUtil {
     int degreeOfParallelism = 0;
 
     switch (gbInfo.gbPhysicalPipelineMode) {
-    case MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB:
-    case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
-    case NO_MAP_SIDE_GB_NO_SKEW:
-      if (gbInfo.gbKeys.isEmpty()) {
-        degreeOfParallelism = 1;
-      } else {
+      case MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB:
+      case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
+      case NO_MAP_SIDE_GB_NO_SKEW:
+        if (gbInfo.gbKeys.isEmpty()) {
+          degreeOfParallelism = 1;
+        } else {
+          degreeOfParallelism = -1;
+        }
+        break;
+      case NO_MAP_SIDE_GB_SKEW:
+      case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
         degreeOfParallelism = -1;
-      }
-      break;
-    case NO_MAP_SIDE_GB_SKEW:
-    case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
-      degreeOfParallelism = -1;
-      break;
-    case MAP_SIDE_GB_SKEW_GBKEYS_AND_DIST_UDAF_NOT_PRESENT:
-      degreeOfParallelism = 1;
-      break;
-    default:
-      throw new RuntimeException(
-          "Unable to determine Reducer Parallelism - Invalid Physical Mode: "
-              + gbInfo.gbPhysicalPipelineMode);
+        break;
+      case MAP_SIDE_GB_SKEW_GBKEYS_AND_DIST_UDAF_NOT_PRESENT:
+        degreeOfParallelism = 1;
+        break;
+      default:
+        throw new RuntimeException(
+                "Unable to determine Reducer Parallelism - Invalid Physical Mode: "
+                        + gbInfo.gbPhysicalPipelineMode);
     }
 
     return degreeOfParallelism;
@@ -575,17 +575,17 @@ final class HiveGBOpConvUtil {
     int numPartFields = 0;
 
     switch (gbInfo.gbPhysicalPipelineMode) {
-    case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
-      numPartFields = gbInfo.gbKeys.size() + 1;
-      break;
-    case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
-    case NO_MAP_SIDE_GB_SKEW:
-      numPartFields = gbInfo.gbKeys.size();
-      break;
-    default:
-      throw new RuntimeException(
-          "Unable to determine Number of Partition Fields - Invalid Physical Mode: "
-              + gbInfo.gbPhysicalPipelineMode);
+      case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
+        numPartFields = gbInfo.gbKeys.size() + 1;
+        break;
+      case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
+      case NO_MAP_SIDE_GB_SKEW:
+        numPartFields = gbInfo.gbKeys.size();
+        break;
+      default:
+        throw new RuntimeException(
+                "Unable to determine Number of Partition Fields - Invalid Physical Mode: "
+                        + gbInfo.gbPhysicalPipelineMode);
     }
 
     return numPartFields;
@@ -595,24 +595,24 @@ final class HiveGBOpConvUtil {
     int numPartFields = 0;
 
     switch (gbInfo.gbPhysicalPipelineMode) {
-    case MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB:
-    case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
-    case MAP_SIDE_GB_SKEW_GBKEYS_AND_DIST_UDAF_NOT_PRESENT:
-    case NO_MAP_SIDE_GB_NO_SKEW:
-      numPartFields += gbInfo.gbKeys.size();
-      break;
-    case NO_MAP_SIDE_GB_SKEW:
-    case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
-      if (gbInfo.containsDistinctAggr) {
-        numPartFields = Integer.MAX_VALUE;
-      } else {
-        numPartFields = -1;
-      }
-      break;
-    default:
-      throw new RuntimeException(
-          "Unable to determine Number of Partition Fields - Invalid Physical Mode: "
-              + gbInfo.gbPhysicalPipelineMode);
+      case MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB:
+      case MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB:
+      case MAP_SIDE_GB_SKEW_GBKEYS_AND_DIST_UDAF_NOT_PRESENT:
+      case NO_MAP_SIDE_GB_NO_SKEW:
+        numPartFields += gbInfo.gbKeys.size();
+        break;
+      case NO_MAP_SIDE_GB_SKEW:
+      case MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT:
+        if (gbInfo.containsDistinctAggr) {
+          numPartFields = Integer.MAX_VALUE;
+        } else {
+          numPartFields = -1;
+        }
+        break;
+      default:
+        throw new RuntimeException(
+                "Unable to determine Number of Partition Fields - Invalid Physical Mode: "
+                        + gbInfo.gbPhysicalPipelineMode);
     }
 
     return numPartFields;
@@ -622,7 +622,7 @@ final class HiveGBOpConvUtil {
     boolean inclGrpSet = false;
 
     if (gbInfo.grpSets.size() > 0
-        && (gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB || gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT)) {
+            && (gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_NO_SKEW_ADD_MR_JOB || gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT)) {
       inclGrpSet = true;
     }
 
@@ -633,7 +633,7 @@ final class HiveGBOpConvUtil {
     boolean inclGrpSet = false;
 
     if (gbInfo.grpSets.size() > 0
-        && ((gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB) ||
+            && ((gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_NO_SKEW_NO_ADD_MR_JOB) ||
             gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT)) {
       inclGrpSet = true;
     }
@@ -649,19 +649,19 @@ final class HiveGBOpConvUtil {
     List<ColumnInfo> gb1ColInfoLst = reduceSideGB1.getSchema().getSignature();
 
     ArrayList<ExprNodeDesc> reduceKeys = getReduceKeysForRS(reduceSideGB1, 0,
-        gbInfo.gbKeys.size() - 1, outputColumnNames, false, colInfoLst, colExprMap, true, true);
+            gbInfo.gbKeys.size() - 1, outputColumnNames, false, colInfoLst, colExprMap, true, true);
     if (inclGrpSetInReduceSide(gbInfo)) {
       addGrpSetCol(false, gb1ColInfoLst.get(reduceKeys.size()).getInternalName(), true, reduceKeys,
-          outputColumnNames, colInfoLst, colExprMap);
+              outputColumnNames, colInfoLst, colExprMap);
     }
 
     ArrayList<ExprNodeDesc> reduceValues = getValueKeysForRS(reduceSideGB1, reduceSideGB1.getConf()
-        .getKeys().size(), outputColumnNames, colInfoLst, colExprMap, true, true);
+            .getKeys().size(), outputColumnNames, colInfoLst, colExprMap, true, true);
 
     ReduceSinkOperator rsOp = (ReduceSinkOperator) OperatorFactory.getAndMakeChild(PlanUtils
-        .getReduceSinkDesc(reduceKeys, reduceValues, outputColumnNames, true, -1,
-            getNumPartFieldsForReduceSideRS(gbInfo), getParallelismForReduceSideRS(gbInfo),
-            AcidUtils.Operation.NOT_ACID, gbInfo.defaultNullOrder), new RowSchema(colInfoLst), reduceSideGB1);
+            .getReduceSinkDesc(reduceKeys, reduceValues, outputColumnNames, true, -1,
+                    getNumPartFieldsForReduceSideRS(gbInfo), getParallelismForReduceSideRS(gbInfo),
+                    AcidUtils.Operation.NOT_ACID, gbInfo.defaultNullOrder), new RowSchema(colInfoLst), reduceSideGB1);
 
     rsOp.setColumnExprMap(colExprMap);
 
@@ -676,18 +676,18 @@ final class HiveGBOpConvUtil {
     GroupByOperator mapGB = (GroupByOperator) inputOpAf.inputs.get(0);
 
     ArrayList<ExprNodeDesc> reduceKeys = getReduceKeysForRS(mapGB, 0, gbInfo.gbKeys.size() - 1,
-        outputKeyColumnNames, false, colInfoLst, colExprMap, false, false);
+            outputKeyColumnNames, false, colInfoLst, colExprMap, false, false);
     int keyLength = reduceKeys.size();
 
     if (inclGrpSetInMapSide(gbInfo)) {
       addGrpSetCol(false, SemanticAnalyzer.getColumnInternalName(reduceKeys.size()), true,
-          reduceKeys, outputKeyColumnNames, colInfoLst, colExprMap);
+              reduceKeys, outputKeyColumnNames, colInfoLst, colExprMap);
       keyLength++;
     }
     if (mapGB.getConf().getKeys().size() > reduceKeys.size()) {
       // NOTE: All dist cols have single output col name;
       reduceKeys.addAll(getReduceKeysForRS(mapGB, reduceKeys.size(), mapGB.getConf().getKeys()
-          .size() - 1, outputKeyColumnNames, true, colInfoLst, colExprMap, false, false));
+              .size() - 1, outputKeyColumnNames, true, colInfoLst, colExprMap, false, false));
     } else if (!gbInfo.distColIndices.isEmpty()) {
       // This is the case where distinct cols are part of GB Keys in which case
       // we still need to add it to out put col names
@@ -695,13 +695,13 @@ final class HiveGBOpConvUtil {
     }
 
     ArrayList<ExprNodeDesc> reduceValues = getValueKeysForRS(mapGB, mapGB.getConf().getKeys()
-        .size(), outputValueColumnNames, colInfoLst, colExprMap, false, false);
+            .size(), outputValueColumnNames, colInfoLst, colExprMap, false, false);
 
     ReduceSinkOperator rsOp = (ReduceSinkOperator) OperatorFactory.getAndMakeChild(PlanUtils
-        .getReduceSinkDesc(reduceKeys, keyLength, reduceValues, gbInfo.distColIndices,
-        outputKeyColumnNames, outputValueColumnNames, true, -1, getNumPartFieldsForMapSideRS(
-        gbInfo), getParallelismForMapSideRS(gbInfo), AcidUtils.Operation.NOT_ACID, gbInfo.defaultNullOrder),
-        new RowSchema(colInfoLst), mapGB);
+                    .getReduceSinkDesc(reduceKeys, keyLength, reduceValues, gbInfo.distColIndices,
+                            outputKeyColumnNames, outputValueColumnNames, true, -1, getNumPartFieldsForMapSideRS(
+                                    gbInfo), getParallelismForMapSideRS(gbInfo), AcidUtils.Operation.NOT_ACID, gbInfo.defaultNullOrder),
+            new RowSchema(colInfoLst), mapGB);
 
     rsOp.setColumnExprMap(colExprMap);
 
@@ -742,9 +742,9 @@ final class HiveGBOpConvUtil {
         // _col0 at the end instead of _col<i>
         outputColName = SemanticAnalyzer.getColumnInternalName(0);
         String field = Utilities.ReduceField.KEY.toString() + "." + udafName + ":" + i + "."
-            + outputColName;
+                + outputColName;
         ColumnInfo colInfo = new ColumnInfo(field, gbInfo.distExprNodes.get(i).getTypeInfo(), null,
-            false);
+                false);
         colInfoLst.add(colInfo);
         colExprMap.put(field, gbInfo.distExprNodes.get(i));
       }
@@ -758,17 +758,17 @@ final class HiveGBOpConvUtil {
       outputValueColumnNames.add(outputColName);
       String field = Utilities.ReduceField.VALUE.toString() + "." + outputColName;
       colInfoLst.add(new ColumnInfo(field, reduceValues.get(reduceValues.size() - 1).getTypeInfo(),
-          null, false));
+              null, false));
       colExprMap.put(field, reduceValues.get(reduceValues.size() - 1));
     }
 
     // 4. Gen RS
     ReduceSinkOperator rsOp = (ReduceSinkOperator) OperatorFactory.getAndMakeChild(PlanUtils
-        .getReduceSinkDesc(reduceKeys, keyLength, reduceValues,
-            gbInfo.distColIndices, outputKeyColumnNames,
-            outputValueColumnNames, true, -1, getNumPartFieldsForMapSideRS(gbInfo),
-            getParallelismForMapSideRS(gbInfo), AcidUtils.Operation.NOT_ACID, gbInfo.defaultNullOrder), new RowSchema(
-        colInfoLst), inputOpAf.inputs.get(0));
+            .getReduceSinkDesc(reduceKeys, keyLength, reduceValues,
+                    gbInfo.distColIndices, outputKeyColumnNames,
+                    outputValueColumnNames, true, -1, getNumPartFieldsForMapSideRS(gbInfo),
+                    getParallelismForMapSideRS(gbInfo), AcidUtils.Operation.NOT_ACID, gbInfo.defaultNullOrder), new RowSchema(
+            colInfoLst), inputOpAf.inputs.get(0));
 
     rsOp.setColumnExprMap(colExprMap);
 
@@ -787,7 +787,7 @@ final class HiveGBOpConvUtil {
     // 1. Build GB Keys, grouping set starting position
     // 1.1 First Add original GB Keys
     ArrayList<ExprNodeDesc> gbKeys = ExprNodeDescUtils.genExprNodeDesc(rs, 0,
-        gbInfo.gbKeys.size() - 1, false, false);
+            gbInfo.gbKeys.size() - 1, false, false);
     for (int i = 0; i < gbInfo.gbKeys.size(); i++) {
       ci = rsColInfoLst.get(i);
       colOutputName = gbInfo.outputColNames.get(i);
@@ -800,7 +800,7 @@ final class HiveGBOpConvUtil {
     if (inclGrpSetInReduceSide(gbInfo) && gbInfo.grpIdFunctionNeeded) {
       groupingSetsPosition = gbKeys.size();
       ExprNodeDesc grpSetColExpr = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo,
-          rsColInfoLst.get(groupingSetsPosition).getInternalName(), null, false);
+              rsColInfoLst.get(groupingSetsPosition).getInternalName(), null, false);
       gbKeys.add(grpSetColExpr);
       colOutputName = gbInfo.outputColNames.get(gbInfo.outputColNames.size() - 1);
       ;
@@ -813,7 +813,7 @@ final class HiveGBOpConvUtil {
     UDAFAttrs udafAttr;
     ArrayList<AggregationDesc> aggregations = new ArrayList<AggregationDesc>();
     int udafStartPosInGBInfOutputColNames = gbInfo.grpSets.isEmpty() ? gbInfo.gbKeys.size()
-        : gbInfo.gbKeys.size() * 2;
+            : gbInfo.gbKeys.size() * 2;
     int udafStartPosInInputRS = gbInfo.grpSets.isEmpty() ? gbInfo.gbKeys.size() : gbInfo.gbKeys.size() + 1;
 
     for (int i = 0; i < gbInfo.udafAttrs.size(); i++) {
@@ -823,19 +823,19 @@ final class HiveGBOpConvUtil {
       colOutputName = gbInfo.outputColNames.get(udafStartPosInGBInfOutputColNames + i);
       outputColNames.add(colOutputName);
       Mode udafMode = SemanticAnalyzer.groupByDescModeToUDAFMode(GroupByDesc.Mode.FINAL,
-          udafAttr.isDistinctUDAF);
+              udafAttr.isDistinctUDAF);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(udafAttr.udafEvaluator, udafMode,
-          aggParameters);
+              aggParameters);
       aggregations.add(new AggregationDesc(udafAttr.udafName.toLowerCase(),
-          udaf.genericUDAFEvaluator, udaf.convertedParameters, false, udafMode));
+              udaf.genericUDAFEvaluator, udaf.convertedParameters, false, udafMode));
       colInfoLst.add(new ColumnInfo(colOutputName, udaf.returnType, "", false));
     }
 
     Operator rsGBOp2 = OperatorFactory.getAndMakeChild(new GroupByDesc(GroupByDesc.Mode.FINAL,
-        outputColNames, gbKeys, aggregations, false, gbInfo.groupByMemoryUsage,
-        gbInfo.memoryThreshold, gbInfo.minReductionHashAggr, gbInfo.minReductionHashAggrLowerBound,
-        null, false, groupingSetsPosition, gbInfo.containsDistinctAggr),
-        new RowSchema(colInfoLst), rs);
+                    outputColNames, gbKeys, aggregations, false, gbInfo.groupByMemoryUsage,
+                    gbInfo.memoryThreshold, gbInfo.minReductionHashAggr, gbInfo.minReductionHashAggrLowerBound,
+                    null, false, groupingSetsPosition, gbInfo.containsDistinctAggr),
+            new RowSchema(colInfoLst), rs);
 
     rsGBOp2.setColumnExprMap(colExprMap);
 
@@ -844,7 +844,7 @@ final class HiveGBOpConvUtil {
   }
 
   private static OpAttr genReduceSideGB1(OpAttr inputOpAf, GBInfo gbInfo, boolean computeGrpSet,
-      boolean propagateConstInDistinctUDAF, GroupByDesc.Mode gbMode) throws SemanticException {
+                                         boolean propagateConstInDistinctUDAF, GroupByDesc.Mode gbMode) throws SemanticException {
     ArrayList<String> outputColNames = new ArrayList<String>();
     ArrayList<ColumnInfo> colInfoLst = new ArrayList<ColumnInfo>();
     Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
@@ -857,7 +857,7 @@ final class HiveGBOpConvUtil {
     // 1. Build GB Keys, grouping set starting position
     // 1.1 First Add original GB Keys
     ArrayList<ExprNodeDesc> gbKeys = ExprNodeDescUtils.genExprNodeDesc(rs, 0,
-        gbInfo.gbKeys.size() - 1, false, false);
+            gbInfo.gbKeys.size() - 1, false, false);
     for (int i = 0; i < gbInfo.gbKeys.size(); i++) {
       ci = rsColInfoLst.get(i);
       if (finalGB) {
@@ -882,7 +882,7 @@ final class HiveGBOpConvUtil {
         // TODO: Can't we just copy the ExprNodeDEsc from input (Do we need to
         // explicitly set table alias to null & VC to false
         gbKeys.addAll(ExprNodeDescUtils.genExprNodeDesc(rs, groupingSetsColPosition,
-            groupingSetsColPosition, false, true));
+                groupingSetsColPosition, false, true));
       }
 
       colOutputName = SemanticAnalyzer.getColumnInternalName(groupingSetsColPosition);
@@ -898,7 +898,7 @@ final class HiveGBOpConvUtil {
     String lastReduceKeyColName = null;
     if (!rs.getConf().getOutputKeyColumnNames().isEmpty()) {
       lastReduceKeyColName = rs.getConf().getOutputKeyColumnNames()
-          .get(rs.getConf().getOutputKeyColumnNames().size() - 1);
+              .get(rs.getConf().getOutputKeyColumnNames().size() - 1);
     }
     int numDistinctUDFs = 0;
 
@@ -906,7 +906,7 @@ final class HiveGBOpConvUtil {
     List<ExprNodeDesc> reduceValues = rs.getConf().getValueCols();
     ArrayList<AggregationDesc> aggregations = new ArrayList<AggregationDesc>();
     int udafColStartPosInOriginalGB = (gbInfo.grpSets.size() > 0) ? gbInfo.gbKeys.size() * 2
-        : gbInfo.gbKeys.size();
+            : gbInfo.gbKeys.size();
     int udafColStartPosInRS = rs.getConf().getKeyCols().size();
     for (int i = 0; i < gbInfo.udafAttrs.size(); i++) {
       UDAFAttrs udafAttr = gbInfo.udafAttrs.get(i);
@@ -922,17 +922,17 @@ final class HiveGBOpConvUtil {
           // TODO: verify if this is needed
           if (lastReduceKeyColName != null) {
             rsDistUDAFParamName = Utilities.ReduceField.KEY.name() + "." + lastReduceKeyColName
-                + ":" + numDistinctUDFs + "." + SemanticAnalyzer.getColumnInternalName(j);
+                    + ":" + numDistinctUDFs + "." + SemanticAnalyzer.getColumnInternalName(j);
           }
 
           distinctUDAFParam = new ExprNodeColumnDesc(rsDistUDAFParamColInfo.getType(),
-              rsDistUDAFParamName, rsDistUDAFParamColInfo.getTabAlias(),
-              rsDistUDAFParamColInfo.getIsVirtualCol());
+                  rsDistUDAFParamName, rsDistUDAFParamColInfo.getTabAlias(),
+                  rsDistUDAFParamColInfo.getIsVirtualCol());
           if (propagateConstInDistinctUDAF) {
             // TODO: Implement propConstDistUDAFParams
             constantPropDistinctUDAFParam = SemanticAnalyzer
-                .isConstantParameterInAggregationParameters(
-                    rsDistUDAFParamColInfo.getInternalName(), reduceValues);
+                    .isConstantParameterInAggregationParameters(
+                            rsDistUDAFParamColInfo.getInternalName(), reduceValues);
             if (constantPropDistinctUDAFParam != null) {
               distinctUDAFParam = constantPropDistinctUDAFParam;
             }
@@ -945,16 +945,16 @@ final class HiveGBOpConvUtil {
       }
       Mode udafMode = SemanticAnalyzer.groupByDescModeToUDAFMode(gbMode, udafAttr.isDistinctUDAF);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(udafAttr.udafEvaluator, udafMode,
-          aggParameters);
+              aggParameters);
       aggregations.add(new AggregationDesc(udafAttr.udafName.toLowerCase(),
-          udaf.genericUDAFEvaluator, udaf.convertedParameters,
-          (gbMode != GroupByDesc.Mode.FINAL && udafAttr.isDistinctUDAF), udafMode));
+              udaf.genericUDAFEvaluator, udaf.convertedParameters,
+              (gbMode != GroupByDesc.Mode.FINAL && udafAttr.isDistinctUDAF), udafMode));
 
       if (finalGB) {
         colOutputName = gbInfo.outputColNames.get(udafColStartPosInOriginalGB + i);
       } else {
         colOutputName = SemanticAnalyzer.getColumnInternalName(gbKeys.size() + aggregations.size()
-            - 1);
+                - 1);
       }
 
       colInfoLst.add(new ColumnInfo(colOutputName, udaf.returnType, "", false));
@@ -969,13 +969,13 @@ final class HiveGBOpConvUtil {
     // additional rows corresponding to grouping sets need to be created here.
     //TODO: Clean up/refactor assumptions
     boolean includeGrpSetInGBDesc = (gbInfo.grpSets.size() > 0)
-        && !finalGB
-        && !(gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT);
+            && !finalGB
+            && !(gbInfo.gbPhysicalPipelineMode == HIVEGBPHYSICALMODE.MAP_SIDE_GB_SKEW_GBKEYS_OR_DIST_UDAF_PRESENT);
     Operator rsGBOp = OperatorFactory.getAndMakeChild(new GroupByDesc(gbMode, outputColNames,
-        gbKeys, aggregations, gbInfo.groupByMemoryUsage, gbInfo.memoryThreshold,
-        gbInfo.minReductionHashAggr, gbInfo.minReductionHashAggrLowerBound,
-        gbInfo.grpSets, includeGrpSetInGBDesc, groupingSetsColPosition, gbInfo.containsDistinctAggr),
-        new RowSchema(colInfoLst), rs);
+                    gbKeys, aggregations, gbInfo.groupByMemoryUsage, gbInfo.memoryThreshold,
+                    gbInfo.minReductionHashAggr, gbInfo.minReductionHashAggrLowerBound,
+                    gbInfo.grpSets, includeGrpSetInGBDesc, groupingSetsColPosition, gbInfo.containsDistinctAggr),
+            new RowSchema(colInfoLst), rs);
 
     rsGBOp.setColumnExprMap(colExprMap);
 
@@ -992,7 +992,7 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static OpAttr genReduceSideGB1NoMapGB(OpAttr inputOpAf, GBInfo gbInfo,
-      GroupByDesc.Mode gbMode) throws SemanticException {
+                                                GroupByDesc.Mode gbMode) throws SemanticException {
     ArrayList<String> outputColNames = new ArrayList<String>();
     ArrayList<ColumnInfo> colInfoLst = new ArrayList<ColumnInfo>();
     Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
@@ -1005,7 +1005,7 @@ final class HiveGBOpConvUtil {
     // 1. Build GB Keys, grouping set starting position
     // 1.1 First Add original GB Keys
     ArrayList<ExprNodeDesc> gbKeys = ExprNodeDescUtils.genExprNodeDesc(rs, 0,
-        gbInfo.gbKeys.size() - 1, true, false);
+            gbInfo.gbKeys.size() - 1, true, false);
     for (int i = 0; i < gbInfo.gbKeys.size(); i++) {
       ci = rsColInfoLst.get(i);
       if (useOriginalGBNames) {
@@ -1022,7 +1022,7 @@ final class HiveGBOpConvUtil {
     String lastReduceKeyColName = null;
     if (!rs.getConf().getOutputKeyColumnNames().isEmpty()) {
       lastReduceKeyColName = rs.getConf().getOutputKeyColumnNames()
-          .get(rs.getConf().getOutputKeyColumnNames().size() - 1);
+              .get(rs.getConf().getOutputKeyColumnNames().size() - 1);
     }
     int numDistinctUDFs = 0;
     List<ExprNodeDesc> reduceValues = rs.getConf().getValueCols();
@@ -1101,23 +1101,23 @@ final class HiveGBOpConvUtil {
       UDAFAttrs udafAttr = gbInfo.udafAttrs.get(e.getKey());
       Mode udafMode = SemanticAnalyzer.groupByDescModeToUDAFMode(gbMode, udafAttr.isDistinctUDAF);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(udafAttr.udafEvaluator, udafMode,
-          e.getValue());
+              e.getValue());
       aggregations.add(new AggregationDesc(udafAttr.udafName.toLowerCase(),
-          udaf.genericUDAFEvaluator, udaf.convertedParameters, udafAttr.isDistinctUDAF, udafMode));
+              udaf.genericUDAFEvaluator, udaf.convertedParameters, udafAttr.isDistinctUDAF, udafMode));
       if (useOriginalGBNames) {
         colOutputName = gbInfo.outputColNames.get(udafColStartPosInOriginalGB + e.getKey());
       } else {
         colOutputName = SemanticAnalyzer.getColumnInternalName(gbKeys.size() + aggregations.size()
-            - 1);
+                - 1);
       }
       colInfoLst.add(new ColumnInfo(colOutputName, udaf.returnType, "", false));
       outputColNames.add(colOutputName);
     }
 
     Operator rsGB1 = OperatorFactory.getAndMakeChild(new GroupByDesc(gbMode, outputColNames,
-        gbKeys, aggregations, false, gbInfo.groupByMemoryUsage, gbInfo.minReductionHashAggrLowerBound,
-        gbInfo.memoryThreshold, gbInfo.minReductionHashAggr, null,
-        false, -1, numDistinctUDFs > 0), new RowSchema(colInfoLst), rs);
+            gbKeys, aggregations, false, gbInfo.groupByMemoryUsage, gbInfo.minReductionHashAggrLowerBound,
+            gbInfo.memoryThreshold, gbInfo.minReductionHashAggr, null,
+            false, -1, numDistinctUDFs > 0), new RowSchema(colInfoLst), rs);
     rsGB1.setColumnExprMap(colExprMap);
 
     return new OpAttr("", new HashSet<Integer>(), rsGB1);
@@ -1127,7 +1127,7 @@ final class HiveGBOpConvUtil {
     //first see if it is gbkeys
     int gbKeyIndex = ExprNodeDescUtils.indexOf(aggExpr, gbInfo.gbKeys);
     if(gbKeyIndex < 0 )  {
-        //then check if it is distinct key
+      //then check if it is distinct key
       int distinctKeyIndex = ExprNodeDescUtils.indexOf(aggExpr, gbInfo.distExprNodes);
       if(distinctKeyIndex < 0) {
         // lastly it should be in deDupedNonDistIrefs
@@ -1142,7 +1142,7 @@ final class HiveGBOpConvUtil {
 
     }
     else {
-        return gbKeyIndex;
+      return gbKeyIndex;
     }
   }
 
@@ -1192,18 +1192,18 @@ final class HiveGBOpConvUtil {
     ArrayList<AggregationDesc> aggregations = new ArrayList<AggregationDesc>();
     for (UDAFAttrs udafAttr : gbAttrs.udafAttrs) {
       Mode amode = SemanticAnalyzer.groupByDescModeToUDAFMode(GroupByDesc.Mode.HASH,
-          udafAttr.isDistinctUDAF);
+              udafAttr.isDistinctUDAF);
       aggregations.add(new AggregationDesc(udafAttr.udafName.toLowerCase(), udafAttr.udafEvaluator,
-          udafAttr.udafParams, udafAttr.isDistinctUDAF, amode));
+              udafAttr.udafParams, udafAttr.isDistinctUDAF, amode));
       GenericUDAFInfo udafInfo;
       try {
         udafInfo = SemanticAnalyzer.getGenericUDAFInfo(udafAttr.udafEvaluator, amode,
-            udafAttr.udafParams);
+                udafAttr.udafParams);
       } catch (SemanticException e) {
         throw new RuntimeException(e);
       }
       colOutputName = SemanticAnalyzer.getColumnInternalName(gbKeys.size() + aggregations.size()
-          - 1);
+              - 1);
       colInfoLst.add(new ColumnInfo(colOutputName, udafInfo.returnType, "", false));
       outputColNames.add(colOutputName);
     }
@@ -1211,10 +1211,10 @@ final class HiveGBOpConvUtil {
     // 3. Create GB
     @SuppressWarnings("rawtypes")
     Operator gbOp = OperatorFactory.getAndMakeChild(new GroupByDesc(GroupByDesc.Mode.HASH,
-        outputColNames, gbKeys, aggregations, false, gbAttrs.groupByMemoryUsage,
-        gbAttrs.memoryThreshold, gbAttrs.minReductionHashAggr, gbAttrs.minReductionHashAggrLowerBound,
-        gbAttrs.grpSets, inclGrpID, groupingSetsPosition,
-        gbAttrs.containsDistinctAggr), new RowSchema(colInfoLst), inputOpAf.inputs.get(0));
+            outputColNames, gbKeys, aggregations, false, gbAttrs.groupByMemoryUsage,
+            gbAttrs.memoryThreshold, gbAttrs.minReductionHashAggr, gbAttrs.minReductionHashAggrLowerBound,
+            gbAttrs.grpSets, inclGrpID, groupingSetsPosition,
+            gbAttrs.containsDistinctAggr), new RowSchema(colInfoLst), inputOpAf.inputs.get(0));
 
     // 5. Setup Expr Col Map
     // NOTE: UDAF is not included in ExprColMap
@@ -1224,9 +1224,9 @@ final class HiveGBOpConvUtil {
   }
 
   private static void addGrpSetCol(boolean createConstantExpr, String grpSetIDExprName,
-      boolean addReducePrefixToColInfoName, List<ExprNodeDesc> exprLst,
-      List<String> outputColumnNames, List<ColumnInfo> colInfoLst,
-      Map<String, ExprNodeDesc> colExprMap) throws SemanticException {
+                                   boolean addReducePrefixToColInfoName, List<ExprNodeDesc> exprLst,
+                                   List<String> outputColumnNames, List<ColumnInfo> colInfoLst,
+                                   Map<String, ExprNodeDesc> colExprMap) throws SemanticException {
     String outputColName = null;
     ExprNodeDesc grpSetColExpr = null;
 
@@ -1234,7 +1234,7 @@ final class HiveGBOpConvUtil {
       grpSetColExpr = new ExprNodeConstantDesc("0L");
     } else {
       grpSetColExpr = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, grpSetIDExprName,
-          null, false);
+              null, false);
     }
     exprLst.add(grpSetColExpr);
 
@@ -1259,15 +1259,15 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static ArrayList<ExprNodeDesc> getReduceKeysForRS(Operator inOp, int startPos,
-      int endPos, List<String> outputKeyColumnNames, boolean addOnlyOneKeyColName,
-      ArrayList<ColumnInfo> colInfoLst, Map<String, ExprNodeDesc> colExprMap,
-      boolean addEmptyTabAlias, boolean setColToNonVirtual) throws SemanticException {
+                                                            int endPos, List<String> outputKeyColumnNames, boolean addOnlyOneKeyColName,
+                                                            ArrayList<ColumnInfo> colInfoLst, Map<String, ExprNodeDesc> colExprMap,
+                                                            boolean addEmptyTabAlias, boolean setColToNonVirtual) throws SemanticException {
     ArrayList<ExprNodeDesc> reduceKeys = null;
     if (endPos < 0) {
       reduceKeys = new ArrayList<ExprNodeDesc>();
     } else {
       reduceKeys = ExprNodeDescUtils.genExprNodeDesc(inOp, startPos, endPos, addEmptyTabAlias,
-          setColToNonVirtual);
+              setColToNonVirtual);
       int outColNameIndx = startPos;
       for (int i = 0; i < reduceKeys.size(); ++i) {
         String outputColName = SemanticAnalyzer.getColumnInternalName(outColNameIndx);
@@ -1279,7 +1279,7 @@ final class HiveGBOpConvUtil {
         // TODO: Verify if this is needed (Why can't it be always null/empty
         String tabAlias = addEmptyTabAlias ? "" : null;
         ColumnInfo colInfo = new ColumnInfo(Utilities.ReduceField.KEY.toString() + "."
-            + outputColName, reduceKeys.get(i).getTypeInfo(), tabAlias, false);
+                + outputColName, reduceKeys.get(i).getTypeInfo(), tabAlias, false);
         colInfoLst.add(colInfo);
         colExprMap.put(colInfo.getInternalName(), reduceKeys.get(i));
       }
@@ -1299,23 +1299,23 @@ final class HiveGBOpConvUtil {
    * @throws SemanticException
    */
   private static ArrayList<ExprNodeDesc> getValueKeysForRS(Operator inOp, int aggStartPos,
-      List<String> outputKeyColumnNames, ArrayList<ColumnInfo> colInfoLst,
-      Map<String, ExprNodeDesc> colExprMap, boolean addEmptyTabAlias, boolean setColToNonVirtual)
-      throws SemanticException {
+                                                           List<String> outputKeyColumnNames, ArrayList<ColumnInfo> colInfoLst,
+                                                           Map<String, ExprNodeDesc> colExprMap, boolean addEmptyTabAlias, boolean setColToNonVirtual)
+          throws SemanticException {
     List<ColumnInfo> mapGBColInfoLst = inOp.getSchema().getSignature();
     ArrayList<ExprNodeDesc> valueKeys = null;
     if (aggStartPos >= mapGBColInfoLst.size()) {
       valueKeys = new ArrayList<ExprNodeDesc>();
     } else {
       valueKeys = ExprNodeDescUtils.genExprNodeDesc(inOp, aggStartPos, mapGBColInfoLst.size() - 1,
-          true, setColToNonVirtual);
+              true, setColToNonVirtual);
       for (int i = 0; i < valueKeys.size(); ++i) {
         String outputColName = SemanticAnalyzer.getColumnInternalName(i);
         outputKeyColumnNames.add(outputColName);
         // TODO: Verify if this is needed (Why can't it be always null/empty
         String tabAlias = addEmptyTabAlias ? "" : null;
         ColumnInfo colInfo = new ColumnInfo(Utilities.ReduceField.VALUE.toString() + "."
-            + outputColName, valueKeys.get(i).getTypeInfo(), tabAlias, false);
+                + outputColName, valueKeys.get(i).getTypeInfo(), tabAlias, false);
         colInfoLst.add(colInfo);
         colExprMap.put(colInfo.getInternalName(), valueKeys.get(i));
       }
