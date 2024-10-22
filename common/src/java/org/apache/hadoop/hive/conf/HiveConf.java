@@ -4618,4 +4618,21 @@ public class HiveConf extends Configuration {
       return reverseMap;
     }
   }
+
+  /**
+   * Get a password from the configuration file.  This uses Hadoop's
+   * {@link Configuration#getPassword(String)} to handle getting secure passwords.
+   * @param conf configuration file to read from
+   * @param var configuration value to read
+   * @return the password as a string, or the default value.
+   * @throws IOException if thrown by Configuration.getPassword
+   */
+  public static String getPassword(Configuration conf, ConfVars var) throws IOException {
+    char[] pw = conf.getPassword(var.varname);
+    if (pw == null) {
+      // Might be under the hive name
+      pw = conf.getPassword(var.altName);
+    }
+    return pw == null ? var.defaultStrVal : new String(pw);
+  }
 }

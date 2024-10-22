@@ -436,7 +436,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
                         + " Not configured for SSL connection");
               }
               String trustStorePassword =
-                      conf.getVar(HiveConf.ConfVars.SSL_TRUSTSTORE_PASSWORD).trim();
+                      HiveConf.getPassword(conf, HiveConf.ConfVars.SSL_TRUSTSTORE_PASSWORD).trim();
 
               // Create an SSL socket and connect
               transport = getSSLSocket(store.getHost(), store.getPort(), clientSocketTimeout,
@@ -445,6 +445,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
             } catch(TTransportException e) {
               tte = e;
               throw new MetaException(e.toString());
+            } catch (IOException e) {
+              throw new IllegalArgumentException(e);
             }
           } else {
             transport = new TSocket(store.getHost(), store.getPort(), clientSocketTimeout);
