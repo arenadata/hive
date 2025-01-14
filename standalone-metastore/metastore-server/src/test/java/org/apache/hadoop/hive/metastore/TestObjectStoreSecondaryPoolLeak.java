@@ -30,11 +30,10 @@ import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars;
 import org.apache.hadoop.hive.metastore.dbinstall.rules.DatabaseRule;
 import org.apache.hadoop.hive.metastore.dbinstall.rules.Mysql;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -44,8 +43,8 @@ import java.sql.Statement;
 public class TestObjectStoreSecondaryPoolLeak {
   private static final DatabaseRule DBMS = new Mysql();
 
-  @BeforeAll
-  static void setup() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     DBMS.before();
     DBMS.install();
     try (Connection connection = DriverManager.getConnection(DBMS.getJdbcUrl(), DBMS.getDbRootUser(),
@@ -55,8 +54,8 @@ public class TestObjectStoreSecondaryPoolLeak {
     }
   }
 
-  @AfterAll
-  static void teardown() throws Exception {
+  @AfterClass
+  public static void teardown() throws Exception {
     FaultyJDBCDriver.clearFaults();
     DBMS.after();
   }
@@ -100,7 +99,7 @@ public class TestObjectStoreSecondaryPoolLeak {
         // there is a leak somewhere (in this case in datanucleus).
         String msg = e.getMessage();
         if (msg != null && msg.startsWith("objectstore-secondary - Connection is not available")) {
-          Assertions.fail("Connection leak during creation of " + tableName, e);
+          throw new AssertionError("Connection leak during creation of " + tableName, e);
         }
       }
     }

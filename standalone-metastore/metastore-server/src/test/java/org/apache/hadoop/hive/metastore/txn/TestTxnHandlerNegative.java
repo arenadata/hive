@@ -53,6 +53,7 @@ public class TestTxnHandlerNegative {
     assertTrue(
         e.getMessage().contains("No suitable driver found for blah")
         || e.getMessage().contains("Failed to get driver instance for jdbcUrl=blah")
+        || e.getMessage().contains("claims to not accept jdbcUrl, blah")
     );
   }
 }
