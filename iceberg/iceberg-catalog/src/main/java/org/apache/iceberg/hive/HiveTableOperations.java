@@ -77,21 +77,13 @@ public class HiveTableOperations extends BaseMetastoreTableOperations {
   private static final String HIVE_ICEBERG_METADATA_REFRESH_MAX_RETRIES = "iceberg.hive.metadata-refresh-max-retries";
   private static final int HIVE_ICEBERG_METADATA_REFRESH_MAX_RETRIES_DEFAULT = 2;
 
-  // the max size is based on HMS backend database. For Hive versions below 2.3, the max table parameter size is 4000
-  // characters, see https://issues.apache.org/jira/browse/HIVE-12274
-  // set to 0 to not expose Iceberg metadata in HMS Table properties.
-  private static final String HIVE_TABLE_PROPERTY_MAX_SIZE = "iceberg.hive.table-property-max-size";
-  private static final String NO_LOCK_EXPECTED_KEY = "expected_parameter_key";
-  private static final String NO_LOCK_EXPECTED_VALUE = "expected_parameter_value";
-  private static final long HIVE_TABLE_PROPERTY_MAX_SIZE_DEFAULT = 32672;
-
-  private static final String HIVE_ICEBERG_STORAGE_HANDLER = "org.apache.iceberg.mr.hive.HiveIcebergStorageHandler";
-
-  private static final BiMap<String, String> ICEBERG_TO_HMS_TRANSLATION = ImmutableBiMap.of(
-      // gc.enabled in Iceberg and external.table.purge in Hive are meant to do the same things but with different names
-      GC_ENABLED, "external.table.purge",
-      TableProperties.PARQUET_COMPRESSION, ParquetOutputFormat.COMPRESSION,
-      TableProperties.PARQUET_ROW_GROUP_SIZE_BYTES, ParquetOutputFormat.BLOCK_SIZE);
+  private static final BiMap<String, String> ICEBERG_TO_HMS_TRANSLATION =
+      ImmutableBiMap.of(
+          // gc.enabled in Iceberg and external.table.purge in Hive are meant to do the same things
+          // but with different names
+          GC_ENABLED, "external.table.purge",
+          TableProperties.PARQUET_COMPRESSION, ParquetOutputFormat.COMPRESSION,
+          TableProperties.PARQUET_ROW_GROUP_SIZE_BYTES, ParquetOutputFormat.BLOCK_SIZE);
 
   /**
    * Provides key translation where necessary between Iceberg and HMS props. This translation is needed because some
@@ -594,21 +586,6 @@ public class HiveTableOperations extends BaseMetastoreTableOperations {
       return new MetastoreLock(conf, metaClients, catalogName, database, tableName);
     } else {
       return new NoLock();
-    }
-  }
-
-  /**
-   * Checks if the storage_handler property is already set to HIVE_ICEBERG_STORAGE_HANDLER.
-   * @param storageHandler Storage Handler class
-   * @return true if the storage_handler property is set to HIVE_ICEBERG_STORAGE_HANDLER
-   */
-  private static boolean isHiveIcebergStorageHandler(String storageHandler) {
-    try {
-      Class<?> storageHandlerClass = Class.forName(storageHandler);
-      Class<?> icebergStorageHandlerClass = Class.forName(HIVE_ICEBERG_STORAGE_HANDLER);
-      return icebergStorageHandlerClass.isAssignableFrom(storageHandlerClass);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException("Error checking storage handler class", e);
     }
   }
 }
