@@ -47,6 +47,7 @@ public class HikariCPDataSourceProvider implements DataSourceProvider {
     LOG.info("Creating Hikari connection pool for the MetaStore, maxPoolSize: {}, name: {}", maxPoolSize, poolName);
 
     String driverUrl = DataSourceProvider.getMetastoreJdbcDriverUrl(hdpConfig);
+    String driverClassName = DataSourceProvider.getMetastoreDriverClassName(hdpConfig);
     String user = DataSourceProvider.getMetastoreJdbcUser(hdpConfig);
     String passwd = DataSourceProvider.getMetastoreJdbcPasswd(hdpConfig);
 
@@ -60,6 +61,7 @@ public class HikariCPDataSourceProvider implements DataSourceProvider {
     }
     config.setMaximumPoolSize(maxPoolSize);
     config.setJdbcUrl(driverUrl);
+    config.setDriverClassName(driverClassName);
     config.setUsername(user);
     config.setPassword(passwd);
     if (!StringUtils.isEmpty(poolName)) {
