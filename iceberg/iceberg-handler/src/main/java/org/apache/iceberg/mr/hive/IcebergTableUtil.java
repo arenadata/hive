@@ -344,4 +344,33 @@ public class IcebergTableUtil {
     }
     return data;
   }
+
+  public static Snapshot getTableSnapshot(org.apache.hadoop.hive.ql.metadata.Table hmsTable, Table table) {
+    String refName = HiveUtils.getTableSnapshotRef(hmsTable.getSnapshotRef());
+    Snapshot snapshot;
+    if (refName != null) {
+      snapshot = table.snapshot(refName);
+    } else if (hmsTable.getAsOfTimestamp() != null) {
+      ZoneId timeZone = SessionState.get() == null ? new HiveConf().getLocalTimeZone() :
+              SessionState.get().getConf().getLocalTimeZone();
+      TimestampTZ time = TimestampTZUtil.parse(hmsTable.getAsOfTimestamp(), timeZone);
+      long snapshotId = SnapshotUtil.snapshotIdAsOfTime(table, time.toEpochMilli());
+      snapshot = table.snapshot(snapshotId);
+    } else if (hmsTable.getAsOfVersion() != null) {
+      try {
+        snapshot = table.snapshot(Long.parseLong(hmsTable.getAsOfVersion()));
+      } catch (NumberFormatException e) {
+        SnapshotRef ref = table.refs().get(hmsTable.getAsOfVersion());
+        if (ref == null) {
+          throw new RuntimeException("Cannot find matching snapshot ID or reference name for version " +
+                  hmsTable.getAsOfVersion());
+        }
+        snapshot = table.snapshot(ref.snapshotId());
+      }
+    } else {
+      snapshot = table.currentSnapshot();
+    }
+    return snapshot;
+  }
+
 }
