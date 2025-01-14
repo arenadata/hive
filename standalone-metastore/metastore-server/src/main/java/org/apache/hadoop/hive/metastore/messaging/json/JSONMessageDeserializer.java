@@ -48,6 +48,7 @@ import org.apache.hadoop.hive.metastore.messaging.InsertMessage;
 import org.apache.hadoop.hive.metastore.messaging.MessageDeserializer;
 import org.apache.hadoop.hive.metastore.messaging.OpenTxnMessage;
 import org.apache.hadoop.hive.metastore.messaging.AcidWriteMessage;
+import org.apache.hadoop.hive.metastore.messaging.ReloadMessage;
 import org.apache.hadoop.hive.metastore.messaging.UpdateTableColumnStatMessage;
 import org.apache.hadoop.hive.metastore.messaging.DeleteTableColumnStatMessage;
 import org.apache.hadoop.hive.metastore.messaging.UpdatePartitionColumnStatMessage;
@@ -350,6 +351,15 @@ public class JSONMessageDeserializer extends MessageDeserializer {
       return mapper.readValue(messageBody, JSONCommitCompactionMessage.class);
     } catch (Exception e) {
       throw new IllegalArgumentException("Could not construct CommitCompactionMessage", e);
+    }
+  }
+
+  @Override
+  public ReloadMessage getReloadMessage(String messageBody) {
+    try {
+      return mapper.readValue(messageBody, JSONReloadMessage.class);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Could not construct ReloadMessage", e);
     }
   }
 }
