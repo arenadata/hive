@@ -39,6 +39,7 @@ import org.apache.hive.service.auth.ldap.LdapUtils;
 import org.apache.hive.service.auth.ldap.UserFilterFactory;
 import org.apache.hive.service.auth.ldap.UserGroupSearchFilterFactory;
 import org.apache.hive.service.auth.ldap.UserSearchFilterFactory;
+import org.apache.hive.service.auth.ldap.PatternFilterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,9 +49,9 @@ public class LdapAuthenticationProviderImpl implements PasswdAuthenticationProvi
 
   private static final List<FilterFactory> FILTER_FACTORIES = ImmutableList.<FilterFactory>of(
       new UserGroupSearchFilterFactory(),
-      new CustomQueryFilterFactory(),
-      new ChainFilterFactory(new UserSearchFilterFactory(), new UserFilterFactory(),
-          new GroupFilterFactory())
+          new CustomQueryFilterFactory(),
+          new ChainFilterFactory(new UserSearchFilterFactory(), new UserFilterFactory(),
+                  new GroupFilterFactory()), new PatternFilterFactory()
   );
 
   private final HiveConf conf;
