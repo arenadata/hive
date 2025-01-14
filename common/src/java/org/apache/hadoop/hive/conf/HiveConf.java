@@ -4267,6 +4267,7 @@ public class HiveConf extends Configuration {
             "customLDAPQuery, userFilter, groupFilter). Filters are not applied to authorized proxy users.\n" +
             "Requires valid LDAP bind credentials to be configured.\n" +
             "Default value is false."),
+    HIVE_SERVER2_PLAIN_LDAP_USE_PATTERN_FILTER("hive.server2.authentication.ldap.usePatternFilter", false, ""),
     HIVE_SERVER2_CUSTOM_AUTHENTICATION_CLASS("hive.server2.custom.authentication.class", null,
         "Custom authentication class. Used when property\n" +
         "'hive.server2.authentication' is set to 'CUSTOM'. Provided class\n" +

@@ -69,7 +69,7 @@ public final class LdapAuthenticationTestCase {
 
   public static final class Builder {
 
-    private final Map<HiveConf.ConfVars, String> overrides = new EnumMap<>(HiveConf.ConfVars.class);
+    private final Map<HiveConf.ConfVars, Object> overrides = new EnumMap<>(HiveConf.ConfVars.class);
     private HiveConf conf;
 
     public Builder baseDN(String baseDN) {
@@ -138,6 +138,10 @@ public final class LdapAuthenticationTestCase {
           groupBaseDN);
     }
 
+    public Builder enablePatternFilter() {
+      return setVarOnce(HiveConf.ConfVars.HIVE_SERVER2_PLAIN_LDAP_USE_PATTERN_FILTER, true);
+    }
+
     private Builder setVarOnce(HiveConf.ConfVars confVar, String value) {
       Preconditions.checkState(!overrides.containsKey(confVar),
           "Property %s has been set already", confVar);
@@ -145,10 +149,22 @@ public final class LdapAuthenticationTestCase {
       return this;
     }
 
+    private Builder setVarOnce(HiveConf.ConfVars confVar, boolean value) {
+      Preconditions.checkState(!overrides.containsKey(confVar),
+              "Property %s has been set already", confVar);
+      overrides.put(confVar, value);
+      return this;
+    }
+
     private void overrideHiveConf() {
       conf.set("hive.root.logger", "DEBUG,console");
-      for (Map.Entry<HiveConf.ConfVars, String> entry : overrides.entrySet()) {
-        conf.setVar(entry.getKey(), entry.getValue());
+      for (Map.Entry<HiveConf.ConfVars, Object> entry : overrides.entrySet()) {
+        if (entry.getValue() instanceof String) {
+          conf.setVar(entry.getKey(),(String) entry.getValue());
+        }
+        else if (entry.getValue() instanceof Boolean) {
+          conf.setBoolVar(entry.getKey(), (Boolean) entry.getValue());
+        }
       }
     }
 
