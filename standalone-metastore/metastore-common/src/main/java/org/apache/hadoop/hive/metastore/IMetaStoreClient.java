@@ -4420,5 +4420,12 @@ public interface IMetaStoreClient extends AutoCloseable {
    */
   default Map<String, Map<String, String>> getProperties(String nameSpace, String mapPrefix, String mapPredicate, String... selection) throws TException {
     throw new UnsupportedOperationException();
-  };
+  }
+
+  /**
+   * Returns the thrift client to the remote HMS server.
+   * @throws MetaException if this is not initialized or connected to a remote HMS
+   * server.
+   */
+  ThriftHiveMetastore.Client getThriftClient() throws MetaException;
 }

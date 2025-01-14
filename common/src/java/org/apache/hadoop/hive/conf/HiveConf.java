@@ -921,6 +921,9 @@ public class HiveConf extends Configuration {
     METASTORE_URIS("hive.metastore.uris", "",
         "Thrift URI for the remote metastore. Used by metastore client to connect to remote metastore."),
 
+    @Deprecated
+    METASTOREURIS("hive.metastore.uris", "",
+            "Thrift URI for the remote metastore. Used by metastore client to connect to remote metastore."),
     /**
      * @deprecated Use MetastoreConf.THRIFT_URI_SELECTION
      */
