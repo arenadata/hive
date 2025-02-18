@@ -140,8 +140,8 @@ public class MarkCleanedFunction implements TransactionalFunction<Void> {
      */
     MapSqlParameterSource params = new MapSqlParameterSource()
         .addValue("state", TxnStatus.ABORTED.getSqlConst(), Types.CHAR)
-        .addValue("db", info.dbname)
-        .addValue("table", info.tableName)
+        .addValue("db", info.dbname, Types.VARCHAR)
+        .addValue("table", info.tableName, Types.VARCHAR)
         .addValue("partition", info.partName, Types.VARCHAR);
 
     String deleteQuery = """
