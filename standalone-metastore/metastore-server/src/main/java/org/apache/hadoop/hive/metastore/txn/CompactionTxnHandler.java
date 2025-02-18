@@ -453,7 +453,7 @@ class CompactionTxnHandler extends TxnHandler {
   @Override
   @RetrySemantics.CannotRetry
   public void setCleanerRetryRetentionTimeOnError(CompactionInfo info) throws MetaException {
-    String sanitizedErrorMessage = info.errorMessage == null ? null : info.errorMessage.replace("\0", "");
+    String sanitizedErrorMessage = TxnUtils.utf8Sanitize(info.errorMessage);
     if (info.isAbortedTxnCleanup() && info.id == 0) {
       /*
        * MUTEX_KEY.CompactionScheduler lock ensures that there is only 1 entry in
