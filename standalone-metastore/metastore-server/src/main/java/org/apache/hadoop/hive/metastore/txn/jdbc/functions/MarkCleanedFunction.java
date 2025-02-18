@@ -122,9 +122,9 @@ public class MarkCleanedFunction implements TransactionalFunction<Void> {
 
     MapSqlParameterSource params = new MapSqlParameterSource()
         .addValue("state", TxnStatus.ABORTED.getSqlConst(), Types.CHAR)
-        .addValue("db", info.dbname)
-        .addValue("table", info.tableName)
-        .addValue("partition", info.partName);
+        .addValue("db", info.dbname, Types.VARCHAR)
+        .addValue("table", info.tableName, Types.VARCHAR)
+        .addValue("partition", info.partName, Types.VARCHAR);
 
     int totalCount = 0;
     if (!info.hasUncompactedAborts && info.highestWriteId != 0) {
