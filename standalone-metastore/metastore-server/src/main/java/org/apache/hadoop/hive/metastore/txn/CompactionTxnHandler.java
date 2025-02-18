@@ -441,6 +441,7 @@ class CompactionTxnHandler extends TxnHandler {
   @Override
   @RetrySemantics.CannotRetry
   public void setCleanerRetryRetentionTimeOnError(CompactionInfo info) throws MetaException {
+    String sanitizedErrorMessage = info.errorMessage == null ? null : info.errorMessage.replace("\0", "");
     if (info.isAbortedTxnCleanup() && info.id == 0) {
       /*
        * MUTEX_KEY.CompactionScheduler lock ensures that there is only 1 entry in
@@ -461,7 +462,7 @@ class CompactionTxnHandler extends TxnHandler {
                 .addValue("type", Character.toString(thriftCompactionType2DbType(info.type)))
                 .addValue("state", Character.toString(info.state))
                 .addValue("retention", info.retryRetention)
-                .addValue("msg", info.errorMessage),
+                .addValue("msg", sanitizedErrorMessage),
             null);
         if (updCnt == 0) {
           LOG.error("Unable to update/insert compaction queue record: {}. updCnt={}", info, updCnt);
@@ -476,7 +477,7 @@ class CompactionTxnHandler extends TxnHandler {
           "UPDATE \"COMPACTION_QUEUE\" SET \"CQ_RETRY_RETENTION\" = :retention, \"CQ_ERROR_MESSAGE\"= :msg WHERE \"CQ_ID\" = :id",
           new MapSqlParameterSource()
               .addValue("retention", info.retryRetention)
-              .addValue("msg", info.errorMessage)
+              .addValue("msg", sanitizedErrorMessage)
               .addValue("id", info.id),
           ParameterizedCommand.EXACTLY_ONE_ROW);
     }
