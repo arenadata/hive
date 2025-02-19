@@ -696,4 +696,8 @@ public class TxnUtils {
     sb.append(") values (" + placeholder + ")");
     return sb.toString();
   }
+
+  public static String utf8Sanitize(String input) {
+    return input == null ? null : input.replace("\0", "");
+  }
 }
