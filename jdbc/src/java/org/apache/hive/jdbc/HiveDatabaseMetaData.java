@@ -365,7 +365,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getIdentifierQuoteString() throws SQLException {
-    return " ";
+    return "`";
   }
 
   public ResultSet getImportedKeys(String catalog, String schema, String table)
@@ -900,7 +900,7 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsBatchUpdates() throws SQLException {
-    return false;
+    return true;
   }
 
   public boolean supportsCatalogsInDataManipulation() throws SQLException {
