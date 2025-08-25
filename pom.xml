@@ -114,7 +114,7 @@
     <avro.version>1.11.3</avro.version>
     <bcprov-jdk18on.version>1.77</bcprov-jdk18on.version>
     <calcite.version>1.25.0</calcite.version>
-    <datanucleus-api-jdo.version>5.2.8</datanucleus-api-jdo.version>
+    <datanucleus-api-jdo.version>5.2.10</datanucleus-api-jdo.version>
     <datanucleus-core.version>5.2.10</datanucleus-core.version>
     <datanucleus-jdo.version>3.2.0-release</datanucleus-jdo.version>
     <datanucleus-rdbms.version>5.2.13</datanucleus-rdbms.version>
