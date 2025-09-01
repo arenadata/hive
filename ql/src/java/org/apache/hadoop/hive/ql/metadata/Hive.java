@@ -2351,7 +2351,9 @@ private void constructOneLBLocationMap(FileStatus fSta,
         FireEventRequestData data = new FireEventRequestData();
         InsertEventRequestData insertData = new InsertEventRequestData();
         data.setInsertData(insertData);
-        if (newFiles != null && newFiles.size() > 0) {
+        insertData.setFilesAdded(new ArrayList<String>());
+        insertData.setFilesAddedChecksum(new ArrayList<String>());
+        if (newFiles != null && !newFiles.isEmpty()) {
           for (Path p : newFiles) {
             insertData.addToFilesAdded(p.toString());
             FileChecksum cksum = fileSystem.getFileChecksum(p);
@@ -2365,8 +2367,6 @@ private void constructOneLBLocationMap(FileStatus fSta,
               insertData.addToFilesAddedChecksum("");
             }
           }
-        } else {
-          insertData.setFilesAdded(new ArrayList<String>());
         }
         FireEventRequest rqst = new FireEventRequest(true, data);
         rqst.setDbName(tbl.getDbName());

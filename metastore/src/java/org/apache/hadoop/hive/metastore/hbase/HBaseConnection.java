@@ -19,7 +19,8 @@
 package org.apache.hadoop.hive.metastore.hbase;
 
 import org.apache.hadoop.conf.Configurable;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Table;
 
 import java.io.IOException;
 import java.util.List;
@@ -65,7 +66,7 @@ public interface HBaseConnection extends Configurable {
    * @param htab Table to flush
    * @throws IOException
    */
-  void flush(HTableInterface htab) throws IOException;
+  void flush(Table htab) throws IOException;
 
   /**
    * Create a new table
@@ -81,7 +82,7 @@ public interface HBaseConnection extends Configurable {
    * @return table handle
    * @throws IOException
    */
-  HTableInterface getHBaseTable(String tableName) throws IOException;
+  Table getHBaseTable(String tableName) throws IOException;
 
   /**
    * Fetch an existing HBase table and force a connection to it.  This should be used only in
@@ -91,6 +92,6 @@ public interface HBaseConnection extends Configurable {
    * @return table handle
    * @throws IOException
    */
-  HTableInterface getHBaseTable(String tableName, boolean force) throws IOException;
+  Table getHBaseTable(String tableName, boolean force) throws IOException;
 
 }
