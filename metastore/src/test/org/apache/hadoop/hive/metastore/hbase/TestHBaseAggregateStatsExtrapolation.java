@@ -27,7 +27,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.StatObjectConverter;
 import org.apache.hadoop.hive.metastore.api.AggrStats;
@@ -57,7 +57,7 @@ public class TestHBaseAggregateStatsExtrapolation {
       .getLogger(TestHBaseAggregateStatsExtrapolation.class.getName());
 
   @Mock
-  HTableInterface htable;
+  HTable htable;
   private HBaseStore store;
   SortedMap<String, Cell> rows = new TreeMap<>();
 

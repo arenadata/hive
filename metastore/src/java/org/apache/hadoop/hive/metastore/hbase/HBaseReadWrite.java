@@ -33,7 +33,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -617,7 +617,7 @@ public class HBaseReadWrite implements MetadataStore {
        get.addColumn(CATALOG_CF, CATALOG_COL);
        gets.add(get);
      }
-     HTableInterface htab = conn.getHBaseTable(PART_TABLE);
+     org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(PART_TABLE);
      Result[] results = htab.get(gets);
      for (int i = 0; i < results.length; i++) {
        HBaseUtils.StorageDescriptorParts sdParts =
@@ -685,11 +685,11 @@ public class HBaseReadWrite implements MetadataStore {
           getTable(partition.getDbName(), partition.getTableName()).getPartitionKeys());
       byte[][] serialized = HBaseUtils.serializePartition(partition, partTypes, hash);
       Put p = new Put(serialized[0]);
-      p.add(CATALOG_CF, CATALOG_COL, serialized[1]);
+      p.addColumn(CATALOG_CF, CATALOG_COL, serialized[1]);
       puts.add(p);
       partCache.put(partition.getDbName(), partition.getTableName(), partition);
     }
-    HTableInterface htab = conn.getHBaseTable(PART_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(PART_TABLE);
     htab.put(puts);
     conn.flush(htab);
   }
@@ -713,7 +713,7 @@ public class HBaseReadWrite implements MetadataStore {
       byte[][] serialized = HBaseUtils.serializePartition(newPart,
           HBaseUtils.getPartitionKeyTypes(getTable(newPart.getDbName(), newPart.getTableName()).getPartitionKeys()), hash);
       Put p = new Put(serialized[0]);
-      p.add(CATALOG_CF, CATALOG_COL, serialized[1]);
+      p.addColumn(CATALOG_CF, CATALOG_COL, serialized[1]);
       puts.add(p);
       partCache.put(newParts.get(i).getDbName(), newParts.get(i).getTableName(), newParts.get(i));
       if (!newParts.get(i).getTableName().equals(oldParts.get(i).getTableName())) {
@@ -722,7 +722,7 @@ public class HBaseReadWrite implements MetadataStore {
             oldParts.get(i).getValues(), false);
       }
     }
-    HTableInterface htab = conn.getHBaseTable(PART_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(PART_TABLE);
     htab.put(puts);
     conn.flush(htab);
   }
@@ -832,7 +832,7 @@ public class HBaseReadWrite implements MetadataStore {
         HBaseUtils.getPartitionKeyTypes(table.getPartitionKeys()),
         Arrays.asList(Arrays.copyOfRange(partKeyParts, 2, partKeyParts.length)));
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(PART_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(PART_TABLE);
     Get g = new Get(key);
     g.addColumn(CATALOG_CF, CATALOG_COL);
     g.addFamily(STATS_CF);
@@ -868,7 +868,7 @@ public class HBaseReadWrite implements MetadataStore {
     }
 
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(PART_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(PART_TABLE);
     Scan scan = new Scan();
     scan.addColumn(CATALOG_CF, CATALOG_COL);
     scan.addFamily(STATS_CF);
@@ -1110,7 +1110,7 @@ public class HBaseReadWrite implements MetadataStore {
     }
     List<Role> directRoles = new ArrayList<>(rolesFound.size());
     List<Get> gets = new ArrayList<>();
-    HTableInterface htab = conn.getHBaseTable(ROLE_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(ROLE_TABLE);
     for (String roleFound : rolesFound) {
       byte[] key = HBaseUtils.buildKey(roleFound);
       Get g = new Get(key);
@@ -1317,14 +1317,14 @@ public class HBaseReadWrite implements MetadataStore {
             HbaseMetastoreProto.RoleGrantInfoList.newBuilder()
             .addAllGrantInfo(rgil)
             .build();
-        put.add(CATALOG_CF, ROLES_COL, proto.toByteArray());
+        put.addColumn(CATALOG_CF, ROLES_COL, proto.toByteArray());
         puts.add(put);
         roleCache.put(e.getKey(), proto);
       }
     }
 
     if (puts.size() > 0) {
-      HTableInterface htab = conn.getHBaseTable(ROLE_TABLE);
+      org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(ROLE_TABLE);
       htab.put(puts);
       conn.flush(htab);
     }
@@ -1347,13 +1347,13 @@ public class HBaseReadWrite implements MetadataStore {
           db.getPrivileges().getRolePrivileges().remove(roleName) != null) {
         byte[][] serialized = HBaseUtils.serializeDatabase(db);
         Put put = new Put(serialized[0]);
-        put.add(CATALOG_CF, CATALOG_COL, serialized[1]);
+        put.addColumn(CATALOG_CF, CATALOG_COL, serialized[1]);
         puts.add(put);
       }
     }
 
     if (puts.size() > 0) {
-      HTableInterface htab = conn.getHBaseTable(DB_TABLE);
+      org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(DB_TABLE);
       htab.put(puts);
       conn.flush(htab);
     }
@@ -1370,7 +1370,7 @@ public class HBaseReadWrite implements MetadataStore {
             byte[][] serialized = HBaseUtils.serializeTable(table,
                 HBaseUtils.hashStorageDescriptor(table.getSd(), md));
             Put put = new Put(serialized[0]);
-            put.add(CATALOG_CF, CATALOG_COL, serialized[1]);
+            put.addColumn(CATALOG_CF, CATALOG_COL, serialized[1]);
             puts.add(put);
           }
         }
@@ -1378,7 +1378,7 @@ public class HBaseReadWrite implements MetadataStore {
     }
 
     if (puts.size() > 0) {
-      HTableInterface htab = conn.getHBaseTable(TABLE_TABLE);
+      org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(TABLE_TABLE);
       htab.put(puts);
       conn.flush(htab);
     }
@@ -1544,7 +1544,7 @@ public class HBaseReadWrite implements MetadataStore {
 
     // Now build a single get that will fetch the remaining tables
     List<Get> gets = new ArrayList<>();
-    HTableInterface htab = conn.getHBaseTable(TABLE_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(TABLE_TABLE);
     for (int i = 0; i < tableNames.size(); i++) {
       if (results.get(i) != null) continue;
       byte[] key = HBaseUtils.buildKey(dbName, tableNames.get(i));
@@ -1662,7 +1662,7 @@ public class HBaseReadWrite implements MetadataStore {
   String printTable(String name) throws IOException, TException {
     byte[] key = HBaseUtils.buildKey(name);
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(TABLE_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(TABLE_TABLE);
     Get g = new Get(key);
     g.addColumn(CATALOG_CF, CATALOG_COL);
     g.addFamily(STATS_CF);
@@ -1682,7 +1682,7 @@ public class HBaseReadWrite implements MetadataStore {
   List<String> printTables(String regex) throws IOException, TException {
     Filter  filter = new RowFilter(CompareFilter.CompareOp.EQUAL, new RegexStringComparator(regex));
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(TABLE_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(TABLE_TABLE);
     Scan scan = new Scan();
     scan.addColumn(CATALOG_CF, CATALOG_COL);
     scan.addFamily(STATS_CF);
@@ -1920,7 +1920,7 @@ public class HBaseReadWrite implements MetadataStore {
       return;
     }
     int refCnt = Integer.parseInt(new String(serializedRefCnt, HBaseUtils.ENCODING));
-    HTableInterface htab = conn.getHBaseTable(SD_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(SD_TABLE);
     if (--refCnt < 1) {
       Delete d = new Delete(key);
       // We don't use checkAndDelete here because it isn't compatible with the transaction
@@ -1930,7 +1930,7 @@ public class HBaseReadWrite implements MetadataStore {
       sdCache.remove(new ByteArrayWrapper(key));
     } else {
       Put p = new Put(key);
-      p.add(CATALOG_CF, REF_COUNT_COL, Integer.toString(refCnt).getBytes(HBaseUtils.ENCODING));
+      p.addColumn(CATALOG_CF, REF_COUNT_COL, Integer.toString(refCnt).getBytes(HBaseUtils.ENCODING));
       htab.put(p);
       conn.flush(htab);
     }
@@ -1949,19 +1949,19 @@ public class HBaseReadWrite implements MetadataStore {
     byte[] sd = HBaseUtils.serializeStorageDescriptor(storageDescriptor);
     byte[] key = HBaseUtils.hashStorageDescriptor(storageDescriptor, md);
     byte[] serializedRefCnt = read(SD_TABLE, key, CATALOG_CF, REF_COUNT_COL);
-    HTableInterface htab = conn.getHBaseTable(SD_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(SD_TABLE);
     if (serializedRefCnt == null) {
       // We are the first to put it in the DB
       Put p = new Put(key);
-      p.add(CATALOG_CF, CATALOG_COL, sd);
-      p.add(CATALOG_CF, REF_COUNT_COL, "1".getBytes(HBaseUtils.ENCODING));
+      p.addColumn(CATALOG_CF, CATALOG_COL, sd);
+      p.addColumn(CATALOG_CF, REF_COUNT_COL, "1".getBytes(HBaseUtils.ENCODING));
       htab.put(p);
       sdCache.put(new ByteArrayWrapper(key), storageDescriptor);
     } else {
       // Just increment the reference count
       int refCnt = Integer.parseInt(new String(serializedRefCnt, HBaseUtils.ENCODING)) + 1;
       Put p = new Put(key);
-      p.add(CATALOG_CF, REF_COUNT_COL, Integer.toString(refCnt).getBytes(HBaseUtils.ENCODING));
+      p.addColumn(CATALOG_CF, REF_COUNT_COL, Integer.toString(refCnt).getBytes(HBaseUtils.ENCODING));
       htab.put(p);
     }
     conn.flush(htab);
@@ -2127,7 +2127,7 @@ public class HBaseReadWrite implements MetadataStore {
       gets.add(get);
     }
 
-    HTableInterface htab = conn.getHBaseTable(PART_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(PART_TABLE);
     Result[] results = htab.get(gets);
     for (int i = 0; i < results.length; i++) {
       ColumnStatistics colStats = null;
@@ -2230,7 +2230,7 @@ public class HBaseReadWrite implements MetadataStore {
       deletes.add(new Delete(result.getRow()));
       keys.add(new StatsCache.StatsCacheKey(result.getRow()));
     }
-    HTableInterface htab = conn.getHBaseTable(AGGR_STATS_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(AGGR_STATS_TABLE);
     htab.delete(deletes);
     return keys;
   }
@@ -2323,7 +2323,7 @@ public class HBaseReadWrite implements MetadataStore {
     // column name, but not column family. So there. Perhaps we should add these to constants too.
     ByteBuffer colNameBuf = ByteBuffer.wrap(CATALOG_COL);
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(FILE_METADATA_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(FILE_METADATA_TABLE);
     List<Row> actions = new ArrayList<>(keys.length);
     for (int keyIx = 0; keyIx < keys.length; ++keyIx) {
       ByteBuffer value = (metadataBuffers != null) ? metadataBuffers.get(keyIx) : null;
@@ -2353,7 +2353,7 @@ public class HBaseReadWrite implements MetadataStore {
   public void storeFileMetadata(long fileId, ByteBuffer metadata,
       ByteBuffer[] addedCols, ByteBuffer[] addedVals) throws IOException, InterruptedException {
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(FILE_METADATA_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(FILE_METADATA_TABLE);
     Put p = new Put(HBaseUtils.makeLongKey(fileId));
     p.addColumn(CATALOG_CF, ByteBuffer.wrap(CATALOG_COL), HConstants.LATEST_TIMESTAMP, metadata);
     assert (addedCols == null && addedVals == null) || (addedCols.length == addedVals.length);
@@ -2485,7 +2485,7 @@ public class HBaseReadWrite implements MetadataStore {
    * @throws IOException
    */
   List<String> printSecurity() throws IOException {
-    HTableInterface htab = conn.getHBaseTable(SECURITY_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(SECURITY_TABLE);
     Scan scan = new Scan();
     scan.addColumn(CATALOG_CF, MASTER_KEY_COL);
     scan.addColumn(CATALOG_CF, DELEGATION_TOKEN_COL);
@@ -2534,7 +2534,7 @@ public class HBaseReadWrite implements MetadataStore {
    * @throws IOException
    */
   List<String> printSequences() throws IOException {
-    HTableInterface htab = conn.getHBaseTable(SEQUENCES_TABLE);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(SEQUENCES_TABLE);
     Iterator<Result> iter =
         scan(SEQUENCES_TABLE, CATALOG_CF, CATALOG_COL, null);
     List<String> sequences = new ArrayList<>();
@@ -2661,26 +2661,26 @@ public class HBaseReadWrite implements MetadataStore {
 
   private void store(String table, byte[] key, byte[] colFam, byte[] colName, byte[] obj)
       throws IOException {
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(table);
     Put p = new Put(key);
-    p.add(colFam, colName, obj);
+    p.addColumn(colFam, colName, obj);
     htab.put(p);
     conn.flush(htab);
   }
 
   private void store(String table, byte[] key, byte[] colFam, byte[][] colName, byte[][] obj)
       throws IOException {
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(table);
     Put p = new Put(key);
     for (int i = 0; i < colName.length; i++) {
-      p.add(colFam, colName[i], obj[i]);
+      p.addColumn(colFam, colName[i], obj[i]);
     }
     htab.put(p);
     conn.flush(htab);
   }
 
   private byte[] read(String table, byte[] key, byte[] colFam, byte[] colName) throws IOException {
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(table);
     Get g = new Get(key);
     g.addColumn(colFam, colName);
     Result res = htab.get(g);
@@ -2691,7 +2691,7 @@ public class HBaseReadWrite implements MetadataStore {
       byte[][] keys, ByteBuffer[] resultDest) throws IOException {
     assert keys.length == resultDest.length;
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(table);
     List<Get> gets = new ArrayList<>(keys.length);
     for (byte[] key : keys) {
       Get g = new Get(key);
@@ -2718,7 +2718,7 @@ public class HBaseReadWrite implements MetadataStore {
     // column name, but not column family. So there. Perhaps we should add these to constants too.
     ByteBuffer colNameBuf = ByteBuffer.wrap(colName);
     @SuppressWarnings("deprecation")
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(table);
     List<Row> actions = new ArrayList<>(keys.length);
     for (int i = 0; i < keys.length; ++i) {
       ByteBuffer value = (values != null) ? values.get(i) : null;
@@ -2738,7 +2738,7 @@ public class HBaseReadWrite implements MetadataStore {
 
   private Result read(String table, byte[] key, byte[] colFam, byte[][] colNames)
       throws IOException {
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(table);
     Get g = new Get(key);
     for (byte[] colName : colNames) g.addColumn(colFam, colName);
     return htab.get(g);
@@ -2748,10 +2748,13 @@ public class HBaseReadWrite implements MetadataStore {
   // deleted.  If colName is null and colFam is not, only the named family will be deleted.  If
   // both are null the entire row will be deleted.
   private void delete(String table, byte[] key, byte[] colFam, byte[] colName) throws IOException {
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table htab = conn.getHBaseTable(table);
     Delete d = new Delete(key);
-    if (colName != null) d.deleteColumn(colFam, colName);
-    else if (colFam != null) d.deleteFamily(colFam);
+    if (colName != null) {
+      d.addColumn(colFam, colName);
+    } else if (colFam != null) {
+      d.addFamily(colFam);
+    }
     htab.delete(d);
   }
 
@@ -2770,7 +2773,7 @@ public class HBaseReadWrite implements MetadataStore {
 
   private Iterator<Result> scan(String table, byte[] keyStart, byte[] keyEnd, byte[] colFam,
                                           byte[] colName, Filter filter) throws IOException {
-    HTableInterface htab = conn.getHBaseTable(table);
+    org.apache.hadoop.hbase.client.Table  htab = conn.getHBaseTable(table);
     Scan s = new Scan();
     if (keyStart != null) {
       s.setStartRow(keyStart);

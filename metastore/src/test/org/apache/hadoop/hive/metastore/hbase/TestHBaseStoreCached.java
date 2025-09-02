@@ -28,7 +28,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.BooleanColumnStatsData;
 import org.apache.hadoop.hive.metastore.api.ColumnStatistics;
@@ -59,7 +59,7 @@ public class TestHBaseStoreCached {
   static Map<String, String> emptyParameters = new HashMap<String, String>();
 
   @Rule public ExpectedException thrown = ExpectedException.none();
-  @Mock HTableInterface htable;
+  @Mock HTable htable;
   SortedMap<String, Cell> rows = new TreeMap<String, Cell>();
   HBaseStore store;
 
