@@ -254,10 +254,7 @@ public class Hadoop23Shims extends HadoopShimsSecure {
    * Load the fair scheduler queue for given user if available.
    */
   @Override
-  public void refreshDefaultQueue(Configuration conf, String userName) throws IOException {
-    if (StringUtils.isNotBlank(userName) && isFairScheduler(conf)) {
-      ShimLoader.getSchedulerShims().refreshDefaultQueue(conf, userName);
-    }
+  public void refreshDefaultQueue(Configuration conf, String userName) {
   }
 
   private boolean isFairScheduler (Configuration conf) {
