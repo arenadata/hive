@@ -32,7 +32,7 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -99,7 +99,7 @@ public class HBaseTestSetup {
     hbaseConn = HConnectionManager.createConnection(hbaseConf);
 
     // opening the META table ensures that cluster is running
-    HTableInterface meta = null;
+    HTable meta = null;
     try {
       meta = hbaseConn.getTable(TableName.META_TABLE_NAME);
     } finally {
@@ -124,7 +124,7 @@ public class HBaseTestSetup {
     double [] doubles = new double [] { Double.MIN_VALUE, -1.0, Double.MAX_VALUE };
 
     HBaseAdmin hbaseAdmin = null;
-    HTableInterface htable = null;
+    HTable htable = null;
     try {
       hbaseAdmin = new HBaseAdmin(hbaseConn.getConfiguration());
       if (Arrays.asList(hbaseAdmin.listTables()).contains(htableDesc)) {
