@@ -61,7 +61,7 @@
   <scm>
     <connection>scm:git:git://github.com/arenadata/hive.git</connection>
     <developerConnection>scm:git:ssh://github.com/arenadata/hive.git</developerConnection>
-    <url>https://github.com/arenadata/hive/tree/2.3.9-develop</url>
+    <url>https://github.com/arenadata/hive/tree/2.3.10-develop</url>
   </scm>
 
   <modules>
