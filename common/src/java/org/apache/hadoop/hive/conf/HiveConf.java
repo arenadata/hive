@@ -601,7 +601,7 @@ public class HiveConf extends Configuration {
     METASTOREURIS("hive.metastore.uris", "",
         "Thrift URI for the remote metastore. Used by metastore client to connect to remote metastore."),
 
-    METASTORE_CAPABILITY_CHECK("hive.metastore.client.capability.check", false,
+    METASTORE_CAPABILITY_CHECK("hive.metastore.client.capability.check", true,
         "Whether to check client capabilities for potentially breaking API usage."),
     METASTORE_FASTPATH("hive.metastore.fastpath", false,
         "Used to avoid all of the proxies and object copies in the metastore.  Note, if this is " +
@@ -699,7 +699,12 @@ public class HiveConf extends Configuration {
         "Maximum number of worker threads in the Thrift server's pool."),
     METASTORE_TCP_KEEP_ALIVE("hive.metastore.server.tcp.keepalive", true,
         "Whether to enable TCP keepalive for the metastore server. Keepalive will prevent accumulation of half-open connections."),
-
+    SSL_TRUSTSTORE_PATH("metastore.truststore.path","",
+            "Metastore SSL certificate truststore location."),
+    SSL_TRUSTSTORE_PASSWORD("metastore.truststore.password", "",
+            "Metastore SSL certificate truststore password."),
+    USE_SSL("metastore.use.SSL", false,
+            "Set this to true for using SSL encryption in HMS server."),
     METASTORE_INT_ORIGINAL("hive.metastore.archive.intermediate.original",
         "_INTERMEDIATE_ORIGINAL",
         "Intermediate dir suffixes used for archiving. Not important what they\n" +
@@ -4619,5 +4624,22 @@ public class HiveConf extends Configuration {
       reverseMap = vars;
       return reverseMap;
     }
+  }
+
+  /**
+   * Get a password from the configuration file.  This uses Hadoop's
+   * {@link Configuration#getPassword(String)} to handle getting secure passwords.
+   * @param conf configuration file to read from
+   * @param var configuration value to read
+   * @return the password as a string, or the default value.
+   * @throws IOException if thrown by Configuration.getPassword
+   */
+  public static String getPassword(Configuration conf, ConfVars var) throws IOException {
+    char[] pw = conf.getPassword(var.varname);
+    if (pw == null) {
+      // Might be under the hive name
+      pw = conf.getPassword(var.altName);
+    }
+    return pw == null ? var.defaultStrVal : new String(pw);
   }
 }

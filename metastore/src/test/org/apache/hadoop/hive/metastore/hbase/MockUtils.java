@@ -24,11 +24,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.FileFormatProxy;
@@ -87,7 +88,7 @@ public class MockUtils {
     }
   }
 
-  static HBaseStore init(Configuration conf, HTableInterface htable,
+  static HBaseStore init(Configuration conf, HTable htable,
                          final SortedMap<String, Cell> rows) throws IOException {
     ((HiveConf)conf).setVar(ConfVars.METASTORE_EXPRESSION_PROXY_CLASS, NOOPProxy.class.getName());
     Mockito.when(htable.get(Mockito.any(Get.class))).thenAnswer(new Answer<Result>() {
@@ -156,6 +157,16 @@ public class MockUtils {
           @Override
           public Iterator<Result> iterator() {
             return iter;
+          }
+
+          @Override
+          public boolean renewLease() {
+            return false;
+          }
+
+          @Override
+          public ScanMetrics getScanMetrics() {
+            return null;
           }
         };
       }

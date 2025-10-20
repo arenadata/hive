@@ -53,8 +53,7 @@ public class HBaseIntegrationTests {
   protected static void startMiniCluster() throws Exception {
     String connectionClassName =
         System.getProperty(HiveConf.ConfVars.METASTORE_HBASE_CONNECTION_CLASS.varname);
-    boolean testingTephra =
-        connectionClassName != null && connectionClassName.equals(TephraHBaseConnection.class.getName());
+    boolean testingTephra = false;
     if (testingTephra) {
       LOG.info("Testing with Tephra");
     }

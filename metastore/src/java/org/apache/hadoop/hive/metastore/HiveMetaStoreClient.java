@@ -47,12 +47,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.security.PrivilegedExceptionAction;
 
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
 import javax.security.auth.login.LoginException;
 
 import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.common.ValidTxnList;
-import org.apache.hadoop.hive.common.auth.HiveAuthUtils;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience.Public;
 import org.apache.hadoop.hive.common.classification.InterfaceStability.Unstable;
@@ -79,6 +80,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.thrift.transport.TSSLTransportFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -122,6 +124,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   // for thrift connects
   private int retries = 5;
   private long retryDelaySeconds = 0;
+  private final ClientCapabilities version;
 
   static final protected Logger LOG = LoggerFactory.getLogger("hive.metastore");
 
@@ -143,6 +146,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     } else {
       this.conf = new HiveConf(conf);
     }
+    version = HiveConf.getBoolVar(conf, ConfVars.HIVE_IN_TEST) ? TEST_VERSION : VERSION;
     filterHook = loadFilterHooks();
     fileMetadataBatchSize = HiveConf.getIntVar(
         conf, HiveConf.ConfVars.METASTORE_BATCH_RETRIEVE_OBJECTS_MAX);
@@ -391,10 +395,32 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     client.rename_partition(dbname, name, part_vals, newPart);
   }
 
+  private static TSocket getSSLSocketWithHttps(TSocket tSSLSocket) throws TTransportException {
+    SSLSocket sslSocket = (SSLSocket) tSSLSocket.getSocket();
+    SSLParameters sslParams = sslSocket.getSSLParameters();
+    sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+    sslSocket.setSSLParameters(sslParams);
+    return new TSocket(sslSocket);
+  }
+
+  private static TTransport getSSLSocket(String host, int port, int loginTimeout,
+                                         String trustStorePath, String trustStorePassWord) throws TTransportException {
+    TSSLTransportFactory.TSSLTransportParameters params =
+            new TSSLTransportFactory.TSSLTransportParameters();
+    params.setTrustStore(trustStorePath, trustStorePassWord);
+    params.requireClientAuth(true);
+    // The underlying SSLSocket object is bound to host:port with the given SO_TIMEOUT and
+    // SSLContext created with the given params
+    TSocket tSSLSocket = TSSLTransportFactory.getClientSocket(host, port, loginTimeout, params);
+    return getSSLSocketWithHttps(tSSLSocket);
+  }
+
+
+
   private void open() throws MetaException {
     isConnected = false;
     TTransportException tte = null;
-    boolean useSSL = conf.getBoolVar(ConfVars.HIVE_METASTORE_USE_SSL);
+    boolean useSSL = conf.getBoolVar(ConfVars.USE_SSL);
     boolean useSasl = conf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_SASL);
     boolean useFramedTransport = conf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_FRAMED_TRANSPORT);
     boolean useCompactProtocol = conf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_COMPACT_PROTOCOL);
@@ -406,8 +432,35 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     for (int attempt = 0; !isConnected && attempt < retries; ++attempt) {
       for (URI store : metastoreUris) {
         LOG.info("Trying to connect to metastore with URI " + store);
-
         try {
+          if (useSSL) {
+            try {
+              String trustStorePath = conf.getVar(ConfVars.SSL_TRUSTSTORE_PATH).trim();
+              if (trustStorePath.isEmpty()) {
+                throw new IllegalArgumentException(ConfVars.SSL_TRUSTSTORE_PATH
+                        + " Not configured for SSL connection");
+              }
+              String trustStorePassword =
+                      HiveConf.getPassword(conf, HiveConf.ConfVars.SSL_TRUSTSTORE_PASSWORD).trim();
+
+              // Create an SSL socket and connect
+              transport = getSSLSocket(store.getHost(), store.getPort(), clientSocketTimeout,
+                      trustStorePath, trustStorePassword);
+              LOG.info("Opened an SSL connection to metastore");
+            } catch(TTransportException e) {
+              tte = e;
+              throw new MetaException(e.toString());
+            } catch (IOException e) {
+              throw new IllegalArgumentException(e);
+            }
+          } else {
+              try {
+                  transport = new TSocket(new TConfiguration(), store.getHost(), store.getPort(), clientSocketTimeout, connectionTimeout);
+              } catch (TTransportException e) {
+                  tte = e;
+                  throw new MetaException(e.toString());
+              }
+          }
           if (useSasl) {
             // Wrap thrift connection with SASL for secure connection.
             try {
@@ -422,7 +475,6 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
               String tokenSig = conf.getVar(ConfVars.METASTORE_TOKEN_SIGNATURE);
               // tokenSig could be null
               tokenStrForm = Utils.getTokenStrForm(tokenSig);
-              transport = new TSocket(new TConfiguration(), store.getHost(), store.getPort(), clientSocketTimeout, connectionTimeout);
 
               if(tokenStrForm != null) {
                 // authenticate using delegation tokens via the "DIGEST" mechanism
@@ -436,48 +488,18 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
                     principalConfig, store.getHost(), "KERBEROS", null,
                     transport, MetaStoreUtils.getMetaStoreSaslProperties(conf));
               }
-            } catch (IOException | TTransportException sasle) {
+            } catch (IOException sasle) {
               // IOException covers SaslException
               LOG.error("Could not create client transport", sasle);
               throw new MetaException(sasle.toString());
             }
-          } else {
-            if (useSSL) {
+          } else if (useFramedTransport) {
               try {
-                String trustStorePath = conf.getVar(ConfVars.HIVE_METASTORE_SSL_TRUSTSTORE_PATH).trim();
-                if (trustStorePath.isEmpty()) {
-                  throw new IllegalArgumentException(ConfVars.HIVE_METASTORE_SSL_TRUSTSTORE_PATH.varname
-                      + " Not configured for SSL connection");
-                }
-                String trustStorePassword = ShimLoader.getHadoopShims().getPassword(conf,
-                    HiveConf.ConfVars.HIVE_METASTORE_SSL_TRUSTSTORE_PASSWORD.varname);
-
-                // Create an SSL socket and connect
-                transport = HiveAuthUtils.getSSLSocket(store.getHost(), store.getPort(), clientSocketTimeout, connectionTimeout, trustStorePath, trustStorePassword );
-                LOG.info("Opened an SSL connection to metastore, current connections: " + connCount.incrementAndGet());
-              } catch(IOException e) {
-                throw new IllegalArgumentException(e);
-              } catch(TTransportException e) {
-                tte = e;
-                throw new MetaException(e.toString());
-              }
-            } else {
-              try {
-                transport = new TSocket(new TConfiguration(), store.getHost(), store.getPort(), clientSocketTimeout, connectionTimeout);
+                  transport = new TFramedTransport(transport);
               } catch (TTransportException e) {
-                tte = e;
-                throw new MetaException(e.toString());
+                  LOG.error("Failed to create client transport", e);
+                  throw new MetaException(e.toString());
               }
-            }
-
-            if (useFramedTransport) {
-              try {
-                transport = new TFramedTransport(transport);
-              } catch (TTransportException e) {
-                LOG.error("Failed to create client transport", e);
-                throw new MetaException(e.toString());
-              }
-            }
           }
 
           final TProtocol protocol;
@@ -490,7 +512,6 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
           try {
             if (!transport.isOpen()) {
               transport.open();
-              LOG.info("Opened a connection to metastore, current connections: " + connCount.incrementAndGet());
             }
             isConnected = true;
           } catch (TTransportException e) {
@@ -1357,7 +1378,9 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   @Override
   public Table getTable(String dbname, String name) throws MetaException,
       TException, NoSuchObjectException {
-    Table t = client.get_table(dbname, name);
+    GetTableRequest req = new GetTableRequest(dbname, name);
+    req.setCapabilities(version);
+    Table t = client.get_table_req(req).getTable();
     return fastpath ? t : deepCopy(filterHook.filterTable(t));
   }
 
@@ -1374,7 +1397,10 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   @Override
   public List<Table> getTableObjectsByName(String dbName, List<String> tableNames)
       throws MetaException, InvalidOperationException, UnknownDBException, TException {
-    List<Table> tabs = client.get_table_objects_by_name(dbName, tableNames);
+    GetTablesRequest req = new GetTablesRequest(dbName);
+    req.setTblNames(tableNames);
+    req.setCapabilities(version);
+    List<Table> tabs = client.get_table_objects_by_name_req(req).getTables();
     return fastpath ? tabs : deepCopyTables(filterHook.filterTables(tabs));
   }
 
@@ -1466,7 +1492,9 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   public boolean tableExists(String databaseName, String tableName) throws MetaException,
       TException, UnknownDBException {
     try {
-      return filterHook.filterTable(client.get_table(databaseName, tableName)) != null;
+      GetTableRequest req = new GetTableRequest(databaseName, tableName);
+      req.setCapabilities(version);
+      return filterHook.filterTable(client.get_table_req(req).getTable()) != null;
     } catch (NoSuchObjectException e) {
       return false;
     }
