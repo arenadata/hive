@@ -175,6 +175,28 @@ public class TestHivePrivilegeObjectOwnerNameAndType {
     Assert.assertEquals(1, hpoList.size());
   }
 
+
+  /**
+   * Test to check, if only single instance of Hive Privilege object is created,
+   * during select from a partitioned table.
+   */
+  @Test
+  public void testSelectSingleInstanceOfHPOForPartitionedTable() throws Exception {
+      runCmd("CREATE EXTERNAL TABLE Part2 (eid int, name int) PARTITIONED BY (position int, dept int, sal int)");
+
+      reset(mockedAuthorizer);
+      runCmd("insert overwrite table part2 partition(position=2,DEPT,SAL) select 2,2,2,2");
+      runCmd("insert overwrite table part2 partition(position=3,DEPT,SAL) select 3,3,3,3");
+      reset(mockedAuthorizer);
+      runCmd("SELECT * FROM part2");
+      Pair<List<HivePrivilegeObject>, List<HivePrivilegeObject>> io = getHivePrivilegeObjectInputs();
+      List<HivePrivilegeObject> hpoList = io.getKey();
+      Assert.assertEquals(1, hpoList.size());
+      Assert.assertEquals(HivePrivilegeObject.HivePrivilegeObjectType.TABLE_OR_VIEW, hpoList.get(0).getType());
+
+      runCmd("DROP table part2");
+  }
+
   /**
    * @return pair with left value as inputs and right value as outputs,
    *  passed in current call to authorizer.checkPrivileges
