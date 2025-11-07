@@ -140,6 +140,12 @@ final class CommandAuthorizerV2 {
         continue;
       }
 
+      // skip partition for SELECT query
+      if (privObject.getTyp() == Type.PARTITION && privObject instanceof ReadEntity) {
+        LOG.debug("skip partition: {}", privObject);
+        continue;
+      }
+
       if (privObject.getTyp() == Type.FUNCTION && !HiveConf.getBoolVar(SessionState.get().getConf(),
               HiveConf.ConfVars.HIVE_AUTHORIZATION_FUNCTIONS_IN_VIEW) && hiveOpType == HiveOperationType.QUERY) {
         String[] qualifiedFunctionName = new String[]{privObject.getDatabase() != null ?
