@@ -4540,6 +4540,37 @@ public class TestVectorStringExpressions {
         positive, negative));
   }
 
+    @Test
+    public void testStringLikeComplexAcrossNewline() throws HiveException {
+        VectorizedRowBatch vrb = VectorizedRowGroupGenUtil.getVectorizedRowBatch(1, 1, 1);
+        vrb.cols[0] = new BytesColumnVector(1);
+        BytesColumnVector bcv = (BytesColumnVector) vrb.cols[0];
+
+        String content = "header line\n" +
+                "review: \"I_112fc80c-a4b0-4a00-a0b5-8e4ce06bd8a8t down\"";
+
+        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+
+        bcv.vector[0] = bytes;
+        bcv.start[0] = 0;
+        bcv.length[0] = bytes.length;
+
+        vrb.size = 1;
+        vrb.selectedInUse = false;
+        bcv.noNulls = true;
+        bcv.isRepeating = false;
+        bcv.isNull[0] = false;
+
+        byte[] pattern = "%I_112fc80c-a4b0-4a00-a0b5-8e4ce06bd8a8%"
+                .getBytes(StandardCharsets.UTF_8);
+
+        FilterStringColLikeStringScalar expr = new FilterStringColLikeStringScalar(0, pattern);
+        expr.transientInit(hiveConf);
+        expr.evaluate(vrb);
+
+        Assert.assertEquals(1, vrb.size);
+    }
+
   @Test
   public void testColConcatStringScalar() throws HiveException {
 
