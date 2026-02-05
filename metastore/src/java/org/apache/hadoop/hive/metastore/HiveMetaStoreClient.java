@@ -38,10 +38,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1413,7 +1415,18 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   @Override
   public List<String> getTables(String dbname, String tablePattern) throws MetaException {
     try {
-      return filterHook.filterTableNames(dbname, client.get_tables(dbname, tablePattern));
+      Set<String> result = new LinkedHashSet<String>();
+      for (TableType type : TableType.values()) {
+        try {
+          List<String> tables = client.get_tables_by_type(dbname, tablePattern, type.toString());
+          if (tables != null) {
+            result.addAll(tables);
+          }
+        } catch (Exception e) {
+          LOG.debug("get_tables_by_type failed for type " + type + ", skipping", e);
+        }
+      }
+      return filterHook.filterTableNames(dbname, new ArrayList<String>(result));
     } catch (Exception e) {
       MetaStoreUtils.logAndThrowMetaException(e);
     }
