@@ -160,7 +160,7 @@ public class TestCliDriverMethods {
     errors = dataErr.toString("UTF-8");
     assertTrue("Comments with '--; should not have been stripped,"
         + " so we should have got an error in the output: '" + errors + "'.",
-        errors.contains("option"));
+        errors.contains("abcdefghijklmnopqrstuvwxyz123456789"));
     assertNotNull(message); // message kept around in for debugging
   }
 

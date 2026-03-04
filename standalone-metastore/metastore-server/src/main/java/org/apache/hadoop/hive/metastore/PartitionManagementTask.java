@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -58,8 +59,8 @@ public class PartitionManagementTask implements MetastoreTaskThread {
   public static final String PARTITION_RETENTION_PERIOD_TBLPROPERTY = "partition.retention.period";
   private static final Lock lock = new ReentrantLock();
   // these are just for testing
-  private static int completedAttempts;
-  private static int skippedAttempts;
+  private static final AtomicInteger completedAttempts = new AtomicInteger();
+  private static final AtomicInteger skippedAttempts = new AtomicInteger();
 
   private Configuration conf;
 
@@ -87,7 +88,6 @@ public class PartitionManagementTask implements MetastoreTaskThread {
   @Override
   public void run() {
     if (lock.tryLock()) {
-      skippedAttempts = 0;
       String qualifiedTableName = null;
       IMetaStoreClient msc = null;
       try {
@@ -136,10 +136,10 @@ public class PartitionManagementTask implements MetastoreTaskThread {
         }
         lock.unlock();
       }
-      completedAttempts++;
+      completedAttempts.incrementAndGet();
     } else {
-      skippedAttempts++;
-      LOG.info("Lock is held by some other partition discovery task. Skipping this attempt..#{}", skippedAttempts);
+      int skipped = skippedAttempts.incrementAndGet();
+      LOG.info("Lock is held by some other partition discovery task. Skipping this attempt..#{}", skipped);
     }
   }
 
@@ -202,11 +202,11 @@ public class PartitionManagementTask implements MetastoreTaskThread {
 
   @VisibleForTesting
   public static int getSkippedAttempts() {
-    return skippedAttempts;
+    return skippedAttempts.get();
   }
 
   @VisibleForTesting
   public static int getCompletedAttempts() {
-    return completedAttempts;
+    return completedAttempts.get();
   }
 }
