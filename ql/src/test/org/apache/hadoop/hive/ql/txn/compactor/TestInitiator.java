@@ -89,7 +89,8 @@ public class TestInitiator extends CompactorTest {
     rsp.getCompacts().forEach(ce ->
             Assert.assertEquals("working", ce.getState()));
 
-    conf.setTimeVar(HiveConf.ConfVars.HIVE_COMPACTOR_WORKER_TIMEOUT, 1L, TimeUnit.MILLISECONDS);
+    Thread.sleep(200);
+    conf.setTimeVar(HiveConf.ConfVars.HIVE_COMPACTOR_WORKER_TIMEOUT, 100L, TimeUnit.MILLISECONDS);
     startInitiator();
 
     rsp = txnHandler.showCompact(new ShowCompactRequest());

@@ -91,7 +91,8 @@ public class HiveTestUtils {
     File parentDir = dir.getParentFile();
     File f = new File(parentDir, clazzName + JAVA_FILE_EXT);
     Files.copy(dir, f);
-    executeCmd(new String[] { "javac", clazzName + JAVA_FILE_EXT }, parentDir);
+    String javaSpecVersion = System.getProperty("java.specification.version", "21");
+    executeCmd(new String[] { "javac", "--release", javaSpecVersion, clazzName + JAVA_FILE_EXT }, parentDir);
     f.delete();
 
     File outputJar=new File(parentDir, clazzName + JAR_FILE_EXT);
