@@ -5684,7 +5684,15 @@ private void constructOneLBLocationMap(FileStatus fSta,
       // not the destf or its subdir?
       isOldPathUnderDestf = isSubDir(oldPath, destPath, oldFs, destFs, false);
       if (isOldPathUnderDestf && oldFs.exists(oldPath)) {
-        cleanUpOneDirectoryForReplace(oldPath, oldFs, pathFilter, conf, purge, isNeedRecycle);
+          try {
+              cleanUpOneDirectoryForReplace(oldPath, oldFs, pathFilter, conf, purge, isNeedRecycle);
+          } catch (IOException e) {
+              // path can be deleted async by other, as example spark
+              // if not deleted rethrow exception
+              if (oldFs.exists(oldPath)) {
+                  throw e;
+              }
+          }
       }
     } catch (IOException e) {
       if (isOldPathUnderDestf) {
