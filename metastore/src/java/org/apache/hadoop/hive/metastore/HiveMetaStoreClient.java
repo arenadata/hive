@@ -1104,6 +1104,13 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     if (isIndexTable(tbl)) {
       throw new UnsupportedOperationException("Cannot drop index tables");
     }
+    if (conf.getBoolVar(ConfVars.METASTORE_ALWAYS_DELETE_MANAGED_TABLE)) {
+        if (tbl != null && "MANAGED_TABLE".equals(tbl.getTableType())) {
+            // always delete data for MANAGED_TABLE
+            deleteData = true;
+            LOG.info("Forcing data deletion for MANAGED_TABLE: {}.{}", tbl.getDbName(), tbl.getTableName());
+        }
+    }
     HiveMetaHook hook = getHook(tbl);
     if (hook != null) {
       hook.preDropTable(tbl);

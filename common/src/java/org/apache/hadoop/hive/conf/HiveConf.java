@@ -818,6 +818,9 @@ public class HiveConf extends Configuration {
         "for operations like drop-partition (disallow the drop-partition if the user in\n" +
         "question doesn't have permissions to delete the corresponding directory\n" +
         "on the storage)."),
+    METASTORE_ALWAYS_DELETE_MANAGED_TABLE("hive.metastore.always.delete.managed.table", false,
+        "Should delete managed table anyway."),
+
     METASTORE_AUTHORIZATION_EXTERNALTABLE_DROP_CHECK("hive.metastore.authorization.storage.check.externaltable.drop", true,
         "Should StorageBasedAuthorization check permission of the storage before dropping external table.\n" +
         "StorageBasedAuthorization already does this check for managed table. For external table however,\n" +
