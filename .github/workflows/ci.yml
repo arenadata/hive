@@ -21,6 +21,7 @@ on:
     branches:
       - 'develop/**'
       - 'release/**'
+  workflow_dispatch:
 
 env:
   MAVEN_OPTS: '-Xmx4g'
@@ -68,7 +69,7 @@ jobs:
 
       - name: 'Run tests — ${{ matrix.group }}'
         run: |
-          mvn -B test -pl ${{ matrix.modules }} -Pitests -Dmaven.test.failure.ignore=false
+          mvn -B verify -pl ${{ matrix.modules }} -Pitests
 
       - name: 'Upload test reports'
         if: always()
