@@ -6718,6 +6718,11 @@ public class HMSHandler extends FacebookBase implements IHMSHandler {
   }
 
   @Override
+  public void update_table_params(List<TableParamsUpdate> updates) throws TException {
+    getMS().updateTableParams(updates);
+  }
+
+  @Override
   public void repl_tbl_writeid_state(ReplTblWriteIdStateRequest rqst) throws TException {
     getTxnHandler().replTableWriteIdState(rqst);
   }
@@ -8275,16 +8280,29 @@ public class HMSHandler extends FacebookBase implements IHMSHandler {
     }
   }
 
+  @Deprecated
   @Override
-  public LockResponse get_lock_materialization_rebuild(String dbName, String tableName, long txnId)
-      throws TException {
-    return getTxnHandler().lockMaterializationRebuild(dbName, tableName, txnId);
+  public LockResponse get_lock_materialization_rebuild(String dbName, String tableName, long txnId) throws TException {
+    return get_lock_materialization_rebuild_req(new LockMaterializationRebuildRequest(DEFAULT_CATALOG_NAME, dbName,
+        tableName, txnId));
   }
 
   @Override
-  public boolean heartbeat_lock_materialization_rebuild(String dbName, String tableName, long txnId)
+  public LockResponse get_lock_materialization_rebuild_req(LockMaterializationRebuildRequest rqst)
       throws TException {
-    return getTxnHandler().heartbeatLockMaterializationRebuild(dbName, tableName, txnId);
+    return getTxnHandler().lockMaterializationRebuild(rqst);
+  }
+
+  @Deprecated
+  @Override
+  public boolean heartbeat_lock_materialization_rebuild(String dbName, String tableName, long txnId) throws TException {
+    return heartbeat_lock_materialization_rebuild_req(new LockMaterializationRebuildRequest(DEFAULT_CATALOG_NAME,
+        dbName, tableName, txnId));
+  }
+
+  @Override
+  public boolean heartbeat_lock_materialization_rebuild_req(LockMaterializationRebuildRequest rqst) throws TException {
+    return getTxnHandler().heartbeatLockMaterializationRebuild(rqst);
   }
 
   @Override
