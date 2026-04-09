@@ -178,7 +178,7 @@
     <!-- Leaving libfb303 at 0.9.3 regardless of libthrift: As per THRIFT-4613 The Apache Thrift project does not publish items related to fb303 at this point -->
     <libfb303.version>0.9.3</libfb303.version>
     <libthrift.version>0.16.0</libthrift.version>
-    <log4j2.version>2.24.3</log4j2.version>
+    <log4j2.version>2.25.3</log4j2.version>
     <mariadb.version>2.5.0</mariadb.version>
     <mssql.version>6.2.1.jre8</mssql.version>
     <mysql.version>8.2.0</mysql.version>
@@ -186,7 +186,7 @@
     <oracle.version>21.3.0.0</oracle.version>
     <opencsv.version>5.9</opencsv.version>
     <orc.version>2.1.2</orc.version>
-    <otel.version>1.42.0</otel.version>
+    <otel.version>1.60.1</otel.version>
     <mockito-core.version>5.17.0</mockito-core.version>
     <mockito-inline.version>5.2.0</mockito-inline.version>
     <mina.version>2.0.0-M5</mina.version>
@@ -232,7 +232,8 @@
     <datasketches.version>2.0.0</datasketches.version>
     <spotbugs.version>4.8.6</spotbugs.version>
     <validation-api.version>1.1.0.Final</validation-api.version>
-    <aws-secretsmanager-caching.version>2.1.1</aws-secretsmanager-caching.version>
+    <aws-java-sdk.version>2.42.25</aws-java-sdk.version>
+    <aws-secretsmanager-caching.version>2.2.0</aws-secretsmanager-caching.version>
     <jansi.version>2.4.0</jansi.version>
     <!-- If upgrading, upgrade atlas as well in ql/pom.xml, which brings in some springframework dependencies transitively -->
     <spring.version>5.3.39</spring.version>
@@ -272,9 +273,25 @@
     <dependencies>
       <!-- dependencies are always listed in sorted order by groupId, artifactId -->
       <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bundle</artifactId>
+        <version>${aws-java-sdk.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
         <groupId>com.amazonaws.secretsmanager</groupId>
         <artifactId>aws-secretsmanager-caching-java</artifactId>
         <version>${aws-secretsmanager-caching.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>aws-crt-client</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>secretsmanager</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>com.esotericsoftware.kryo</groupId>

@@ -1393,6 +1393,32 @@ public class TestHplSqlViaBeeLine {
     testScriptFile(scriptText, args(), "100.*Bob");
   }
 
+  @Test
+  public void testPrintMessageAfterExecuteSetHiveConfig() throws Throwable {
+    String scriptText =
+        "EXECUTE 'SET hive.query.results.cache.enabled=false';\n" +
+            "PRINT 'Should print this message!...';";
+    testScriptFile(scriptText, args(), "Should print this message!...", OutStream.ERR);
+  }
+
+  @Test
+  public void testQuit() throws Throwable {
+    String scriptText =
+        "SET hplsql.onerror='seterror';\n" +
+            "INSERT INTO abc VALUES('Tbl1 Not Exists');\n" +
+            "PRINT 'ERRORCODE: ' || ERRORCODE;\n" +
+            "IF ERRORCODE <> 0 THEN\n" +
+            "    PRINT 'Error detected. Exiting...';\n" +
+            "    .QUIT ERRORCODE;\n" +
+            "END IF;\n" +
+            "INSERT INTO def VALUES('Tbl2 Not Exists');\n" +
+            "PRINT 'Should not print this message'";
+    // Inverted match, output should not have 'Table not found def' error
+    testScriptFile(scriptText, args(),
+        "^(.(?!(Caused by: org.apache.hadoop.hive.ql.metadata.InvalidTableException: Table not found def)))*$",
+        OutStream.ERR);
+  }
+
   private static List<String> args() {
     return Arrays.asList("-d", BeeLine.BEELINE_DEFAULT_JDBC_DRIVER,
             "-u", miniHS2.getBaseJdbcURL() + ";mode=hplsql", "-n", USER_NAME);

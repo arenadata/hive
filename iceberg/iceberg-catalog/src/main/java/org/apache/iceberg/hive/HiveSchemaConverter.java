@@ -85,7 +85,9 @@ class HiveSchemaConverter {
       if (defaultValues.containsKey(columnName)) {
         if (type.isPrimitiveType()) {
           Object icebergDefaultValue = HiveSchemaUtil.getDefaultValue(defaultValues.get(columnName), type);
-          fieldBuilder.withWriteDefault(Expressions.lit(icebergDefaultValue));
+          if (icebergDefaultValue != null) {
+            fieldBuilder.withWriteDefault(Expressions.lit(icebergDefaultValue));
+          }
         } else if (!type.isStructType()) {
           throw new UnsupportedOperationException(
               "Default values for " + columnName + " of type " + type + " are not supported");
@@ -161,7 +163,7 @@ class HiveSchemaConverter {
         StructTypeInfo structTypeInfo = (StructTypeInfo) typeInfo;
         List<Types.NestedField> fields =
             convertInternal(structTypeInfo.getAllStructFieldNames(), structTypeInfo.getAllStructFieldTypeInfos(),
-                HiveSchemaUtil.getDefaultValuesMap(defaultValue), Collections.emptyList());
+                HiveSchemaUtil.getDefaultValuesMap(null, defaultValue), Collections.emptyList());
         return Types.StructType.of(fields);
       case MAP:
         MapTypeInfo mapTypeInfo = (MapTypeInfo) typeInfo;
