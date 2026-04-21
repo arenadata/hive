@@ -21,7 +21,7 @@
   </parent>
   <groupId>org.apache.hive</groupId>
   <artifactId>hive</artifactId>
-  <version>4.3.0-SNAPSHOT</version>
+  <version>4.3.0.1-4.3.0-0</version>
   <packaging>pom</packaging>
   <name>Hive</name>
   <url>https://hive.apache.org</url>
@@ -63,7 +63,7 @@
     <module>iceberg</module>
   </modules>
   <properties>
-    <standalone-metastore.version>4.3.0-SNAPSHOT</standalone-metastore.version>
+    <standalone-metastore.version>4.3.0.1-4.3.0-0</standalone-metastore.version>
     <hive.version.shortname>4.3.0</hive.version.shortname>
     <!-- Build Properties -->
     <maven.compiler.source>21</maven.compiler.source>
@@ -109,7 +109,7 @@
     <!-- Make sure to sync it with standalone-metastore/pom.xml -->
     <antlr4.version>4.9.3</antlr4.version>
     <apache-directory-server.version>2.0.0-M24</apache-directory-server.version>
-    <avro.version>1.12.0</avro.version>
+    <avro.version>1.11.5</avro.version>
     <bcprov-jdk18on.version>1.82</bcprov-jdk18on.version>
     <calcite.version>1.33.0</calcite.version>
     <datanucleus-api-jdo.version>6.0.3</datanucleus-api-jdo.version>
@@ -135,13 +135,13 @@
     <druid.version>0.17.1</druid.version>
     <esri.version>2.2.4</esri.version>
     <flatbuffers.version>1.12.0</flatbuffers.version>
-    <guava.version>22.0</guava.version>
+    <guava.version>33.5.0-jre</guava.version>
     <groovy.version>2.4.21</groovy.version>
     <h2database.version>2.2.220</h2database.version>
-    <hadoop.version>3.4.2</hadoop.version>
+    <hadoop.version>3.4.3.1-4.3.0-0</hadoop.version>
     <hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop</hadoop.bin.path>
     <hamcrest.version>1.3</hamcrest.version>
-    <hbase.version>2.5.6-hadoop3</hbase.version>
+    <hbase.version>2.6.5.1-4.3.0-0</hbase.version>
     <hppc.version>0.7.2</hppc.version>
     <graalvm.version>23.0.8</graalvm.version>
     <!-- required for logging test to avoid including hbase which pulls disruptor transitively -->
@@ -160,7 +160,7 @@
     <javax-servlet.version>3.1.0</javax-servlet.version>
     <javolution.version>5.5.1</javolution.version>
     <jettison.version>1.5.4</jettison.version>
-    <jetty.version>9.4.57.v20241219</jetty.version>
+    <jetty.version>9.4.58.v20250814</jetty.version>
     <jersey.version>1.19.4</jersey.version>
     <!-- HIVE-28992: only upgrade to newer than 3.25.0 if you tested the prompt -->
     <jline.version>3.25.0</jline.version>
@@ -185,20 +185,20 @@
     <postgres.version>42.7.3</postgres.version>
     <oracle.version>21.3.0.0</oracle.version>
     <opencsv.version>5.9</opencsv.version>
-    <orc.version>2.1.2</orc.version>
+    <orc.version>2.1.4</orc.version>
     <otel.version>1.60.1</otel.version>
     <mockito-core.version>5.17.0</mockito-core.version>
     <mockito-inline.version>5.2.0</mockito-inline.version>
     <mina.version>2.0.0-M5</mina.version>
-    <netty.version>4.1.127.Final</netty.version>
+    <netty.version>4.1.131.Final</netty.version>
     <netty3.version>3.10.5.Final</netty3.version>
     <!-- used by druid storage handler -->
     <pac4j-saml.version>4.5.8</pac4j-saml.version>
     <paranamer.version>2.8</paranamer.version>
-    <parquet.version>1.16.0</parquet.version>
+    <parquet.version>1.17.0</parquet.version>
     <pig.version>0.16.0</pig.version>
     <plexus.version>1.5.6</plexus.version>
-    <protobuf.version>3.25.5</protobuf.version>
+    <protobuf.version>3.25.9</protobuf.version>
     <protoc-jar-maven-plugin.version>3.11.4</protoc-jar-maven-plugin.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <rat.version>0.16.1</rat.version>
@@ -206,8 +206,8 @@
     <stax.version>1.0.1</stax.version>
     <slf4j.version>1.7.30</slf4j.version>
     <ST4.version>4.0.4</ST4.version>
-    <storage-api.version>4.3.0-SNAPSHOT</storage-api.version>
-    <tez.version>0.10.5</tez.version>
+    <storage-api.version>4.3.0.1-4.3.0-0</storage-api.version>
+    <tez.version>0.10.5.1-4.3.0-0</tez.version>
     <super-csv.version>2.2.0</super-csv.version>
     <tempus-fugit.version>1.1</tempus-fugit.version>
     <testcontainers.version>1.21.3</testcontainers.version>
@@ -217,10 +217,10 @@
     <velocity.version>2.3</velocity.version>
     <xerces.version>2.12.2</xerces.version>
     <xmlsec.version>2.3.4</xmlsec.version>
-    <zookeeper.version>3.8.4</zookeeper.version>
+    <zookeeper.version>3.9.5.1-4.3.0-0</zookeeper.version>
     <jpam.version>1.1</jpam.version>
     <felix.version>2.4.0</felix.version>
-    <curator.version>5.7.1</curator.version>
+    <curator.version>5.9.0.1-4.3.0-0</curator.version>
     <jsr305.version>3.0.0</jsr305.version>
     <gson.version>2.9.0</gson.version>
     <jjwt.version>0.10.5</jjwt.version>
@@ -232,18 +232,29 @@
     <datasketches.version>2.0.0</datasketches.version>
     <spotbugs.version>4.8.6</spotbugs.version>
     <validation-api.version>1.1.0.Final</validation-api.version>
-    <aws-java-sdk.version>2.42.25</aws-java-sdk.version>
+    <aws-java-sdk.version>2.35.4</aws-java-sdk.version>
     <aws-secretsmanager-caching.version>2.2.0</aws-secretsmanager-caching.version>
     <jansi.version>2.4.0</jansi.version>
     <!-- If upgrading, upgrade atlas as well in ql/pom.xml, which brings in some springframework dependencies transitively -->
     <spring.version>5.3.39</spring.version>
     <spring-boot.version>2.7.18</spring-boot.version>
     <spring.ldap.version>2.4.4</spring.ldap.version>
-    <project.build.outputTimestamp>2025-01-01T00:00:00Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-04-21T06:35:40Z</project.build.outputTimestamp>
     <keycloak.version>26.0.6</keycloak.version>
     <nimbus-oauth.version>11.28</nimbus-oauth.version>
   </properties>
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>GitHub arenadata Apache Maven Packages</name>
+      <url>https://maven.pkg.github.com/arenadata/hive</url>
+    </repository>
+  </distributionManagement>
   <repositories>
+    <repository>
+      <id>arenadata</id>
+      <url>https://maven.pkg.github.com/arenadata/*</url>
+    </repository>
     <!-- This needs to be removed before checking in-->
     <repository>
       <id>central</id>
@@ -1440,6 +1451,13 @@
             <artifactId>*</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-framework-bom</artifactId>
+        <version>${spring.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.springframework</groupId>

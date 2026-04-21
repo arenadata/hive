@@ -17,7 +17,7 @@
   <parent>
     <groupId>org.apache.hive</groupId>
     <artifactId>hive</artifactId>
-    <version>4.3.0-SNAPSHOT</version>
+    <version>4.3.0.1-4.3.0-0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>hive-packaging</artifactId>
@@ -348,11 +348,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.hive</groupId>
-      <artifactId>hive-druid-handler</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hive</groupId>
       <artifactId>hive-iceberg-handler</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -364,11 +359,6 @@
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-jdbc-handler</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hive</groupId>
-      <artifactId>hive-accumulo-handler</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -469,11 +459,6 @@
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hive</groupId>
-      <artifactId>hive-kudu-handler</artifactId>
-      <version>${project.version}</version>
     </dependency>
   </dependencies>
 </project>

@@ -33,11 +33,6 @@ public class TestMetastoreVersionInfo {
   }
 
   @Test
-  public void testValidateHiveShortVersionWithHiveVersion() {
-    Assert.assertEquals(hiveVersion.replace("-SNAPSHOT", ""), hiveShortVersion);
-  }
-
-  @Test
   public void testIfHiveVersionHasShortVersionAsPrefix() {
     Assert.assertTrue(hiveVersion.startsWith(hiveShortVersion));
   }
