@@ -17,9 +17,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>io.arenadata.hive</groupId>
+    <groupId>org.apache.hive</groupId>
     <artifactId>hive</artifactId>
-    <version>2.3.10_arenadata1</version>
+    <version>2.3.10.2-4.3.0-0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -34,19 +34,19 @@
   <dependencies>
     <!-- dependencies are always listed in sorted order by groupId, artifectId -->
     <dependency>
-      <groupId>io.arenadata.hive.shims</groupId>
+      <groupId>org.apache.hive.shims</groupId>
       <artifactId>hive-shims-common</artifactId>
       <version>${project.version}</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.arenadata.hive.shims</groupId>
+      <groupId>org.apache.hive.shims</groupId>
       <artifactId>hive-shims-0.23</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>io.arenadata.hive.shims</groupId>
+      <groupId>org.apache.hive.shims</groupId>
       <artifactId>hive-shims-scheduler</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
