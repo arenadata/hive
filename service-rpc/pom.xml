@@ -25,6 +25,8 @@
   <name>Hive Service RPC</name>
   <properties>
     <hive.path.to.root>..</hive.path.to.root>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
   </properties>
   <dependencies>
     <!-- inter-project -->
