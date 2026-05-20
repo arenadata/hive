@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.metastore.txn.entities;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.hadoop.hive.common.ValidCompactorWriteIdList;
+import org.apache.hadoop.hive.common.repl.ReplConst;
 import org.apache.hadoop.hive.metastore.api.CompactionInfoStruct;
 import org.apache.hadoop.hive.metastore.api.CompactionType;
 import org.apache.hadoop.hive.metastore.api.MetaException;
@@ -87,7 +88,6 @@ public class CompactionInfo implements Comparable<CompactionInfo> {
   private String fullPartitionName = null;
   private String fullTableName = null;
   private StringableMap propertiesMap;
-  private boolean softDelete;
 
   public CompactionInfo(String dbname, String tableName, String partName, CompactionType type) {
     this.dbname = dbname;
@@ -191,7 +191,6 @@ public class CompactionInfo implements Comparable<CompactionInfo> {
         .append("numberOfBuckets", numberOfBuckets)
         .append("orderByClause", orderByClause)
         .append("minOpenWriteTxnId", minOpenWriteTxnId)
-        .append("softDelete", softDelete)
         .build();
   }
 
@@ -371,11 +370,11 @@ public class CompactionInfo implements Comparable<CompactionInfo> {
     return type == CompactionType.ABORT_TXN_CLEANUP;
   }
 
-  public void setSoftDelete(boolean softDelete) {
-    this.softDelete = softDelete;
+  public boolean isDeferredCleanup() {
+    return CompactionType.DEFERRED_CLEANUP == type;
   }
 
-  public boolean isSoftDelete() {
-    return softDelete;
+  public boolean isSourceOfReplication() {
+    return Boolean.parseBoolean(getProperty(ReplConst.SOURCE_OF_REPLICATION));
   }
 }

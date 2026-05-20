@@ -117,6 +117,7 @@ import org.apache.hadoop.hive.ql.cache.results.QueryResultsCache;
 import org.apache.hadoop.hive.ql.ddl.DDLDescWithTableProperties;
 import org.apache.hadoop.hive.ql.ddl.DDLWork;
 import org.apache.hadoop.hive.ql.ddl.misc.hooks.InsertCommitHookDesc;
+import org.apache.hadoop.hive.ql.ddl.DDLSemanticAnalyzerFactory;
 import org.apache.hadoop.hive.ql.ddl.table.create.CreateTableDesc;
 import org.apache.hadoop.hive.ql.ddl.table.misc.preinsert.PreInsertTableDesc;
 import org.apache.hadoop.hive.ql.ddl.table.misc.properties.AlterTableUnsetPropertiesDesc;
@@ -1568,7 +1569,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     createTable.addChild(temporary);
     createTable.addChild(cte.cteNode);
 
-    SemanticAnalyzer analyzer = new SemanticAnalyzer(queryState);
+    SemanticAnalyzer analyzer = (SemanticAnalyzer) DDLSemanticAnalyzerFactory.getAnalyzer(createTable, queryState);
     analyzer.initCtx(ctx);
     analyzer.init(false);
 
@@ -8260,8 +8261,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         && enableColumnStatsCollecting()
         && destinationTable != null
         && (!destinationTable.isNonNative() || destinationTable.getStorageHandler().commitInMoveTask())
-        && !destTableIsTemporary && !destTableIsMaterialization
-        && ColumnStatsAutoGatherContext.canRunAutogatherStats(fso)) {
+        && !destTableIsTemporary
+        && !destTableIsMaterialization
+        && ColumnStatsAutoGatherContext.canRunAutogatherStats(destinationTable, fso)) {
       if (destType == QBMetaData.DEST_TABLE) {
         genAutoColumnStatsGatheringPipeline(destinationTable, partSpec, input,
             qb.getParseInfo().isInsertIntoTable(destinationTable.getDbName(), destinationTable.getTableName(),

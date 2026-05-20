@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
 import org.apache.hadoop.hive.metastore.utils.StringUtils;
@@ -1290,6 +1291,20 @@ public class MetastoreConf {
       "metastore.partition.management.table.pattern", "*",
       "Automatic partition management will look for tables using the specified table pattern"),
 
+    COLUMN_STATISTICS_MANAGEMENT_TASK_FREQUENCY("metastore.column.statistics.management.task.frequency",
+        "metastore.column.statistics.management.task.frequency",
+        0, TimeUnit.DAYS,
+        "Frequency at which the statistics management task runs to automatically delete expired " +
+            "column statistics. A value of 0 (the default) disables the task entirely. " +
+            "Set to a positive duration (e.g. 7d) to enable periodic deletion. " +
+            "Rows whose lastAnalyzed timestamp is older than " +
+            "'metastore.column.statistics.retention.period' will be deleted."),
+
+    COLUMN_STATISTICS_RETENTION_PERIOD("metastore.column.statistics.retention.period",
+        "metastore.column.statistics.retention.period", 365, TimeUnit.DAYS,
+        "The retention period for column statistics. Statistics older than this period " +
+            "will be deleted when the statistics management task is enabled."),
+
     METASTORE_METADATA_TRANSFORMER_CLASS("metastore.metadata.transformer.class", "metastore.metadata.transformer.class",
         "org.apache.hadoop.hive.metastore.MetastoreDefaultTransformer",
         "Fully qualified class name for the metastore metadata transformer class \n"
@@ -1476,6 +1491,10 @@ public class MetastoreConf {
             "Metastore SSL certificate truststore type."),
     SSL_TRUSTMANAGERFACTORY_ALGORITHM("metastore.trustmanagerfactory.algorithm", "hive.metastore.trustmanagerfactory.algorithm", "",
             "Metastore SSL certificate truststore algorithm."),
+    SSL_INCLUDE_PROTOCOLS("metastore.include.protocols", "hive.metastore.include.protocols", "",
+        "Comma-separated list of SSL protocols to include for the Metastore."),
+    SSL_INCLUDE_CIPHERSUITES("metastore.include.ciphersuites", "hive.metastore.include.ciphersuites", "",
+        "Colon-separated list of cipher suite names to include for the Metastore."),
     STATS_AUTO_GATHER("metastore.stats.autogather", "hive.stats.autogather", true,
         "A flag to gather statistics (only basic) automatically during the INSERT OVERWRITE command."),
     STATS_FETCH_BITVECTOR("metastore.stats.fetch.bitvector", "hive.stats.fetch.bitvector", false,
@@ -1525,7 +1544,8 @@ public class MetastoreConf {
             ACID_METRICS_TASK_CLASS + "," + ACID_METRICS_LOGGER_CLASS + "," +
             "org.apache.hadoop.hive.metastore.HiveProtoEventsCleanerTask" + ","
             + "org.apache.hadoop.hive.metastore.ScheduledQueryExecutionsMaintTask" + ","
-            + "org.apache.hadoop.hive.metastore.ReplicationMetricsMaintTask",
+            + "org.apache.hadoop.hive.metastore.ReplicationMetricsMaintTask" + ","
+            + "org.apache.hadoop.hive.metastore.StatisticsManagementTask",
         "Comma separated list of tasks that will be started in separate threads.  These will " +
             "always be started, regardless of whether the metastore is running in embedded mode " +
             "or in server mode.  They must implement " + METASTORE_TASK_THREAD_CLASS),
@@ -1934,6 +1954,10 @@ public class MetastoreConf {
     ICEBERG_CATALOG_CACHE_EXPIRY("metastore.iceberg.catalog.cache.expiry",
         "hive.metastore.iceberg.catalog.cache.expiry", -1,
         "HMS Iceberg Catalog cache expiry."
+    ),
+    ICEBERG_CATALOG_METRICS_REPORTERS("metastore.iceberg.catalog.metrics.reporters",
+        "hive.metastore.iceberg.catalog.metrics.reporters", "org.apache.iceberg.rest.metrics.LoggingMetricsReporter",
+        "A comma separated list of custom Iceberg Metrics Reporting plugins."
     ),
     HTTPSERVER_THREADPOOL_MIN("hive.metastore.httpserver.threadpool.min",
             "hive.metastore.httpserver.threadpool.min", 8,
@@ -2514,6 +2538,30 @@ public class MetastoreConf {
     String val = conf.get(var.varname);
     return val == null ? conf.getClass(var.hiveName, defaultValue, xface) :
         conf.getClass(var.varname, defaultValue, xface);
+  }
+
+  /**
+   * Get class instances based on a configuration value.
+   *
+   * @param conf configuration file to retrieve it from
+   * @param confVar variable to retrieve
+   * @return instances of the classes
+   */
+  public static Class<?>[] getClasses(Configuration conf, ConfVars confVar) {
+    Preconditions.checkArgument(confVar.defaultVal.getClass() == String.class);
+    Class<?> defaultClass;
+    try {
+      defaultClass = Class.forName((String) confVar.defaultVal);
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException(
+          String.format("Failed to load the the default value of %s: %s", confVar.defaultVal, confVar.varname),
+          e
+      );
+    }
+    String val = conf.get(confVar.varname);
+    return val == null
+        ? conf.getClasses(confVar.hiveName, defaultClass)
+        : conf.getClasses(confVar.varname, defaultClass);
   }
 
   /**
