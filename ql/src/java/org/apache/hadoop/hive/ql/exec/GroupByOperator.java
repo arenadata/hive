@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.type.TimestampTZ;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.CompilationOpContext;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -470,6 +471,7 @@ public class GroupByOperator extends Operator<GroupByDesc> {
       keyPositionsSize.add(new Integer(pos));
       return javaObjectOverHead;
     case TIMESTAMP:
+    case TIMESTAMPLOCALTZ:
       return javaObjectOverHead + javaSizePrimitiveType;
     default:
       return javaSizeUnknownType;
@@ -502,7 +504,7 @@ public class GroupByOperator extends Operator<GroupByDesc> {
       return javaSizePrimitiveType;
     }
 
-    if (c.isInstance(new Timestamp(0))){
+    if (c.isInstance(new Timestamp(0)) || c.isInstance(new TimestampTZ())) {
       return javaObjectOverHead + javaSizePrimitiveType;
     }
 
