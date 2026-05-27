@@ -427,6 +427,15 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
     return connCount;
   }
 
+  /**
+   * Returns the underlying generated Thrift {@link ThriftHiveMetastore.Iface} that this
+   * client delegates to. Exposed for callers (such as Impala's CatalogMetastoreServer)
+   * that need to forward requests to the underlying snake_case Thrift API directly.
+   */
+  public ThriftHiveMetastore.Iface getClient() {
+    return client;
+  }
+
   @Override
   public boolean isLocalMetaStore() {
     return localMetaStore;

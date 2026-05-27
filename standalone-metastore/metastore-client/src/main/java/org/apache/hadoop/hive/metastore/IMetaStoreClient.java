@@ -37,6 +37,7 @@ import org.apache.hadoop.hive.common.classification.RetrySemantics;
 import org.apache.hadoop.hive.metastore.annotation.NoReconnect;
 import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.metastore.api.Package;
+import org.apache.hadoop.hive.metastore.client.ThriftHiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.partition.spec.PartitionSpecProxy;
 import org.apache.thrift.TException;
 
@@ -46,6 +47,16 @@ import org.apache.thrift.TException;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public interface IMetaStoreClient extends AutoCloseable {
+
+  /**
+   * Returns the underlying Thrift client used to communicate with the Hive
+   * Metastore server, if this implementation exposes one. Default
+   * implementation throws {@link UnsupportedOperationException}.
+   */
+  default ThriftHiveMetaStoreClient getThriftClient() {
+    throw new UnsupportedOperationException(
+        "MetaStore client does not expose a Thrift client");
+  }
 
   /**
    * Returns whether current client is compatible with conf argument or not
