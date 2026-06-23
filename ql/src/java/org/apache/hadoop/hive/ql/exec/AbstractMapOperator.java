@@ -117,6 +117,19 @@ public abstract class AbstractMapOperator extends Operator<MapWork>
       break;
     }
     if (nominal == null) {
+      // VALUES / INSERT without a FROM clause are compiled into a scan of the
+      // synthetic DUMMY_TABLE (HIVE-18416). Its dummy file is created under the
+      // session scratch dir at compile time and frozen into pathToAliases, but
+      // at runtime the dummy input path may resolve to a different scratch dir
+      // (query re-compilation / Tez session reuse), so the exact-prefix match
+      // above fails. Such a MapWork has exactly one input alias, so the nominal
+      // path is unambiguous - fall back to it instead of failing the task.
+      if (conf.getDummyTableScan() && conf.getPathToAliases().size() == 1) {
+        Path single = conf.getPathToAliases().keySet().iterator().next();
+        LOG.warn("Dummy table scan input path {} not registered in pathToAliases;"
+            + " falling back to single registered path {}", fpath, single);
+        return single;
+      }
       throw new IllegalStateException("Invalid input path " + fpath);
     }
     return nominal;
