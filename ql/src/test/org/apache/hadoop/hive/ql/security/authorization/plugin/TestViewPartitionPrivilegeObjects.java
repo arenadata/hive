@@ -136,12 +136,8 @@ public class TestViewPartitionPrivilegeObjects {
                 && "datadb".equalsIgnoreCase(h.getDbname())));
   }
 
-  /**
-   * Direct reads on a partitioned table must still emit a PARTITION privilege object
-   * so table/partition policies (e.g. Ranger) can be enforced.
-   */
   @Test
-  public void testDirectTableSelect() throws Exception {
+  public void testDirectTableSelectNoPartitionPrivObj() throws Exception {
     conf.setVar(ConfVars.HIVE_FETCH_TASK_CONVERSION, "none");
     SessionState.get().setConf(conf);
 
@@ -149,7 +145,13 @@ public class TestViewPartitionPrivilegeObjects {
 
     List<HivePrivilegeObject> inputs = getInputPrivObjects();
 
-    Assert.assertTrue("Expected a PARTITION privilege object for direct table access",
+    Assert.assertTrue("Direct table access must still emit a TABLE_OR_VIEW object on the base table",
+        inputs.stream().anyMatch(h ->
+            h.getType() == HivePrivilegeObject.HivePrivilegeObjectType.TABLE_OR_VIEW
+                && "t1".equalsIgnoreCase(h.getObjectName())
+                && "datadb".equalsIgnoreCase(h.getDbname())));
+
+    Assert.assertFalse("ADH-6957: read PARTITION objects are stripped for SELECT, even direct access",
         inputs.stream().anyMatch(h ->
             h.getType() == HivePrivilegeObject.HivePrivilegeObjectType.PARTITION
                 && "t1".equalsIgnoreCase(h.getObjectName())
