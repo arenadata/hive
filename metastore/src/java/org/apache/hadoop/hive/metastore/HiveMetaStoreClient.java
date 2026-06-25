@@ -200,6 +200,11 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
           throw new IllegalArgumentException("Invalid metastore dynamic service discovery mode "
               + serviceDiscoveryMode);
         }
+        if (metastoreUrisString.isEmpty()
+            && "zookeeper".equalsIgnoreCase(serviceDiscoveryMode)) {
+          throw new MetaException("No metastore service discovered in ZooKeeper. "
+              + "Please ensure that at least one metastore server is online");
+        }
         metastoreUris = new URI[metastoreUrisString.size()];
         int i = 0;
         for (String s : metastoreUrisString) {
