@@ -23,6 +23,7 @@ import com.google.common.base.Joiner;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.common.FileUtils;
+import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.hive.conf.Validator.PatternSet;
@@ -219,6 +220,13 @@ public class HiveConf extends Configuration {
       HiveConf.ConfVars.REPLDIR,
       HiveConf.ConfVars.METASTOREURIS,
       HiveConf.ConfVars.METASTORE_SERVER_PORT,
+      HiveConf.ConfVars.METASTORE_THRIFT_BIND_HOST,
+      HiveConf.ConfVars.METASTORE_SERVICE_DISCOVERY_MODE,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_CLIENT_PORT,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_NAMESPACE,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SESSION_TIMEOUT,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_MAX_RETRIES,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_BASESLEEPTIME,
       HiveConf.ConfVars.METASTORETHRIFTCONNECTIONRETRIES,
       HiveConf.ConfVars.METASTORETHRIFTFAILURERETRIES,
       HiveConf.ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY,
@@ -599,7 +607,34 @@ public class HiveConf extends Configuration {
     METASTOREWAREHOUSE("hive.metastore.warehouse.dir", "/user/hive/warehouse",
         "location of default database for the warehouse"),
     METASTOREURIS("hive.metastore.uris", "",
-        "Thrift URI for the remote metastore. Used by metastore client to connect to remote metastore."),
+        "Thrift URI for the remote metastore. Used by metastore client to connect to remote " +
+        "metastore. When hive.metastore.service.discovery.mode is set, these URIs identify " +
+        "the service discovery servers instead."),
+    METASTORE_THRIFT_BIND_HOST("hive.metastore.thrift.bind.host", "",
+        "Bind host on which to run the metastore thrift service."),
+    METASTORE_SERVICE_DISCOVERY_MODE("hive.metastore.service.discovery.mode", "",
+        "Specifies which dynamic service discovery method to use. Currently only zookeeper " +
+        "is supported."),
+    METASTORE_ZOOKEEPER_CLIENT_PORT("hive.metastore.zookeeper.client.port", "2181",
+        "The port of ZooKeeper servers to talk to. If the ZooKeeper quorum specified in " +
+        "hive.metastore.uris does not contain port numbers, this value is used."),
+    METASTORE_ZOOKEEPER_SESSION_TIMEOUT("hive.metastore.zookeeper.session.timeout", "120000ms",
+        new TimeValidator(TimeUnit.MILLISECONDS),
+        "ZooKeeper client's session timeout for metastore service discovery."),
+    METASTORE_ZOOKEEPER_CONNECTION_TIMEOUT("hive.metastore.zookeeper.connection.timeout", "15s",
+        new TimeValidator(TimeUnit.SECONDS),
+        "ZooKeeper client's connection timeout for metastore service discovery."),
+    METASTORE_ZOOKEEPER_NAMESPACE("hive.metastore.zookeeper.namespace", "hive_metastore",
+        "The parent node under which all ZooKeeper nodes for metastores are created."),
+    METASTORE_ZOOKEEPER_CONNECTION_MAX_RETRIES(
+        "hive.metastore.zookeeper.connection.max.retries", 3,
+        "Max number of times to retry when connecting to the ZooKeeper server for metastore " +
+        "service discovery."),
+    METASTORE_ZOOKEEPER_CONNECTION_BASESLEEPTIME(
+        "hive.metastore.zookeeper.connection.basesleeptime", "1000ms",
+        new TimeValidator(TimeUnit.MILLISECONDS),
+        "Initial amount of time to wait between retries when connecting to ZooKeeper for " +
+        "metastore service discovery."),
 
     METASTORE_CAPABILITY_CHECK("hive.metastore.client.capability.check", true,
         "Whether to check client capabilities for potentially breaking API usage."),
@@ -4641,5 +4676,25 @@ public class HiveConf extends Configuration {
       pw = conf.getPassword(var.altName);
     }
     return pw == null ? var.defaultStrVal : new String(pw);
+  }
+
+  public ZooKeeperHiveHelper getZKConfig() {
+    return new ZooKeeperHiveHelper(getVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_QUORUM),
+            getVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_CLIENT_PORT),
+            getVar(HiveConf.ConfVars.HIVE_SERVER2_ZOOKEEPER_NAMESPACE),
+            (int) getTimeVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_SESSION_TIMEOUT, TimeUnit.MILLISECONDS),
+            (int) getTimeVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_CONNECTION_BASESLEEPTIME, TimeUnit.MILLISECONDS),
+            getIntVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_CONNECTION_MAX_RETRIES));
+  }
+
+  public ZooKeeperHiveHelper getMetastoreZKConfig() {
+    return new ZooKeeperHiveHelper(getVar(HiveConf.ConfVars.METASTOREURIS),
+        getVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_CLIENT_PORT),
+        getVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_NAMESPACE),
+        (int) getTimeVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_SESSION_TIMEOUT,
+            TimeUnit.MILLISECONDS),
+        (int) getTimeVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_BASESLEEPTIME,
+            TimeUnit.MILLISECONDS),
+        getIntVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_MAX_RETRIES));
   }
 }

@@ -154,7 +154,9 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
         conf, HiveConf.ConfVars.METASTORE_BATCH_RETRIEVE_OBJECTS_MAX);
 
     String msUri = conf.getVar(ConfVars.METASTOREURIS);
-    localMetaStore = HiveConfUtil.isEmbeddedMetaStore(msUri);
+    String serviceDiscoveryMode = conf.getVar(ConfVars.METASTORE_SERVICE_DISCOVERY_MODE);
+    localMetaStore = HiveConfUtil.isEmbeddedMetaStore(msUri)
+        && (serviceDiscoveryMode == null || serviceDiscoveryMode.trim().isEmpty());
     if (localMetaStore) {
       if (!allowEmbedded) {
         throw new MetaException("Embedded metastore is not allowed here. Please configure "
@@ -185,10 +187,20 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
 
     // user wants file store based configuration
     if (conf.getVar(HiveConf.ConfVars.METASTOREURIS) != null) {
-      String metastoreUrisString[] = conf.getVar(
-          HiveConf.ConfVars.METASTOREURIS).split(",");
-      metastoreUris = new URI[metastoreUrisString.length];
+      List<String> metastoreUrisString = new ArrayList<>();
       try {
+        if (serviceDiscoveryMode == null || serviceDiscoveryMode.trim().isEmpty()) {
+          metastoreUrisString.addAll(Arrays.asList(conf.getVar(
+              HiveConf.ConfVars.METASTOREURIS).split(",")));
+        } else if (serviceDiscoveryMode.equalsIgnoreCase("zookeeper")) {
+          for (String serverUri : conf.getMetastoreZKConfig().getServerUris()) {
+            metastoreUrisString.add("thrift://" + serverUri);
+          }
+        } else {
+          throw new IllegalArgumentException("Invalid metastore dynamic service discovery mode "
+              + serviceDiscoveryMode);
+        }
+        metastoreUris = new URI[metastoreUrisString.size()];
         int i = 0;
         for (String s : metastoreUrisString) {
           URI tmpUri = new URI(s);
