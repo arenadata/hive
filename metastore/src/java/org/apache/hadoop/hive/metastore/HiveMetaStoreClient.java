@@ -185,50 +185,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     retryDelaySeconds = conf.getTimeVar(
         ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY, TimeUnit.SECONDS);
 
-    // user wants file store based configuration
-    if (conf.getVar(HiveConf.ConfVars.METASTOREURIS) != null) {
-      List<String> metastoreUrisString = new ArrayList<>();
-      try {
-        if (serviceDiscoveryMode == null || serviceDiscoveryMode.trim().isEmpty()) {
-          metastoreUrisString.addAll(Arrays.asList(conf.getVar(
-              HiveConf.ConfVars.METASTOREURIS).split(",")));
-        } else if (serviceDiscoveryMode.equalsIgnoreCase("zookeeper")) {
-          for (String serverUri : conf.getMetastoreZKConfig().getServerUris()) {
-            metastoreUrisString.add("thrift://" + serverUri);
-          }
-        } else {
-          throw new IllegalArgumentException("Invalid metastore dynamic service discovery mode "
-              + serviceDiscoveryMode);
-        }
-        if (metastoreUrisString.isEmpty()
-            && "zookeeper".equalsIgnoreCase(serviceDiscoveryMode)) {
-          throw new MetaException("No metastore service discovered in ZooKeeper. "
-              + "Please ensure that at least one metastore server is online");
-        }
-        metastoreUris = new URI[metastoreUrisString.size()];
-        int i = 0;
-        for (String s : metastoreUrisString) {
-          URI tmpUri = new URI(s);
-          if (tmpUri.getScheme() == null) {
-            throw new IllegalArgumentException("URI: " + s
-                + " does not have a scheme");
-          }
-          metastoreUris[i++] = tmpUri;
-
-        }
-        // make metastore URIS random
-        List<URI> uriList = Arrays.asList(metastoreUris);
-        Collections.shuffle(uriList);
-        metastoreUris = uriList.toArray(new URI[uriList.size()]);
-      } catch (IllegalArgumentException e) {
-        throw (e);
-      } catch (Exception e) {
-        MetaStoreUtils.logAndThrowMetaException(e);
-      }
-    } else {
-      LOG.error("NOT getting uris from conf");
-      throw new MetaException("MetaStoreURIs not found in conf file");
-    }
+    resolveMetastoreUris();
 
     //If HADOOP_PROXY_USER is set in env or property,
     //then need to create metastore client that proxies as that user.
@@ -267,6 +224,59 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     }
     // finally open the store
     open();
+  }
+
+  private void resolveMetastoreUris() throws MetaException {
+    String metastoreUrisConf = conf.getVar(HiveConf.ConfVars.METASTOREURIS);
+    if (metastoreUrisConf == null) {
+      LOG.error("NOT getting uris from conf");
+      throw new MetaException("MetaStoreURIs not found in conf file");
+    }
+
+    String serviceDiscoveryMode = conf.getVar(ConfVars.METASTORE_SERVICE_DISCOVERY_MODE);
+    List<String> metastoreUrisString = new ArrayList<>();
+    try {
+      if (serviceDiscoveryMode == null || serviceDiscoveryMode.trim().isEmpty()) {
+        metastoreUrisString.addAll(Arrays.asList(metastoreUrisConf.split(",")));
+      } else if (serviceDiscoveryMode.equalsIgnoreCase("zookeeper")) {
+        for (String serverUri : conf.getMetastoreZKConfig().getServerUris()) {
+          metastoreUrisString.add("thrift://" + serverUri);
+        }
+      } else {
+        throw new IllegalArgumentException("Invalid metastore dynamic service discovery mode "
+            + serviceDiscoveryMode);
+      }
+      if (metastoreUrisString.isEmpty()
+          && "zookeeper".equalsIgnoreCase(serviceDiscoveryMode)) {
+        throw new MetaException("No metastore service discovered in ZooKeeper. "
+            + "Please ensure that at least one metastore server is online");
+      }
+
+      URI[] resolvedMetastoreUris = new URI[metastoreUrisString.size()];
+      int i = 0;
+      for (String s : metastoreUrisString) {
+        URI tmpUri = new URI(s);
+        if (tmpUri.getScheme() == null) {
+          throw new IllegalArgumentException("URI: " + s
+              + " does not have a scheme");
+        }
+        resolvedMetastoreUris[i++] = tmpUri;
+      }
+
+      // make metastore URIS random
+      List<URI> uriList = Arrays.asList(resolvedMetastoreUris);
+      Collections.shuffle(uriList);
+      metastoreUris = uriList.toArray(new URI[uriList.size()]);
+    } catch (IllegalArgumentException e) {
+      throw (e);
+    } catch (Exception e) {
+      MetaStoreUtils.logAndThrowMetaException(e);
+    }
+  }
+
+  private boolean isZooKeeperServiceDiscoveryEnabled() {
+    String serviceDiscoveryMode = conf.getVar(ConfVars.METASTORE_SERVICE_DISCOVERY_MODE);
+    return "zookeeper".equalsIgnoreCase(serviceDiscoveryMode);
   }
 
   private MetaStoreFilterHook loadFilterHooks() throws IllegalStateException {
@@ -355,6 +365,9 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
           " at the client level.");
     } else {
       close();
+      if (isZooKeeperServiceDiscoveryEnabled()) {
+        resolveMetastoreUris();
+      }
       // Swap the first element of the metastoreUris[] with a random element from the rest
       // of the array. Rationale being that this method will generally be called when the default
       // connection has died and the default connection is likely to be the first array element.

@@ -58,6 +58,7 @@ public class ZooKeeperHiveHelper {
     private final String quorum;
     private final String rootNamespace;
     private boolean deregisteredWithZooKeeper = false; // Set to true only when deregistration happens
+    private final int connectionTimeout;
     private final int sessionTimeout;
     private final int baseSleepTime;
     private final int maxRetries;
@@ -67,6 +68,12 @@ public class ZooKeeperHiveHelper {
 
     public ZooKeeperHiveHelper(String quorum, String clientPort, String rootNamespace,
                                int sessionTimeout, int baseSleepTime, int maxRetries) {
+        this(quorum, clientPort, rootNamespace, 0, sessionTimeout, baseSleepTime, maxRetries);
+    }
+
+    public ZooKeeperHiveHelper(String quorum, String clientPort, String rootNamespace,
+                               int connectionTimeout, int sessionTimeout, int baseSleepTime,
+                               int maxRetries) {
         // Get the ensemble server addresses in the format host1:port1, host2:port2, ... . Append
         // the configured port to hostname if the hostname doesn't contain a port.
         String[] hosts = quorum.split(",");
@@ -85,6 +92,7 @@ public class ZooKeeperHiveHelper {
 
         this.quorum = quorumServers.toString();
         this.rootNamespace = rootNamespace;
+        this.connectionTimeout = connectionTimeout;
         this.sessionTimeout = sessionTimeout;
         this.baseSleepTime = baseSleepTime;
         this.maxRetries = maxRetries;
@@ -155,6 +163,9 @@ public class ZooKeeperHiveHelper {
                 .connectString(zooKeeperEnsemble)
                 .sessionTimeoutMs(sessionTimeout)
                 .retryPolicy(new ExponentialBackoffRetry(baseSleepTime, maxRetries));
+        if (connectionTimeout > 0) {
+            builder = builder.connectionTimeoutMs(connectionTimeout);
+        }
         if (zooKeeperAclProvider != null) {
             builder = builder.aclProvider(zooKeeperAclProvider);
         }
