@@ -25,6 +25,22 @@ public final class ConfigUtils {
   private ConfigUtils() {
   }
 
+  // Component names used across the operator for labels, resource naming, and autoscaling keys.
+  public static final String COMPONENT_HIVESERVER2 = "hiveserver2";
+  public static final String COMPONENT_METASTORE = "metastore";
+  public static final String COMPONENT_LLAP = "llap";
+  public static final String COMPONENT_TEZAM = "tezam";
+
+  /** Returns the autoscaler component key for a specific LLAP cluster (e.g., "llap-llap0"). */
+  public static String llapComponentKey(String llapName) {
+    return COMPONENT_LLAP + "-" + llapName;
+  }
+
+  /** Returns the autoscaler component key for a per-LLAP TezAM (e.g., "tezam-llap0"). */
+  public static String tezAmComponentKey(String llapName) {
+    return COMPONENT_TEZAM + "-" + llapName;
+  }
+
   public static final String METASTORE_THRIFT_PORT_KEY = "metastore.thrift.port";
   public static final String METASTORE_THRIFT_PORT_HIVE_KEY = "hive.metastore.port";
   public static final int METASTORE_THRIFT_PORT_DEFAULT = 9083;
@@ -58,6 +74,12 @@ public final class ConfigUtils {
   public static final String HIVE_SERVER2_TEZ_EXTERNAL_SESSIONS_NAMESPACE_KEY =
       "hive.server2.tez.external.sessions.namespace";
 
+  /**
+   * ZK path prefix that Tez's STANDALONE_ZOOKEEPER mode prepends to tez.am.registry.namespace
+   * when creating the session availability node. Must match the Docker template convention.
+   */
+  public static final String TEZ_EXTERNAL_SESSIONS_ZK_PREFIX = "/tez-external-sessions";
+
   public static final String HIVE_SERVER2_TEZ_EXTERNAL_SESSIONS_REGISTRY_CLASS_KEY =
       "hive.server2.tez.external.sessions.registry.class";
 
@@ -67,19 +89,79 @@ public final class ConfigUtils {
 
   public static final String HIVE_LLAP_EXECUTION_MODE_KEY = "hive.llap.execution.mode";
 
+  public static final String HIVE_LLAP_CLUSTER_ROUTING_RULES_KEY = "hive.llap.cluster.routing.rules";
+  public static final String HIVE_LLAP_CLUSTER_PREFIX = "hive.llap.cluster.";
+  public static final String HIVE_LLAP_CLUSTER_SESSIONS_NS_SUFFIX = ".sessions.namespace";
+  public static final String HIVE_LLAP_CLUSTER_REGISTRY_NS_SUFFIX = ".registry.namespace";
+  public static final String HIVE_LLAP_CLUSTER_SERVICE_HOSTS_SUFFIX = ".service.hosts";
+
   public static final String HIVE_LLAP_DAEMON_SERVICE_HOSTS_KEY = "hive.llap.daemon.service.hosts";
 
   public static final String HIVE_LLAP_DAEMON_MEMORY_MB_KEY = "hive.llap.daemon.memory.per.instance.mb";
 
   public static final String HIVE_LLAP_DAEMON_NUM_EXECUTORS_KEY = "hive.llap.daemon.num.executors";
 
+  public static final String HIVE_LLAP_DAEMON_RPC_PORT_KEY = "hive.llap.daemon.rpc.port";
+  public static final int HIVE_LLAP_DAEMON_RPC_PORT_DEFAULT = 15001;
+
+  public static final String HIVE_LLAP_MANAGEMENT_RPC_PORT_KEY = "hive.llap.management.rpc.port";
+  public static final int HIVE_LLAP_MANAGEMENT_RPC_PORT_DEFAULT = 15004;
+
+  public static final String HIVE_LLAP_DAEMON_SHUFFLE_PORT_KEY = "hive.llap.daemon.yarn.shuffle.port";
+  public static final int HIVE_LLAP_DAEMON_SHUFFLE_PORT_DEFAULT = 15551;
+
+  public static final String HIVE_LLAP_DAEMON_WEB_PORT_KEY = "hive.llap.daemon.web.port";
+  public static final int HIVE_LLAP_DAEMON_WEB_PORT_DEFAULT = 15002;
+
+  public static final String HIVE_LLAP_DAEMON_OUTPUT_SERVICE_PORT_KEY = "hive.llap.daemon.output.service.port";
+  public static final int HIVE_LLAP_DAEMON_OUTPUT_SERVICE_PORT_DEFAULT = 15003;
+
+  public static final String HIVE_LLAP_DAEMON_UMBILICAL_PORT_KEY = "hive.llap.daemon.umbilical.port";
+  public static final String HIVE_LLAP_DAEMON_UMBILICAL_PORT_DEFAULT = "0";
+
+  public static final String METASTORE_SERVER_TRANSPORT_MODE_KEY = "metastore.server.thrift.transport.mode";
+  public static final String METASTORE_SERVER_TRANSPORT_MODE_DEFAULT = "http";
+
+  public static final String METASTORE_SERVER_HTTP_PATH_KEY = "metastore.server.thrift.http.path";
+  public static final String METASTORE_SERVER_HTTP_PATH_DEFAULT = "metastore";
+
+  public static final String METASTORE_CLIENT_TRANSPORT_MODE_KEY = "hive.metastore.client.thrift.transport.mode";
+  public static final String METASTORE_CLIENT_TRANSPORT_MODE_DEFAULT = "http";
+
+  public static final String METASTORE_CLIENT_HTTP_PATH_KEY = "metastore.client.thrift.http.path";
+  public static final String METASTORE_CLIENT_HTTP_PATH_DEFAULT = "metastore";
+
+  public static final String METASTORE_SERVER_MAX_THREADS_KEY = "metastore.server.max.threads";
+  public static final String METASTORE_SERVER_MAX_THREADS_HIVE_KEY = "hive.metastore.server.max.threads";
+  public static final int METASTORE_SERVER_MAX_THREADS_DEFAULT = 1000;
+
+  public static final String METASTORE_REST_HTTP_PORT_KEY = "metastore.rest.http.port";
+  public static final int METASTORE_REST_HTTP_PORT_DEFAULT = 9001;
+
   public static final String HIVE_METASTORE_URIS_KEY = "hive.metastore.uris";
+
 
   public static final String HIVE_SERVER2_THRIFT_PORT_KEY = "hive.server2.thrift.port";
   public static final int HIVE_SERVER2_THRIFT_PORT_DEFAULT = 10000;
 
+  public static final String HIVE_SERVER2_THRIFT_HTTP_PORT_KEY = "hive.server2.thrift.http.port";
+  public static final int HIVE_SERVER2_THRIFT_HTTP_PORT_DEFAULT = 10001;
+
+  public static final String HIVE_SERVER2_THRIFT_HTTP_PATH_KEY = "hive.server2.thrift.http.path";
+  public static final String HIVE_SERVER2_THRIFT_HTTP_PATH_DEFAULT = "cliservice";
+
+  public static final String HIVE_SERVER2_TRANSPORT_MODE_KEY = "hive.server2.transport.mode";
+  public static final String HIVE_SERVER2_TRANSPORT_MODE_DEFAULT = "http";
+
   public static final String HIVE_SERVER2_WEBUI_PORT_KEY = "hive.server2.webui.port";
   public static final int HIVE_SERVER2_WEBUI_PORT_DEFAULT = 10002;
+
+  /** Port for the Prometheus JMX Exporter agent (serves /metrics in text format). */
+  public static final int PROMETHEUS_JMX_EXPORTER_PORT = 9404;
+
+  /** Default URL for the Prometheus JMX Exporter javaagent JAR. */
+  public static final String JMX_EXPORTER_JAR_URL =
+      "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/1.0.1/jmx_prometheus_javaagent-1.0.1.jar";
 
   public static final String TEZ_AM_SESSION_MODE_KEY = "tez.am.mode.session";
 
@@ -111,6 +193,17 @@ public final class ConfigUtils {
       }
       if (val != null) {
         return Integer.parseInt(val);
+      }
+    }
+    return defaultVal;
+  }
+
+  public static boolean getBoolean(Map<String, String> overrides,
+      String key, boolean defaultVal) {
+    if (overrides != null) {
+      String val = overrides.get(key);
+      if (val != null) {
+        return Boolean.parseBoolean(val);
       }
     }
     return defaultVal;
