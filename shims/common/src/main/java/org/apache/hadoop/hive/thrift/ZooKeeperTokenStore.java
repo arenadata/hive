@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -31,6 +32,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.ACLProvider;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.utils.ZookeeperFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.shims.Utils;
@@ -40,9 +42,13 @@ import org.apache.hadoop.security.token.delegation.AbstractDelegationTokenSecret
 import org.apache.hadoop.security.token.delegation.HiveDelegationTokenSupport;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
+import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.common.ClientX509Util;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.slf4j.Logger;
@@ -64,6 +70,11 @@ public class ZooKeeperTokenStore implements DelegationTokenStore {
   private volatile CuratorFramework zkSession;
   private String zkConnectString;
   private int connectTimeoutMillis;
+  private boolean sslEnabled;
+  private String keyStoreLocation;
+  private String keyStorePassword;
+  private String trustStoreLocation;
+  private String trustStorePassword;
   private List<ACL> newNodeAcl = Arrays.asList(new ACL(Perms.ALL, Ids.AUTH_IDS));
 
   /**
@@ -90,6 +101,21 @@ public class ZooKeeperTokenStore implements DelegationTokenStore {
 
   private Configuration conf;
 
+  private static final String HIVE_ZOOKEEPER_CLIENT_PORT =
+      "hive.zookeeper.client.port";
+  private static final String HIVE_ZOOKEEPER_CONNECTION_TIMEOUT =
+      "hive.zookeeper.connection.timeout";
+  private static final String HIVE_ZOOKEEPER_SSL_ENABLE =
+      "hive.zookeeper.ssl.client.enable";
+  private static final String HIVE_ZOOKEEPER_SSL_KEYSTORE_LOCATION =
+      "hive.zookeeper.ssl.keystore.location";
+  private static final String HIVE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD =
+      "hive.zookeeper.ssl.keystore.password";
+  private static final String HIVE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION =
+      "hive.zookeeper.ssl.truststore.location";
+  private static final String HIVE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD =
+      "hive.zookeeper.ssl.truststore.password";
+
   /**
    * Default constructor for dynamic instantiation w/ Configurable
    * (ReflectionUtils does not support Configuration constructor injection).
@@ -97,14 +123,19 @@ public class ZooKeeperTokenStore implements DelegationTokenStore {
   protected ZooKeeperTokenStore() {
   }
 
-  private CuratorFramework getSession() {
+  public CuratorFramework getSession() {
     if (zkSession == null || zkSession.getState() == CuratorFrameworkState.STOPPED) {
       synchronized (this) {
         if (zkSession == null || zkSession.getState() == CuratorFrameworkState.STOPPED) {
-          zkSession =
-              CuratorFrameworkFactory.builder().connectString(zkConnectString)
-                  .connectionTimeoutMs(connectTimeoutMillis).aclProvider(aclDefaultProvider)
-                  .retryPolicy(new ExponentialBackoffRetry(1000, 3)).build();
+          CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+              .connectString(zkConnectString)
+              .connectionTimeoutMs(connectTimeoutMillis)
+              .aclProvider(aclDefaultProvider)
+              .retryPolicy(new ExponentialBackoffRetry(1000, 3));
+          if (sslEnabled) {
+            builder = builder.zookeeperFactory(new TokenStoreSSLZookeeperFactory());
+          }
+          zkSession = builder.build();
           zkSession.start();
         }
       }
@@ -450,11 +481,35 @@ public class ZooKeeperTokenStore implements DelegationTokenStore {
             + HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_CONNECT_STR_ALTERNATE
             + WHEN_ZK_DSTORE_MSG);
       }
+      String zkConnectPort = conf.get(HIVE_ZOOKEEPER_CLIENT_PORT, "2181");
+      zkConnectString = appendPortToConnectString(zkConnectString, zkConnectPort);
+      connectTimeoutMillis = (int) conf.getTimeDuration(
+          HIVE_ZOOKEEPER_CONNECTION_TIMEOUT, 15000, TimeUnit.MILLISECONDS);
+      sslEnabled = conf.getBoolean(HIVE_ZOOKEEPER_SSL_ENABLE, false);
+      if (sslEnabled) {
+        keyStoreLocation = conf.get(HIVE_ZOOKEEPER_SSL_KEYSTORE_LOCATION, "");
+        keyStorePassword = getPasswordString(HIVE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD);
+        trustStoreLocation = conf.get(HIVE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION, "");
+        trustStorePassword = getPasswordString(HIVE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD);
+      }
+    } else {
+      connectTimeoutMillis =
+          conf.getInt(
+              HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_CONNECT_TIMEOUTMILLIS,
+              CuratorFrameworkFactory.builder().getConnectionTimeoutMs());
+      sslEnabled = conf.getBoolean(
+          HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_SSL_ENABLE, false);
+      if (sslEnabled) {
+        keyStoreLocation = conf.get(
+            HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_KEYSTORE_LOCATION, "");
+        keyStorePassword = getPasswordString(
+            HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_KEYSTORE_PASSWORD);
+        trustStoreLocation = conf.get(
+            HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_TRUSTSTORE_LOCATION, "");
+        trustStorePassword = getPasswordString(
+            HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_TRUSTSTORE_PASSWORD);
+      }
     }
-    connectTimeoutMillis =
-        conf.getInt(
-            HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_CONNECT_TIMEOUTMILLIS,
-            CuratorFrameworkFactory.builder().getConnectionTimeoutMs());
     String aclStr = conf.get(HiveDelegationTokenManager.DELEGATION_TOKEN_STORE_ZK_ACL, null);
     if (StringUtils.isNotBlank(aclStr)) {
       this.newNodeAcl = parseACLs(aclStr);
@@ -471,6 +526,54 @@ public class ZooKeeperTokenStore implements DelegationTokenStore {
           + e.getMessage(), e);
     }
     initClientAndPaths();
+  }
+
+  private String getPasswordString(String key) {
+    try {
+      char[] password = conf.getPassword(key);
+      return password == null ? null : new String(password);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to read zookeeper configuration passwords", e);
+    }
+  }
+
+  private String appendPortToConnectString(String connectString, String clientPort) {
+    String[] hosts = connectString.split(",");
+    StringBuilder quorumServers = new StringBuilder();
+    for (int i = 0; i < hosts.length; i++) {
+      quorumServers.append(hosts[i].trim());
+      if (!hosts[i].contains(":")) {
+        quorumServers.append(":");
+        quorumServers.append(clientPort);
+      }
+      if (i != hosts.length - 1) {
+        quorumServers.append(",");
+      }
+    }
+    return quorumServers.toString();
+  }
+
+  private class TokenStoreSSLZookeeperFactory implements ZookeeperFactory {
+    @Override
+    public ZooKeeper newZooKeeper(String connectString, int sessionTimeout, Watcher watcher,
+        boolean canBeReadOnly) throws Exception {
+      ZKClientConfig clientConfig = new ZKClientConfig();
+      clientConfig.setProperty(ZKClientConfig.SECURE_CLIENT, "true");
+      clientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET,
+          "org.apache.zookeeper.ClientCnxnSocketNetty");
+
+      ClientX509Util x509Util = new ClientX509Util();
+      clientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(),
+          StringUtils.defaultString(keyStoreLocation, ""));
+      clientConfig.setProperty(x509Util.getSslKeystorePasswdProperty(),
+          StringUtils.defaultString(keyStorePassword, ""));
+      clientConfig.setProperty(x509Util.getSslTruststoreLocationProperty(),
+          StringUtils.defaultString(trustStoreLocation, ""));
+      clientConfig.setProperty(x509Util.getSslTruststorePasswdProperty(),
+          StringUtils.defaultString(trustStorePassword, ""));
+
+      return new ZooKeeper(connectString, sessionTimeout, watcher, canBeReadOnly, clientConfig);
+    }
   }
 
 }

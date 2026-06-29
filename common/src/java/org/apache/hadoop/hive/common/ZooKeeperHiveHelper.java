@@ -62,6 +62,13 @@ public class ZooKeeperHiveHelper {
     private final int sessionTimeout;
     private final int baseSleepTime;
     private final int maxRetries;
+    private final boolean sslEnabled;
+    private final String keyStoreLocation;
+    private final String keyStorePassword;
+    private final String keyStoreType;
+    private final String trustStoreLocation;
+    private final String trustStorePassword;
+    private final String trustStoreType;
 
     private CuratorFramework zooKeeperClient;
     private PersistentEphemeralNode znode;
@@ -74,13 +81,23 @@ public class ZooKeeperHiveHelper {
     public ZooKeeperHiveHelper(String quorum, String clientPort, String rootNamespace,
                                int connectionTimeout, int sessionTimeout, int baseSleepTime,
                                int maxRetries) {
+        this(quorum, clientPort, rootNamespace, connectionTimeout, sessionTimeout, baseSleepTime,
+                maxRetries, false, null, null, null, null, null, null);
+    }
+
+    public ZooKeeperHiveHelper(String quorum, String clientPort, String rootNamespace,
+                               int connectionTimeout, int sessionTimeout, int baseSleepTime,
+                               int maxRetries, boolean sslEnabled, String keyStoreLocation,
+                               String keyStorePassword, String keyStoreType,
+                               String trustStoreLocation, String trustStorePassword,
+                               String trustStoreType) {
         // Get the ensemble server addresses in the format host1:port1, host2:port2, ... . Append
         // the configured port to hostname if the hostname doesn't contain a port.
         String[] hosts = quorum.split(",");
         StringBuilder quorumServers = new StringBuilder();
         for (int i = 0; i < hosts.length; i++) {
             quorumServers.append(hosts[i].trim());
-            if (!hosts[i].contains(":")) {
+            if (!hosts[i].contains(":") && clientPort != null && !clientPort.trim().isEmpty()) {
                 quorumServers.append(":");
                 quorumServers.append(clientPort);
             }
@@ -96,6 +113,13 @@ public class ZooKeeperHiveHelper {
         this.sessionTimeout = sessionTimeout;
         this.baseSleepTime = baseSleepTime;
         this.maxRetries = maxRetries;
+        this.sslEnabled = sslEnabled;
+        this.keyStoreLocation = keyStoreLocation;
+        this.keyStorePassword = keyStorePassword;
+        this.keyStoreType = keyStoreType;
+        this.trustStoreLocation = trustStoreLocation;
+        this.trustStorePassword = trustStorePassword;
+        this.trustStoreType = trustStoreType;
     }
 
     /**
@@ -156,20 +180,7 @@ public class ZooKeeperHiveHelper {
 
     public CuratorFramework startZookeeperClient(ACLProvider zooKeeperAclProvider,
                                                  boolean addParentNode) throws Exception {
-        String zooKeeperEnsemble = getQuorumServers();
-        // Create a CuratorFramework instance to be used as the ZooKeeper client.
-        // Use the zooKeeperAclProvider, when specified, to create appropriate ACLs.
-        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
-                .connectString(zooKeeperEnsemble)
-                .sessionTimeoutMs(sessionTimeout)
-                .retryPolicy(new ExponentialBackoffRetry(baseSleepTime, maxRetries));
-        if (connectionTimeout > 0) {
-            builder = builder.connectionTimeoutMs(connectionTimeout);
-        }
-        if (zooKeeperAclProvider != null) {
-            builder = builder.aclProvider(zooKeeperAclProvider);
-        }
-        CuratorFramework zkClient = builder.build();
+        CuratorFramework zkClient = getNewZookeeperClient(zooKeeperAclProvider);
         zkClient.start();
 
         // Create the parent znodes recursively; ignore if the parent already exists.
@@ -188,6 +199,41 @@ public class ZooKeeperHiveHelper {
             }
         }
         return zkClient;
+    }
+
+    public CuratorFramework getNewZookeeperClient() {
+        return getNewZookeeperClient(null);
+    }
+
+    public CuratorFramework getNewZookeeperClient(ACLProvider zooKeeperAclProvider) {
+        return getNewZookeeperClient(zooKeeperAclProvider, null);
+    }
+
+    public CuratorFramework getNewZookeeperClient(ACLProvider zooKeeperAclProvider,
+                                                  String namespace) {
+        // Create a CuratorFramework instance to be used as the ZooKeeper client.
+        // Use the zooKeeperAclProvider, when specified, to create appropriate ACLs.
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                .connectString(getQuorumServers())
+                .retryPolicy(new ExponentialBackoffRetry(baseSleepTime, maxRetries));
+        if (namespace != null) {
+            builder = builder.namespace(namespace);
+        }
+        if (sessionTimeout > 0) {
+            builder = builder.sessionTimeoutMs(sessionTimeout);
+        }
+        if (connectionTimeout > 0) {
+            builder = builder.connectionTimeoutMs(connectionTimeout);
+        }
+        if (sslEnabled) {
+            builder = builder.zookeeperFactory(new SSLZookeeperFactory(sslEnabled,
+                    keyStoreLocation, keyStorePassword, keyStoreType,
+                    trustStoreLocation, trustStorePassword, trustStoreType));
+        }
+        if (zooKeeperAclProvider != null) {
+            builder = builder.aclProvider(zooKeeperAclProvider);
+        }
+        return builder.build();
     }
 
     public void removeServerInstanceFromZooKeeper() throws Exception {
