@@ -42,7 +42,6 @@ import javax.security.auth.login.AppConfigurationEntry;
 
 import com.google.common.collect.Sets;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.ACLProvider;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -51,7 +50,6 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.nodes.PersistentEphemeralNode;
 import org.apache.curator.framework.recipes.nodes.PersistentEphemeralNode.Mode;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -149,14 +147,7 @@ public class LlapZookeeperRegistryImpl implements ServiceRegistry {
   public LlapZookeeperRegistryImpl(String instanceName, Configuration conf) {
     this.conf = new Configuration(conf);
     this.conf.addResource(YarnConfiguration.YARN_SITE_CONFIGURATION_FILE);
-    String zkEnsemble = getQuorumServers(this.conf);
     this.encoder = new RegistryUtils.ServiceRecordMarshal();
-    int sessionTimeout = (int) HiveConf.getTimeVar(conf, ConfVars.HIVE_ZOOKEEPER_SESSION_TIMEOUT,
-        TimeUnit.MILLISECONDS);
-    int baseSleepTime = (int) HiveConf
-        .getTimeVar(conf, ConfVars.HIVE_ZOOKEEPER_CONNECTION_BASESLEEPTIME,
-            TimeUnit.MILLISECONDS);
-    int maxRetries = HiveConf.getIntVar(conf, ConfVars.HIVE_ZOOKEEPER_CONNECTION_MAX_RETRIES);
 
     // sample path: /llap-sasl/hiveuser/hostname/workers/worker-0000000
     // worker-0000000 is the sequence number which will be retained until session timeout. If a
@@ -194,15 +185,9 @@ public class LlapZookeeperRegistryImpl implements ServiceRegistry {
       rootNs = isSecure ? SASL_NAMESPACE : UNSECURE_NAMESPACE; // The normal path.
     }
 
-    // Create a CuratorFramework instance to be used as the ZooKeeper client
-    // Use the zooKeeperAclProvider to create appropriate ACLs
-    this.zooKeeperClient = CuratorFrameworkFactory.builder()
-        .connectString(zkEnsemble)
-        .sessionTimeoutMs(sessionTimeout)
-        .aclProvider(zooKeeperAclProvider)
-        .namespace(rootNs)
-        .retryPolicy(new ExponentialBackoffRetry(baseSleepTime, maxRetries))
-        .build();
+    HiveConf zkConf = new HiveConf(this.conf, LlapZookeeperRegistryImpl.class);
+    this.zooKeeperClient = zkConf.getZKConfig().getNewZookeeperClient(
+        zooKeeperAclProvider, rootNs);
 
     LOG.info("Llap Zookeeper Registry is enabled with registryid: " + instanceName);
   }

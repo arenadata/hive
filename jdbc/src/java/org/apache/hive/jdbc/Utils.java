@@ -108,6 +108,13 @@ public class Utils {
     // Use ZooKeeper for indirection while using dynamic service discovery
     static final String SERVICE_DISCOVERY_MODE_ZOOKEEPER = "zooKeeper";
     static final String ZOOKEEPER_NAMESPACE = "zooKeeperNamespace";
+    public static final String ZOOKEEPER_SSL_ENABLE = "zooKeeperSSLEnable";
+    public static final String ZOOKEEPER_KEYSTORE_LOCATION = "zooKeeperKeystoreLocation";
+    public static final String ZOOKEEPER_KEYSTORE_PASSWORD = "zooKeeperKeystorePassword";
+    public static final String ZOOKEEPER_KEYSTORE_TYPE = "zooKeeperKeystoreType";
+    public static final String ZOOKEEPER_TRUSTSTORE_LOCATION = "zooKeeperTruststoreLocation";
+    public static final String ZOOKEEPER_TRUSTSTORE_PASSWORD = "zooKeeperTruststorePassword";
+    public static final String ZOOKEEPER_TRUSTSTORE_TYPE = "zooKeeperTruststoreType";
     // Default namespace value on ZooKeeper.
     // This value is used if the param "zooKeeperNamespace" is not specified in the JDBC Uri.
     static final String ZOOKEEPER_DEFAULT_NAMESPACE = "hiveserver2";
@@ -149,6 +156,13 @@ public class Utils {
     private boolean isEmbeddedMode = false;
     private String[] authorityList;
     private String zooKeeperEnsemble = null;
+    private boolean zooKeeperSslEnabled = false;
+    private String zookeeperKeyStoreLocation = "";
+    private String zookeeperKeyStorePassword = "";
+    private String zookeeperKeyStoreType = "";
+    private String zookeeperTrustStoreLocation = "";
+    private String zookeeperTrustStorePassword = "";
+    private String zookeeperTrustStoreType = "";
     private String currentHostZnodePath;
     private final List<String> rejectedHostZnodePaths = new ArrayList<String>();
 
@@ -193,6 +207,34 @@ public class Utils {
 
     public String getZooKeeperEnsemble() {
       return zooKeeperEnsemble;
+    }
+
+    public boolean isZooKeeperSslEnabled() {
+      return zooKeeperSslEnabled;
+    }
+
+    public String getZookeeperKeyStoreLocation() {
+      return zookeeperKeyStoreLocation;
+    }
+
+    public String getZookeeperKeyStorePassword() {
+      return zookeeperKeyStorePassword;
+    }
+
+    public String getZookeeperKeyStoreType() {
+      return zookeeperKeyStoreType;
+    }
+
+    public String getZookeeperTrustStoreLocation() {
+      return zookeeperTrustStoreLocation;
+    }
+
+    public String getZookeeperTrustStorePassword() {
+      return zookeeperTrustStorePassword;
+    }
+
+    public String getZookeeperTrustStoreType() {
+      return zookeeperTrustStoreType;
     }
 
     public List<String> getRejectedHostZnodePaths() {
@@ -241,6 +283,34 @@ public class Utils {
 
     public void setZooKeeperEnsemble(String zooKeeperEnsemble) {
       this.zooKeeperEnsemble = zooKeeperEnsemble;
+    }
+
+    public void setZooKeeperSslEnabled(boolean zooKeeperSslEnabled) {
+      this.zooKeeperSslEnabled = zooKeeperSslEnabled;
+    }
+
+    public void setZookeeperKeyStoreLocation(String zookeeperKeyStoreLocation) {
+      this.zookeeperKeyStoreLocation = zookeeperKeyStoreLocation;
+    }
+
+    public void setZookeeperKeyStorePassword(String zookeeperKeyStorePassword) {
+      this.zookeeperKeyStorePassword = zookeeperKeyStorePassword;
+    }
+
+    public void setZookeeperKeyStoreType(String zookeeperKeyStoreType) {
+      this.zookeeperKeyStoreType = zookeeperKeyStoreType;
+    }
+
+    public void setZookeeperTrustStoreLocation(String zookeeperTrustStoreLocation) {
+      this.zookeeperTrustStoreLocation = zookeeperTrustStoreLocation;
+    }
+
+    public void setZookeeperTrustStorePassword(String zookeeperTrustStorePassword) {
+      this.zookeeperTrustStorePassword = zookeeperTrustStorePassword;
+    }
+
+    public void setZookeeperTrustStoreType(String zookeeperTrustStoreType) {
+      this.zookeeperTrustStoreType = zookeeperTrustStoreType;
     }
 
     public void setCurrentHostZnodePath(String currentHostZnodePath) {
@@ -517,6 +587,7 @@ public class Utils {
             .equalsIgnoreCase(serviceDiscoveryMode))) {
       // Set ZooKeeper ensemble in connParams for later use
       connParams.setZooKeeperEnsemble(joinStringArray(connParams.getAuthorityList(), ","));
+      ZooKeeperHiveClientHelper.setZkSSLParams(connParams);
       // Configure using ZooKeeper
       ZooKeeperHiveClientHelper.configureConnParams(connParams);
     } else {
