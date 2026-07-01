@@ -64,10 +64,10 @@ class ZooKeeperHiveClientHelper {
       builder = builder.zookeeperFactory(new SSLZookeeperFactory(true,
           connParams.getZookeeperKeyStoreLocation(),
           connParams.getZookeeperKeyStorePassword(),
-          null,
+          connParams.getZookeeperKeyStoreType(),
           connParams.getZookeeperTrustStoreLocation(),
           connParams.getZookeeperTrustStorePassword(),
-          null));
+          connParams.getZookeeperTrustStoreType()));
     }
     CuratorFramework zooKeeperClient = builder.build();
     try {
@@ -128,10 +128,14 @@ class ZooKeeperHiveClientHelper {
           JdbcConnectionParams.ZOOKEEPER_KEYSTORE_LOCATION));
       connParams.setZookeeperKeyStorePassword(getSessionVarOrEmpty(connParams,
           JdbcConnectionParams.ZOOKEEPER_KEYSTORE_PASSWORD));
+      connParams.setZookeeperKeyStoreType(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_KEYSTORE_TYPE));
       connParams.setZookeeperTrustStoreLocation(getSessionVarOrEmpty(connParams,
           JdbcConnectionParams.ZOOKEEPER_TRUSTSTORE_LOCATION));
       connParams.setZookeeperTrustStorePassword(getSessionVarOrEmpty(connParams,
           JdbcConnectionParams.ZOOKEEPER_TRUSTSTORE_PASSWORD));
+      connParams.setZookeeperTrustStoreType(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_TRUSTSTORE_TYPE));
     }
   }
 

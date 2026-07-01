@@ -1897,10 +1897,14 @@ public class HiveConf extends Configuration {
         "Keystore location when using a client-side certificate with TLS connectivity to ZooKeeper."),
     HIVE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD("hive.zookeeper.ssl.keystore.password", "",
         "Keystore password when using a client-side certificate with TLS connectivity to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_KEYSTORE_TYPE("hive.zookeeper.ssl.keystore.type", "",
+        "Keystore type when using a client-side certificate with TLS connectivity to ZooKeeper."),
     HIVE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION("hive.zookeeper.ssl.truststore.location", "",
         "Truststore location when using TLS connectivity to ZooKeeper."),
     HIVE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD("hive.zookeeper.ssl.truststore.password", "",
         "Truststore password when using TLS connectivity to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE("hive.zookeeper.ssl.truststore.type", "",
+        "Truststore type when using TLS connectivity to ZooKeeper."),
 
     // Transactions
     HIVE_TXN_MANAGER("hive.txn.manager",
@@ -3440,8 +3444,10 @@ public class HiveConf extends Configuration {
             "hive.server2.authentication.ldap.customLDAPQuery," +
             "hive.zookeeper.ssl.keystore.location," +
             "hive.zookeeper.ssl.keystore.password," +
+            "hive.zookeeper.ssl.keystore.type," +
             "hive.zookeeper.ssl.truststore.location," +
-            "hive.zookeeper.ssl.truststore.password",
+            "hive.zookeeper.ssl.truststore.password," +
+            "hive.zookeeper.ssl.truststore.type",
         "Comma separated list of configuration options which are immutable at runtime"),
     HIVE_CONF_HIDDEN_LIST("hive.conf.hidden.list",
         METASTOREPWD.varname + "," + HIVE_SERVER2_SSL_KEYSTORE_PASSWORD.varname
@@ -3459,8 +3465,10 @@ public class HiveConf extends Configuration {
         + ",hive.metastore.zookeeper.ssl.truststore.password"
         + ",hive.zookeeper.ssl.keystore.location"
         + ",hive.zookeeper.ssl.keystore.password"
+        + ",hive.zookeeper.ssl.keystore.type"
         + ",hive.zookeeper.ssl.truststore.location"
-        + ",hive.zookeeper.ssl.truststore.password",
+        + ",hive.zookeeper.ssl.truststore.password"
+        + ",hive.zookeeper.ssl.truststore.type",
         "Comma separated list of configuration options which should not be read by normal user like passwords"),
     HIVE_CONF_INTERNAL_VARIABLE_LIST("hive.conf.internal.variable.list",
         "hive.added.files.path,hive.added.jars.path,hive.added.archives.path",
@@ -4759,10 +4767,10 @@ public class HiveConf extends Configuration {
             getBoolVar(ConfVars.HIVE_ZOOKEEPER_SSL_ENABLE),
             getVar(ConfVars.HIVE_ZOOKEEPER_SSL_KEYSTORE_LOCATION),
             keyStorePassword,
-            null,
+            getVar(ConfVars.HIVE_ZOOKEEPER_SSL_KEYSTORE_TYPE),
             getVar(ConfVars.HIVE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION),
             trustStorePassword,
-            null);
+            getVar(ConfVars.HIVE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE));
   }
 
   public ZooKeeperHiveHelper getMetastoreZKConfig() {

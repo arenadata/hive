@@ -231,7 +231,8 @@
                   <exclude>com.thoughtworks.paranamer:*</exclude>
                   <exclude>com.twitter:*</exclude>
                   <exclude>com.zaxxer:*</exclude>
-                  <exclude>io.netty:*</exclude>
+                  <exclude>io.netty:netty</exclude>
+                  <exclude>io.netty:netty-all</exclude>
                   <exclude>javax.activation:*</exclude>
                   <exclude>javax.inject:*</exclude>
                   <exclude>javax.jdo:*</exclude>
@@ -298,6 +299,10 @@
                   <shadedPattern>org.apache.hive.org.apache.zookeeper</shadedPattern>
                 </relocation>
                 <relocation>
+                  <pattern>io.netty</pattern>
+                  <shadedPattern>org.apache.hive.io.netty</shadedPattern>
+                </relocation>
+                <relocation>
                   <pattern>org.apache.curator</pattern>
                   <shadedPattern>org.apache.hive.org.apache.curator</shadedPattern>
                 </relocation>
@@ -318,6 +323,46 @@
                   <shadedPattern>org.apache.hive.javolution</shadedPattern>
                 </relocation>
               </relocations>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-standalone-zookeeper-ssl-driver</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <property name="hive.jdbc.standalone.jar"
+                          value="${project.build.directory}/${project.build.finalName}-${hive.jdbc.driver.classifier}.jar"/>
+                <available file="${hive.jdbc.standalone.jar}" property="hive.jdbc.standalone.jar.exists"/>
+                <fail unless="hive.jdbc.standalone.jar.exists"
+                      message="Missing standalone JDBC driver jar: ${hive.jdbc.standalone.jar}"/>
+
+                <available classname="org.apache.hive.org.apache.zookeeper.ClientCnxnSocketNetty"
+                           classpath="${hive.jdbc.standalone.jar}"
+                           property="hive.jdbc.standalone.zk.netty.socket.exists"/>
+                <fail unless="hive.jdbc.standalone.zk.netty.socket.exists"
+                      message="Standalone JDBC driver jar is missing relocated ZooKeeper Netty client socket"/>
+
+                <available classname="org.apache.hive.io.netty.bootstrap.Bootstrap"
+                           classpath="${hive.jdbc.standalone.jar}"
+                           property="hive.jdbc.standalone.netty.bootstrap.exists"/>
+                <fail unless="hive.jdbc.standalone.netty.bootstrap.exists"
+                      message="Standalone JDBC driver jar is missing relocated Netty bootstrap classes"/>
+
+                <available classname="org.apache.hive.io.netty.handler.ssl.SslHandler"
+                           classpath="${hive.jdbc.standalone.jar}"
+                           property="hive.jdbc.standalone.netty.ssl.exists"/>
+                <fail unless="hive.jdbc.standalone.netty.ssl.exists"
+                      message="Standalone JDBC driver jar is missing relocated Netty SSL handler classes"/>
+              </target>
             </configuration>
           </execution>
         </executions>

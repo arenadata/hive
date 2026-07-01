@@ -22,6 +22,7 @@ import java.security.KeyStore;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.utils.ZookeeperFactory;
+import org.apache.zookeeper.ClientCnxnSocketNetty;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ZKClientConfig;
@@ -73,7 +74,7 @@ public class SSLZookeeperFactory implements ZookeeperFactory {
     ZKClientConfig clientConfig = new ZKClientConfig();
     clientConfig.setProperty(ZKClientConfig.SECURE_CLIENT, "true");
     clientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET,
-        "org.apache.zookeeper.ClientCnxnSocketNetty");
+        ClientCnxnSocketNetty.class.getName());
 
     ClientX509Util x509Util = new ClientX509Util();
     clientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(), keyStoreLocation);

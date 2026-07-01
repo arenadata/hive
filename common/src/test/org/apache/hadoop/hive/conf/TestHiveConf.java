@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.conf;
 
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.util.Shell;
 import org.apache.hive.common.util.HiveTestUtils;
@@ -26,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.util.concurrent.TimeUnit;
 
@@ -138,6 +140,27 @@ public class TestHiveConf {
     conf.stripHiddenConfigurations(conf2);
     Assert.assertEquals("", conf2.get(HiveConf.ConfVars.METASTOREPWD.varname));
     Assert.assertEquals("", conf2.get(HiveConf.ConfVars.HIVE_SERVER2_SSL_KEYSTORE_PASSWORD.varname));
+  }
+
+  @Test
+  public void testZookeeperSslStoreTypes() throws Exception {
+    HiveConf conf = new HiveConf();
+    conf.setBoolVar(ConfVars.HIVE_ZOOKEEPER_SSL_ENABLE, true);
+    conf.setVar(ConfVars.HIVE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD, "");
+    conf.setVar(ConfVars.HIVE_ZOOKEEPER_SSL_KEYSTORE_TYPE, "PKCS12");
+    conf.setVar(ConfVars.HIVE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD, "");
+    conf.setVar(ConfVars.HIVE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE, "BCFKS");
+
+    ZooKeeperHiveHelper zkHelper = conf.getZKConfig();
+
+    Assert.assertEquals("PKCS12", getPrivateField(zkHelper, "keyStoreType"));
+    Assert.assertEquals("BCFKS", getPrivateField(zkHelper, "trustStoreType"));
+  }
+
+  private String getPrivateField(Object target, String name) throws Exception {
+    Field field = target.getClass().getDeclaredField(name);
+    field.setAccessible(true);
+    return (String) field.get(target);
   }
 
   @Test
