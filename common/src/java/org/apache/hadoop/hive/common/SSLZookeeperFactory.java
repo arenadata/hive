@@ -76,13 +76,14 @@ public class SSLZookeeperFactory implements ZookeeperFactory {
     clientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET,
         ClientCnxnSocketNetty.class.getName());
 
-    ClientX509Util x509Util = new ClientX509Util();
-    clientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(), keyStoreLocation);
-    clientConfig.setProperty(x509Util.getSslKeystorePasswdProperty(), keyStorePassword);
-    clientConfig.setProperty(x509Util.getSslKeystoreTypeProperty(), keyStoreType);
-    clientConfig.setProperty(x509Util.getSslTruststoreLocationProperty(), trustStoreLocation);
-    clientConfig.setProperty(x509Util.getSslTruststorePasswdProperty(), trustStorePassword);
-    clientConfig.setProperty(x509Util.getSslTruststoreTypeProperty(), trustStoreType);
+    try (ClientX509Util x509Util = new ClientX509Util()) {
+      clientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(), keyStoreLocation);
+      clientConfig.setProperty(x509Util.getSslKeystorePasswdProperty(), keyStorePassword);
+      clientConfig.setProperty(x509Util.getSslKeystoreTypeProperty(), keyStoreType);
+      clientConfig.setProperty(x509Util.getSslTruststoreLocationProperty(), trustStoreLocation);
+      clientConfig.setProperty(x509Util.getSslTruststorePasswdProperty(), trustStorePassword);
+      clientConfig.setProperty(x509Util.getSslTruststoreTypeProperty(), trustStoreType);
+    }
 
     return new ZooKeeper(connectString, sessionTimeout, watcher, canBeReadOnly, clientConfig);
   }

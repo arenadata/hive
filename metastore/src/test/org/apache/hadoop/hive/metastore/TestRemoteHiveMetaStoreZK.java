@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.metastore;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
@@ -118,6 +119,58 @@ public class TestRemoteHiveMetaStoreZK {
 
     client = new HiveMetaStoreClient(hiveConf);
     assertEquals("default", client.getDatabase("default").getName());
+  }
+
+  @Test
+  public void testRetryingClientWaitsForMetaStoreToRegisterAgain() throws Exception {
+    closeClient();
+
+    HiveConf retryingClientConf = new HiveConf(hiveConf);
+    retryingClientConf.setIntVar(ConfVars.METASTORETHRIFTFAILURERETRIES, 30);
+    retryingClientConf.setTimeVar(ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY, 1,
+        TimeUnit.SECONDS);
+    retryingClientConf.setTimeVar(ConfVars.METASTORE_CLIENT_SOCKET_LIFETIME, 1,
+        TimeUnit.MILLISECONDS);
+    final IMetaStoreClient retryingClient = RetryingMetaStoreClient.getProxy(
+        retryingClientConf, null, HiveMetaStoreClient.class.getName());
+
+    removeMetaStoreRegistration();
+    waitForNoMetaStoreRegistration(hiveConf);
+
+    final AtomicReference<Throwable> registrationFailure = new AtomicReference<>();
+    Thread registrationThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          Thread.sleep(250);
+          HiveConf restartedMetaStoreConf = new HiveConf(TestRemoteHiveMetaStoreZK.class);
+          configureMetaStore(restartedMetaStoreConf);
+          configureZooKeeperServiceDiscovery(restartedMetaStoreConf);
+          MetaStoreUtils.startMetaStoreWithRetry(restartedMetaStoreConf);
+          waitForMetaStoreRegistration(restartedMetaStoreConf);
+        } catch (Throwable t) {
+          registrationFailure.set(t);
+        }
+      }
+    }, "metastore-zookeeper-registration");
+    registrationThread.start();
+
+    try {
+      assertEquals("default", retryingClient.getDatabase("default").getName());
+    } finally {
+      retryingClient.close();
+      registrationThread.join(TimeUnit.SECONDS.toMillis(30));
+    }
+
+    if (registrationThread.isAlive()) {
+      registrationThread.interrupt();
+      throw new AssertionError("Timed out waiting for the Metastore to register in ZooKeeper");
+    }
+    if (registrationFailure.get() != null) {
+      AssertionError error = new AssertionError("Unable to register the Metastore in ZooKeeper");
+      error.initCause(registrationFailure.get());
+      throw error;
+    }
   }
 
   protected static void configureZooKeeperServiceDiscovery(HiveConf conf) {

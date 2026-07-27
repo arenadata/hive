@@ -248,7 +248,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
       }
       if (metastoreUrisString.isEmpty()
           && "zookeeper".equalsIgnoreCase(serviceDiscoveryMode)) {
-        throw new MetaException("No metastore service discovered in ZooKeeper. "
+        throw new MetaStoreServiceUnavailableException(
+            "No metastore service discovered in ZooKeeper. "
             + "Please ensure that at least one metastore server is online");
       }
 
@@ -267,6 +268,8 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
       List<URI> uriList = Arrays.asList(resolvedMetastoreUris);
       Collections.shuffle(uriList);
       metastoreUris = uriList.toArray(new URI[uriList.size()]);
+    } catch (MetaStoreServiceUnavailableException e) {
+      throw e;
     } catch (IllegalArgumentException e) {
       throw (e);
     } catch (Exception e) {

@@ -562,15 +562,16 @@ public class ZooKeeperTokenStore implements DelegationTokenStore {
       clientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET,
           "org.apache.zookeeper.ClientCnxnSocketNetty");
 
-      ClientX509Util x509Util = new ClientX509Util();
-      clientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(),
-          StringUtils.defaultString(keyStoreLocation, ""));
-      clientConfig.setProperty(x509Util.getSslKeystorePasswdProperty(),
-          StringUtils.defaultString(keyStorePassword, ""));
-      clientConfig.setProperty(x509Util.getSslTruststoreLocationProperty(),
-          StringUtils.defaultString(trustStoreLocation, ""));
-      clientConfig.setProperty(x509Util.getSslTruststorePasswdProperty(),
-          StringUtils.defaultString(trustStorePassword, ""));
+      try (ClientX509Util x509Util = new ClientX509Util()) {
+        clientConfig.setProperty(x509Util.getSslKeystoreLocationProperty(),
+            StringUtils.defaultString(keyStoreLocation, ""));
+        clientConfig.setProperty(x509Util.getSslKeystorePasswdProperty(),
+            StringUtils.defaultString(keyStorePassword, ""));
+        clientConfig.setProperty(x509Util.getSslTruststoreLocationProperty(),
+            StringUtils.defaultString(trustStoreLocation, ""));
+        clientConfig.setProperty(x509Util.getSslTruststorePasswdProperty(),
+            StringUtils.defaultString(trustStorePassword, ""));
+      }
 
       return new ZooKeeper(connectString, sessionTimeout, watcher, canBeReadOnly, clientConfig);
     }

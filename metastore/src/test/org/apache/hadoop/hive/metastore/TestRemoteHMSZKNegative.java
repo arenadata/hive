@@ -24,7 +24,6 @@ import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
-import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.zookeeper.CreateMode;
 import org.junit.After;
 import org.junit.Before;
@@ -75,7 +74,7 @@ public class TestRemoteHMSZKNegative {
       new HiveMetaStoreClient(conf);
       fail("Expected MetaException");
     } catch (Exception e) {
-      assertTrue(e instanceof MetaException);
+      assertTrue(e instanceof MetaStoreServiceUnavailableException);
       assertTrue(e.getMessage().contains("No metastore service discovered in ZooKeeper"));
     }
   }

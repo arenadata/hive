@@ -194,6 +194,8 @@ public class RetryingMetaStoreClient implements InvocationHandler {
         } else if ((t instanceof TProtocolException) || (t instanceof TTransportException)) {
           // TODO: most protocol exceptions are probably unrecoverable... throw?
           caughtException = (TException)t;
+        } else if (t instanceof MetaStoreServiceUnavailableException) {
+          caughtException = (MetaStoreServiceUnavailableException)t;
         } else if ((t instanceof MetaException) && t.getMessage().matches(
             "(?s).*(JDO[a-zA-Z]*|TProtocol|TTransport)Exception.*") &&
             !t.getMessage().contains("java.sql.SQLIntegrityConstraintViolationException")) {
@@ -202,8 +204,9 @@ public class RetryingMetaStoreClient implements InvocationHandler {
           throw t;
         }
       } catch (MetaException e) {
-        if (e.getMessage().matches("(?s).*(IO|TTransport)Exception.*") &&
-            !e.getMessage().contains("java.sql.SQLIntegrityConstraintViolationException")) {
+        if (e instanceof MetaStoreServiceUnavailableException ||
+            (e.getMessage().matches("(?s).*(IO|TTransport)Exception.*") &&
+            !e.getMessage().contains("java.sql.SQLIntegrityConstraintViolationException"))) {
           caughtException = e;
         } else {
           throw e;
