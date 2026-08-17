@@ -49,6 +49,9 @@ public class TableSchema {
 
   public TableSchema(List<FieldSchema> fieldSchemas) {
     int pos = 1;
+    if (fieldSchemas == null) {
+      return;
+    }
     for (FieldSchema field : fieldSchemas) {
       columns.add(new ColumnDescriptor(field.getName(), field.getComment(), new TypeDescriptor(
           field.getType()), pos++));
@@ -78,6 +81,7 @@ public class TableSchema {
 
   public TTableSchema toTTableSchema() {
     TTableSchema tTableSchema = new TTableSchema();
+    tTableSchema.setColumns(new ArrayList<>());
     for (ColumnDescriptor col : columns) {
       tTableSchema.addToColumns(col.toTColumnDesc());
     }
