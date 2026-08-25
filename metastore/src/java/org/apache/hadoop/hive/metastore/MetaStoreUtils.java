@@ -26,6 +26,7 @@ import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -1281,6 +1282,10 @@ public class MetaStoreUtils {
     for (int tryCount = 0; tryCount < MetaStoreUtils.RETRY_COUNT; tryCount++) {
       try {
         metaStorePort = findFreePort();
+        if (conf != null && conf.getVar(HiveConf.ConfVars.METASTORE_SERVICE_DISCOVERY_MODE)
+            .trim().isEmpty()) {
+          conf.setVar(HiveConf.ConfVars.METASTOREURIS, "thrift://localhost:" + metaStorePort);
+        }
         startMetaStore(metaStorePort, bridge, conf);
         return metaStorePort;
       } catch (ConnectException ce) {
@@ -1318,20 +1323,23 @@ public class MetaStoreUtils {
     });
     thread.setDaemon(true);
     thread.start();
-    loopUntilHMSReady(port);
+    loopUntilHMSReady(hiveConf.getVar(HiveConf.ConfVars.METASTORE_THRIFT_BIND_HOST), port);
   }
 
   /**
    * A simple connect test to make sure that the metastore is up
    * @throws Exception
    */
-  private static void loopUntilHMSReady(int port) throws Exception {
+  private static void loopUntilHMSReady(String msHost, int port) throws Exception {
     int retries = 0;
     Exception exc = null;
     while (true) {
       try {
         Socket socket = new Socket();
-        socket.connect(new InetSocketAddress(port), 5000);
+        SocketAddress sockAddr = (msHost == null || msHost.trim().isEmpty())
+            ? new InetSocketAddress(port)
+            : new InetSocketAddress(msHost, port);
+        socket.connect(sockAddr, 5000);
         socket.close();
         return;
       } catch (Exception e) {

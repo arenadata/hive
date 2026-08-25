@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.hadoop.hive.common.SSLZookeeperFactory;
 import org.apache.hive.jdbc.Utils.JdbcConnectionParams;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
@@ -56,9 +57,19 @@ class ZooKeeperHiveClientHelper {
     List<String> serverHosts;
     Random randomizer = new Random();
     String serverNode;
-    CuratorFramework zooKeeperClient =
-        CuratorFrameworkFactory.builder().connectString(zooKeeperEnsemble)
-            .retryPolicy(new ExponentialBackoffRetry(1000, 3)).build();
+    CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+        .connectString(zooKeeperEnsemble)
+        .retryPolicy(new ExponentialBackoffRetry(1000, 3));
+    if (connParams.isZooKeeperSslEnabled()) {
+      builder = builder.zookeeperFactory(new SSLZookeeperFactory(true,
+          connParams.getZookeeperKeyStoreLocation(),
+          connParams.getZookeeperKeyStorePassword(),
+          connParams.getZookeeperKeyStoreType(),
+          connParams.getZookeeperTrustStoreLocation(),
+          connParams.getZookeeperTrustStorePassword(),
+          connParams.getZookeeperTrustStoreType()));
+    }
+    CuratorFramework zooKeeperClient = builder.build();
     try {
       zooKeeperClient.start();
       serverHosts = zooKeeperClient.getChildren().forPath("/" + zooKeeperNamespace);
@@ -100,6 +111,37 @@ class ZooKeeperHiveClientHelper {
         zooKeeperClient.close();
       }
     }
+  }
+
+  /**
+   * Parse and set up SSL communication parameters for ZooKeeper service discovery.
+   */
+  static void setZkSSLParams(JdbcConnectionParams connParams) {
+    boolean sslEnabled = false;
+    if (connParams.getSessionVars().containsKey(JdbcConnectionParams.ZOOKEEPER_SSL_ENABLE)) {
+      sslEnabled = Boolean.parseBoolean(
+          connParams.getSessionVars().get(JdbcConnectionParams.ZOOKEEPER_SSL_ENABLE));
+      connParams.setZooKeeperSslEnabled(sslEnabled);
+    }
+    if (sslEnabled) {
+      connParams.setZookeeperKeyStoreLocation(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_KEYSTORE_LOCATION));
+      connParams.setZookeeperKeyStorePassword(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_KEYSTORE_PASSWORD));
+      connParams.setZookeeperKeyStoreType(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_KEYSTORE_TYPE));
+      connParams.setZookeeperTrustStoreLocation(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_TRUSTSTORE_LOCATION));
+      connParams.setZookeeperTrustStorePassword(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_TRUSTSTORE_PASSWORD));
+      connParams.setZookeeperTrustStoreType(getSessionVarOrEmpty(connParams,
+          JdbcConnectionParams.ZOOKEEPER_TRUSTSTORE_TYPE));
+    }
+  }
+
+  private static String getSessionVarOrEmpty(JdbcConnectionParams connParams, String key) {
+    String value = connParams.getSessionVars().get(key);
+    return value == null ? "" : value;
   }
 
   /**

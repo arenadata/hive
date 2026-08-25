@@ -24,6 +24,7 @@ import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_N
 import static org.apache.hadoop.hive.metastore.MetaStoreUtils.validateName;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.text.DateFormat;
@@ -70,6 +71,7 @@ import org.apache.hadoop.hive.common.JvmPauseMonitor;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.hive.common.LogUtils.LogInitializationException;
 import org.apache.hadoop.hive.common.StatsSetupConst;
+import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
 import org.apache.hadoop.hive.common.auth.HiveAuthUtils;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceStability;
@@ -198,6 +200,8 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
   public static final String NO_FILTER_STRING = "";
   public static final int UNLIMITED_MAX_PARTITIONS = -1;
+  private static ZooKeeperHiveHelper zooKeeperHelper = null;
+  private static String metastoreBindHost = null;
 
   private static final class ChainedTTransportFactory extends TTransportFactory {
     private final TTransportFactory parentTransFactory;
@@ -7056,6 +7060,14 @@ public class HiveMetaStore extends ThriftHiveMetastore {
                 + e.getMessage(), e);
             }
           }
+          if (conf.getVar(ConfVars.METASTORE_SERVICE_DISCOVERY_MODE).equalsIgnoreCase("zookeeper")
+              && zooKeeperHelper != null) {
+            try {
+              zooKeeperHelper.removeServerInstanceFromZooKeeper();
+            } catch (Exception e) {
+              LOG.error("Error removing znode for this metastore instance from ZooKeeper.", e);
+            }
+          }
         }
       });
 
@@ -7149,6 +7161,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           false);
       IHMSHandler handler = newRetryingHMSHandler(baseHandler, conf);
       TServerSocket serverSocket  = null;
+      metastoreBindHost = conf.getVar(ConfVars.METASTORE_THRIFT_BIND_HOST);
+      if (metastoreBindHost != null && metastoreBindHost.trim().isEmpty()) {
+        metastoreBindHost = null;
+      }
+      if (metastoreBindHost != null) {
+        LOG.info("Binding metastore thrift service to host " + metastoreBindHost);
+      }
 
       if (useSasl) {
         // we are in secure mode.
@@ -7167,7 +7186,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
                 MetaStoreUtils.getMetaStoreSaslProperties(conf));
         processor = saslServer.wrapProcessor(
           new ThriftHiveMetastore.Processor<IHMSHandler>(handler));
-        serverSocket = HiveAuthUtils.getServerSocket(null, port);
+        serverSocket = HiveAuthUtils.getServerSocket(metastoreBindHost, port);
 
         LOG.info("Starting DB backed MetaStore Server in Secure Mode");
       } else {
@@ -7193,7 +7212,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           sslVersionBlacklist.add(sslVersion);
         }
         if (!useSSL) {
-          serverSocket = HiveAuthUtils.getServerSocket(null, port);
+          serverSocket = HiveAuthUtils.getServerSocket(metastoreBindHost, port);
         } else {
           String keyStorePath = conf.getVar(ConfVars.HIVE_METASTORE_SSL_KEYSTORE_PATH).trim();
           if (keyStorePath.isEmpty()) {
@@ -7202,7 +7221,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           }
           String keyStorePassword = ShimLoader.getHadoopShims().getPassword(conf,
               HiveConf.ConfVars.HIVE_METASTORE_SSL_KEYSTORE_PASSWORD.varname);
-          serverSocket = HiveAuthUtils.getServerSSLSocket(null, port, keyStorePath,
+          serverSocket = HiveAuthUtils.getServerSSLSocket(metastoreBindHost, port, keyStorePath,
               keyStorePassword, sslVersionBlacklist);
         }
       }
@@ -7270,12 +7289,33 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       if (startLock != null) {
         signalOtherThreadsToStart(tServer, startLock, startCondition, startedServing);
       }
+      if (conf.getVar(ConfVars.METASTORE_SERVICE_DISCOVERY_MODE).equalsIgnoreCase("zookeeper")) {
+        try {
+          zooKeeperHelper = conf.getMetastoreZKConfig();
+          String serverInstanceURI = getServerInstanceURI(port);
+          zooKeeperHelper.addServerInstanceToZooKeeper(serverInstanceURI, serverInstanceURI, null,
+              null);
+          HMSHandler.LOG.info("Metastore server instance with URL " + serverInstanceURI
+              + " added to ZooKeeper.");
+        } catch (Exception e) {
+          LOG.error("Error adding this metastore instance to ZooKeeper: ", e);
+          throw e;
+        }
+      }
       tServer.serve();
     } catch (Throwable x) {
       x.printStackTrace();
       HMSHandler.LOG.error(StringUtils.stringifyException(x));
       throw x;
     }
+  }
+
+  private static String getServerInstanceURI(int port) throws Exception {
+    String hostName = metastoreBindHost;
+    if (hostName == null || hostName.trim().isEmpty()) {
+      hostName = InetAddress.getLocalHost().getHostName();
+    }
+    return hostName + ":" + port;
   }
 
   private static void cleanupRawStore() {

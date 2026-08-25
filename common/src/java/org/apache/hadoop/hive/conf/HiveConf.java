@@ -23,6 +23,7 @@ import com.google.common.base.Joiner;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.common.FileUtils;
+import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.hive.conf.Validator.PatternSet;
@@ -219,6 +220,21 @@ public class HiveConf extends Configuration {
       HiveConf.ConfVars.REPLDIR,
       HiveConf.ConfVars.METASTOREURIS,
       HiveConf.ConfVars.METASTORE_SERVER_PORT,
+      HiveConf.ConfVars.METASTORE_THRIFT_BIND_HOST,
+      HiveConf.ConfVars.METASTORE_SERVICE_DISCOVERY_MODE,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_CLIENT_PORT,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_NAMESPACE,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SESSION_TIMEOUT,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_TIMEOUT,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_MAX_RETRIES,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_BASESLEEPTIME,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SSL_ENABLE,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SSL_KEYSTORE_LOCATION,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SSL_KEYSTORE_TYPE,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD,
+      HiveConf.ConfVars.METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE,
       HiveConf.ConfVars.METASTORETHRIFTCONNECTIONRETRIES,
       HiveConf.ConfVars.METASTORETHRIFTFAILURERETRIES,
       HiveConf.ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY,
@@ -599,7 +615,58 @@ public class HiveConf extends Configuration {
     METASTOREWAREHOUSE("hive.metastore.warehouse.dir", "/user/hive/warehouse",
         "location of default database for the warehouse"),
     METASTOREURIS("hive.metastore.uris", "",
-        "Thrift URI for the remote metastore. Used by metastore client to connect to remote metastore."),
+        "Thrift URI for the remote metastore. Used by metastore client to connect to remote " +
+        "metastore. When hive.metastore.service.discovery.mode is set, these URIs identify " +
+        "the service discovery servers instead."),
+    METASTORE_THRIFT_BIND_HOST("hive.metastore.thrift.bind.host", "",
+        "Bind host on which to run the metastore thrift service."),
+    METASTORE_SERVICE_DISCOVERY_MODE("hive.metastore.service.discovery.mode", "",
+        "Specifies which dynamic service discovery method to use. Currently only zookeeper " +
+        "is supported."),
+    METASTORE_ZOOKEEPER_CLIENT_PORT("hive.metastore.zookeeper.client.port", "2181",
+        "The port of ZooKeeper servers to talk to. If the ZooKeeper quorum specified in " +
+        "hive.metastore.uris does not contain port numbers, this value is used."),
+    METASTORE_ZOOKEEPER_SESSION_TIMEOUT("hive.metastore.zookeeper.session.timeout", "120000ms",
+        new TimeValidator(TimeUnit.MILLISECONDS),
+        "ZooKeeper client's session timeout for metastore service discovery."),
+    METASTORE_ZOOKEEPER_CONNECTION_TIMEOUT("hive.metastore.zookeeper.connection.timeout", "15s",
+        new TimeValidator(TimeUnit.SECONDS),
+        "ZooKeeper client's connection timeout for metastore service discovery."),
+    METASTORE_ZOOKEEPER_NAMESPACE("hive.metastore.zookeeper.namespace", "hive_metastore",
+        "The parent node under which all ZooKeeper nodes for metastores are created."),
+    METASTORE_ZOOKEEPER_CONNECTION_MAX_RETRIES(
+        "hive.metastore.zookeeper.connection.max.retries", 3,
+        "Max number of times to retry when connecting to the ZooKeeper server for metastore " +
+        "service discovery."),
+    METASTORE_ZOOKEEPER_CONNECTION_BASESLEEPTIME(
+        "hive.metastore.zookeeper.connection.basesleeptime", "1000ms",
+        new TimeValidator(TimeUnit.MILLISECONDS),
+        "Initial amount of time to wait between retries when connecting to ZooKeeper for " +
+        "metastore service discovery."),
+    METASTORE_ZOOKEEPER_SSL_ENABLE("hive.metastore.zookeeper.ssl.client.enable", false,
+        "Set metastore service discovery client to use TLS when connecting to ZooKeeper."),
+    METASTORE_ZOOKEEPER_SSL_KEYSTORE_LOCATION(
+        "hive.metastore.zookeeper.ssl.keystore.location", "",
+        "Keystore location when using a client-side certificate with TLS connectivity to "
+        + "ZooKeeper for metastore service discovery."),
+    METASTORE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD(
+        "hive.metastore.zookeeper.ssl.keystore.password", "",
+        "Keystore password when using a client-side certificate with TLS connectivity to "
+        + "ZooKeeper for metastore service discovery."),
+    METASTORE_ZOOKEEPER_SSL_KEYSTORE_TYPE("hive.metastore.zookeeper.ssl.keystore.type", "",
+        "Keystore type when using a client-side certificate with TLS connectivity to "
+        + "ZooKeeper for metastore service discovery."),
+    METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION(
+        "hive.metastore.zookeeper.ssl.truststore.location", "",
+        "Truststore location when using TLS connectivity to ZooKeeper for metastore service "
+        + "discovery."),
+    METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD(
+        "hive.metastore.zookeeper.ssl.truststore.password", "",
+        "Truststore password when using TLS connectivity to ZooKeeper for metastore service "
+        + "discovery."),
+    METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE("hive.metastore.zookeeper.ssl.truststore.type", "",
+        "Truststore type when using TLS connectivity to ZooKeeper for metastore service "
+        + "discovery."),
 
     METASTORE_CAPABILITY_CHECK("hive.metastore.client.capability.check", true,
         "Whether to check client capabilities for potentially breaking API usage."),
@@ -1811,6 +1878,9 @@ public class HiveConf extends Configuration {
         new TimeValidator(TimeUnit.MILLISECONDS),
         "ZooKeeper client's session timeout (in milliseconds). The client is disconnected, and as a result, all locks released, \n" +
         "if a heartbeat is not sent in the timeout."),
+    HIVE_ZOOKEEPER_CONNECTION_TIMEOUT("hive.zookeeper.connection.timeout", "15s",
+        new TimeValidator(TimeUnit.MILLISECONDS),
+        "ZooKeeper client's connection timeout."),
     HIVE_ZOOKEEPER_NAMESPACE("hive.zookeeper.namespace", "hive_zookeeper_namespace",
         "The parent node under which all ZooKeeper nodes are created."),
     HIVE_ZOOKEEPER_CLEAN_EXTRA_NODES("hive.zookeeper.clean.extra.nodes", false,
@@ -1821,6 +1891,20 @@ public class HiveConf extends Configuration {
         new TimeValidator(TimeUnit.MILLISECONDS),
         "Initial amount of time (in milliseconds) to wait between retries\n" +
         "when connecting to the ZooKeeper server when using ExponentialBackoffRetry policy."),
+    HIVE_ZOOKEEPER_SSL_ENABLE("hive.zookeeper.ssl.client.enable", false,
+        "Set client to use TLS when connecting to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_KEYSTORE_LOCATION("hive.zookeeper.ssl.keystore.location", "",
+        "Keystore location when using a client-side certificate with TLS connectivity to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD("hive.zookeeper.ssl.keystore.password", "",
+        "Keystore password when using a client-side certificate with TLS connectivity to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_KEYSTORE_TYPE("hive.zookeeper.ssl.keystore.type", "",
+        "Keystore type when using a client-side certificate with TLS connectivity to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION("hive.zookeeper.ssl.truststore.location", "",
+        "Truststore location when using TLS connectivity to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD("hive.zookeeper.ssl.truststore.password", "",
+        "Truststore password when using TLS connectivity to ZooKeeper."),
+    HIVE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE("hive.zookeeper.ssl.truststore.type", "",
+        "Truststore type when using TLS connectivity to ZooKeeper."),
 
     // Transactions
     HIVE_TXN_MANAGER("hive.txn.manager",
@@ -3357,7 +3441,13 @@ public class HiveConf extends Configuration {
             "hive.server2.authentication.ldap.groupMembershipKey," +
             "hive.server2.authentication.ldap.userMembershipKey," +
             "hive.server2.authentication.ldap.groupClassKey," +
-            "hive.server2.authentication.ldap.customLDAPQuery",
+            "hive.server2.authentication.ldap.customLDAPQuery," +
+            "hive.zookeeper.ssl.keystore.location," +
+            "hive.zookeeper.ssl.keystore.password," +
+            "hive.zookeeper.ssl.keystore.type," +
+            "hive.zookeeper.ssl.truststore.location," +
+            "hive.zookeeper.ssl.truststore.password," +
+            "hive.zookeeper.ssl.truststore.type",
         "Comma separated list of configuration options which are immutable at runtime"),
     HIVE_CONF_HIDDEN_LIST("hive.conf.hidden.list",
         METASTOREPWD.varname + "," + HIVE_SERVER2_SSL_KEYSTORE_PASSWORD.varname
@@ -3368,7 +3458,17 @@ public class HiveConf extends Configuration {
         + ",fs.s3n.awsSecretAccessKey"
         + ",fs.s3a.access.key"
         + ",fs.s3a.secret.key"
-        + ",fs.s3a.proxy.password",
+        + ",fs.s3a.proxy.password"
+        + ",hive.metastore.zookeeper.ssl.keystore.location"
+        + ",hive.metastore.zookeeper.ssl.keystore.password"
+        + ",hive.metastore.zookeeper.ssl.truststore.location"
+        + ",hive.metastore.zookeeper.ssl.truststore.password"
+        + ",hive.zookeeper.ssl.keystore.location"
+        + ",hive.zookeeper.ssl.keystore.password"
+        + ",hive.zookeeper.ssl.keystore.type"
+        + ",hive.zookeeper.ssl.truststore.location"
+        + ",hive.zookeeper.ssl.truststore.password"
+        + ",hive.zookeeper.ssl.truststore.type",
         "Comma separated list of configuration options which should not be read by normal user like passwords"),
     HIVE_CONF_INTERNAL_VARIABLE_LIST("hive.conf.internal.variable.list",
         "hive.added.files.path,hive.added.jars.path,hive.added.archives.path",
@@ -4641,5 +4741,67 @@ public class HiveConf extends Configuration {
       pw = conf.getPassword(var.altName);
     }
     return pw == null ? var.defaultStrVal : new String(pw);
+  }
+
+  public ZooKeeperHiveHelper getZKConfig() {
+    String keyStorePassword = "";
+    String trustStorePassword = "";
+    if (getBoolVar(ConfVars.HIVE_ZOOKEEPER_SSL_ENABLE)) {
+      try {
+        keyStorePassword = HiveConf.getPassword(this,
+            ConfVars.HIVE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD);
+        trustStorePassword = HiveConf.getPassword(this,
+            ConfVars.HIVE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to read zookeeper configuration passwords", e);
+      }
+    }
+    return new ZooKeeperHiveHelper(getVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_QUORUM),
+            getVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_CLIENT_PORT),
+            getVar(HiveConf.ConfVars.HIVE_SERVER2_ZOOKEEPER_NAMESPACE),
+            (int) getTimeVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_CONNECTION_TIMEOUT,
+                TimeUnit.MILLISECONDS),
+            (int) getTimeVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_SESSION_TIMEOUT, TimeUnit.MILLISECONDS),
+            (int) getTimeVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_CONNECTION_BASESLEEPTIME, TimeUnit.MILLISECONDS),
+            getIntVar(HiveConf.ConfVars.HIVE_ZOOKEEPER_CONNECTION_MAX_RETRIES),
+            getBoolVar(ConfVars.HIVE_ZOOKEEPER_SSL_ENABLE),
+            getVar(ConfVars.HIVE_ZOOKEEPER_SSL_KEYSTORE_LOCATION),
+            keyStorePassword,
+            getVar(ConfVars.HIVE_ZOOKEEPER_SSL_KEYSTORE_TYPE),
+            getVar(ConfVars.HIVE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION),
+            trustStorePassword,
+            getVar(ConfVars.HIVE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE));
+  }
+
+  public ZooKeeperHiveHelper getMetastoreZKConfig() {
+    String keyStorePassword = "";
+    String trustStorePassword = "";
+    if (getBoolVar(ConfVars.METASTORE_ZOOKEEPER_SSL_ENABLE)) {
+      try {
+        keyStorePassword = HiveConf.getPassword(this,
+            ConfVars.METASTORE_ZOOKEEPER_SSL_KEYSTORE_PASSWORD);
+        trustStorePassword = HiveConf.getPassword(this,
+            ConfVars.METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to read zookeeper configuration passwords", e);
+      }
+    }
+    return new ZooKeeperHiveHelper(getVar(HiveConf.ConfVars.METASTOREURIS),
+        getVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_CLIENT_PORT),
+        getVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_NAMESPACE),
+        (int) getTimeVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_TIMEOUT,
+            TimeUnit.MILLISECONDS),
+        (int) getTimeVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_SESSION_TIMEOUT,
+            TimeUnit.MILLISECONDS),
+        (int) getTimeVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_BASESLEEPTIME,
+            TimeUnit.MILLISECONDS),
+        getIntVar(HiveConf.ConfVars.METASTORE_ZOOKEEPER_CONNECTION_MAX_RETRIES),
+        getBoolVar(ConfVars.METASTORE_ZOOKEEPER_SSL_ENABLE),
+        getVar(ConfVars.METASTORE_ZOOKEEPER_SSL_KEYSTORE_LOCATION),
+        keyStorePassword,
+        getVar(ConfVars.METASTORE_ZOOKEEPER_SSL_KEYSTORE_TYPE),
+        getVar(ConfVars.METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION),
+        trustStorePassword,
+        getVar(ConfVars.METASTORE_ZOOKEEPER_SSL_TRUSTSTORE_TYPE));
   }
 }
