@@ -21,7 +21,7 @@
   </parent>
   <groupId>org.apache.hive</groupId>
   <artifactId>hive-storage-api</artifactId>
-  <version>4.3.0.1-4.3.0-4</version>
+  <version>4.3.0.2-4.4.0-0</version>
   <packaging>jar</packaging>
   <name>Hive Storage API</name>
   <inceptionYear>2008</inceptionYear>
@@ -46,7 +46,7 @@
   </properties>
   <distributionManagement>
     <repository>
-      <id>github</id>
+      <id>arenadata</id>
       <name>GitHub arenadata Apache Maven Packages</name>
       <url>https://maven.pkg.github.com/arenadata/hive</url>
     </repository>
