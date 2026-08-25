@@ -21,7 +21,7 @@
   </parent>
   <groupId>org.apache.hive</groupId>
   <artifactId>hive</artifactId>
-  <version>2.3.10.2-4.3.0-0</version>
+  <version>2.3.10.3-4.4.0-0</version>
   <packaging>pom</packaging>
 
   <name>Hive</name>
@@ -240,7 +240,7 @@
 
   <distributionManagement>
     <repository>
-      <id>github</id>
+      <id>arenadata</id>
       <name>GitHub arenadata Apache Maven Packages</name>
       <url>https://maven.pkg.github.com/arenadata/hive</url>
     </repository>
