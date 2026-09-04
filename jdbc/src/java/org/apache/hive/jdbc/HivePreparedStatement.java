@@ -846,12 +846,17 @@ public class HivePreparedStatement extends HiveStatement implements PreparedStat
   @Override
   public int[] executeBatch() throws SQLException {
     checkConnection("executeBatch");
-    if(batchParameters == null || batchParameters.isEmpty()) {
+    if (batchParameters == null || batchParameters.isEmpty()) {
       return new int[0];
     }
-    String batchSql = updateSqlBatch(sql,batchParameters);
-    executeUpdate(batchSql);
-    clearBatch();
-    return new int[] {getUpdateCount()};
+    final int batchSize = batchParameters.size();
+    try {
+      executeUpdate(updateSqlBatch(sql, batchParameters));
+    } finally {
+      clearBatch();
+    }
+    int[] results = new int[batchSize];
+    Arrays.fill(results, SUCCESS_NO_INFO);
+    return results;
   }
 }
