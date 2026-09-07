@@ -83,6 +83,8 @@ public class serdeConstants {
 
   public static final java.lang.String INTERVAL_DAY_TIME_TYPE_NAME = "interval_day_time";
 
+  public static final java.lang.String TIMESTAMPLOCALTZ_TYPE_NAME = "timestamp with local time zone";
+
   public static final java.lang.String LIST_TYPE_NAME = "array";
 
   public static final java.lang.String MAP_TYPE_NAME = "map";
@@ -119,6 +121,7 @@ public class serdeConstants {
     PrimitiveTypes.add("interval_day_time");
     PrimitiveTypes.add("decimal");
     PrimitiveTypes.add("binary");
+    PrimitiveTypes.add("timestamp with local time zone");
   }
 
   public static final java.util.Set<java.lang.String> CollectionTypes = new java.util.HashSet<java.lang.String>();
