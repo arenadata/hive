@@ -69,6 +69,7 @@
     <checkstyle.version>11.1.0</checkstyle.version>
     <commons-collections4.version>4.4</commons-collections4.version>
     <commons-configuration2.version>2.15.1</commons-configuration2.version>
+    <commons-io.version>2.22.0</commons-io.version>
     <commons-lang3.version>3.20.0</commons-lang3.version>
     <commons-dbcp2.version>2.14.0</commons-dbcp2.version>
     <datasketches.version>2.0.0</datasketches.version>
@@ -86,7 +87,7 @@
     </dropwizard-metrics-hadoop-metrics2-reporter.version>
     <dropwizard.version>3.1.0</dropwizard.version>
     <guava.version>22.0</guava.version>
-    <hadoop.version>3.4.2</hadoop.version>
+    <hadoop.version>3.4.3.2-4.4.0-1</hadoop.version>
     <hikaricp.version>4.0.3</hikaricp.version>
     <jackson.version>2.18.10</jackson.version>
     <jexl.version>3.3</jexl.version>
@@ -242,6 +243,11 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-configuration2</artifactId>
         <version>${commons-configuration2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons-io.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
