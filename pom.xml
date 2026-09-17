@@ -21,7 +21,7 @@
   </parent>
   <groupId>org.apache.hive</groupId>
   <artifactId>hive</artifactId>
-  <version>4.3.0.2-4.4.0-0</version>
+  <version>4.3.0.2-4.4.0-1</version>
   <packaging>pom</packaging>
   <name>Hive</name>
   <url>https://hive.apache.org</url>
@@ -63,7 +63,7 @@
     <module>iceberg</module>
   </modules>
   <properties>
-    <standalone-metastore.version>4.3.0.2-4.4.0-0</standalone-metastore.version>
+    <standalone-metastore.version>4.3.0.2-4.4.0-1</standalone-metastore.version>
     <hive.version.shortname>4.3.0</hive.version.shortname>
     <!-- Build Properties -->
     <maven.compiler.source>21</maven.compiler.source>
@@ -112,7 +112,7 @@
     <antlr4.version>4.9.3</antlr4.version>
     <apache-directory-server.version>2.0.0-M24</apache-directory-server.version>
     <avro.version>1.11.5</avro.version>
-    <bcprov-jdk18on.version>1.82</bcprov-jdk18on.version>
+    <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
     <calcite.version>1.33.0</calcite.version>
     <datanucleus-api-jdo.version>6.0.5</datanucleus-api-jdo.version>
     <datanucleus-core.version>6.0.11</datanucleus-core.version>
@@ -125,9 +125,10 @@
     <commons-collections4.version>4.4</commons-collections4.version>
     <commons-compress.version>1.26.0</commons-compress.version>
     <commons-configuration.version>1.10</commons-configuration.version>
+    <commons-configuration2.version>2.15.1</commons-configuration2.version>
     <commons-exec.version>1.1</commons-exec.version>
-    <commons-io.version>2.16.1</commons-io.version>
-    <commons-lang3.version>3.17.0</commons-lang3.version>
+    <commons-io.version>2.22.0</commons-io.version>
+    <commons-lang3.version>3.20.0</commons-lang3.version>
     <commons-math3.version>3.6.1</commons-math3.version>
     <commons-dbcp2.version>2.14.0</commons-dbcp2.version>
     <commons-text.version>1.10.0</commons-text.version>
@@ -140,10 +141,10 @@
     <guava.version>33.5.0-jre</guava.version>
     <groovy.version>2.4.21</groovy.version>
     <h2database.version>2.2.220</h2database.version>
-    <hadoop.version>3.4.3.1-4.3.0-0</hadoop.version>
+    <hadoop.version>3.4.3.2-4.4.0-1</hadoop.version>
     <hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop</hadoop.bin.path>
     <hamcrest.version>1.3</hamcrest.version>
-    <hbase.version>2.6.5.1-4.3.0-0</hbase.version>
+    <hbase.version>2.6.5.2-4.4.0-0</hbase.version>
     <hppc.version>0.7.2</hppc.version>
     <graalvm.version>23.0.8</graalvm.version>
     <!-- required for logging test to avoid including hbase which pulls disruptor transitively -->
@@ -153,19 +154,19 @@
     <httpcomponents.client.version>4.5.13</httpcomponents.client.version>
     <httpcomponents.core.version>4.4.13</httpcomponents.core.version>
     <immutables.version>2.9.2</immutables.version>
-    <httpcomponents5.core.version>5.3.4</httpcomponents5.core.version>
-    <httpcomponents5.client.version>5.5</httpcomponents5.client.version>
+    <httpcomponents5.core.version>5.4.3</httpcomponents5.core.version>
+    <httpcomponents5.client.version>5.6.3</httpcomponents5.client.version>
     <ivy.version>2.5.2</ivy.version>
-    <jackson.version>2.18.6</jackson.version>
+    <jackson.version>2.18.10</jackson.version>
     <jamon.plugin.version>2.3.4</jamon.plugin.version>
     <jamon-runtime.version>2.4.1</jamon-runtime.version>
     <javax-servlet.version>3.1.0</javax-servlet.version>
     <javolution.version>5.5.1</javolution.version>
     <jettison.version>1.5.4</jettison.version>
-    <jetty.version>9.4.58.v20250814</jetty.version>
+    <jetty.version>9.4.58.1</jetty.version>
     <jersey.version>1.19.4</jersey.version>
     <!-- HIVE-28992: only upgrade to newer than 3.25.0 if you tested the prompt -->
-    <jline.version>3.25.0</jline.version>
+    <jline.version>3.30.16</jline.version>
     <jms.version>2.0.2</jms.version>
     <joda.version>2.13.0</joda.version>
     <jodd.version>6.0.0</jodd.version>
@@ -173,14 +174,14 @@
     <junit.version>4.13.2</junit.version>
     <junit.jupiter.version>5.13.3</junit.jupiter.version>
     <junit.vintage.version>5.13.3</junit.vintage.version>
-    <kafka.version>3.9.1</kafka.version>
+    <kafka.version>3.9.2</kafka.version>
     <kryo.version>5.5.0</kryo.version>
     <reflectasm.version>1.11.9</reflectasm.version>
     <kudu.version>1.17.0</kudu.version>
     <!-- Leaving libfb303 at 0.9.3 regardless of libthrift: As per THRIFT-4613 The Apache Thrift project does not publish items related to fb303 at this point -->
     <libfb303.version>0.9.3</libfb303.version>
     <libthrift.version>0.16.0</libthrift.version>
-    <log4j2.version>2.25.3</log4j2.version>
+    <log4j2.version>2.25.5</log4j2.version>
     <mariadb.version>2.5.0</mariadb.version>
     <mssql.version>6.2.1.jre8</mssql.version>
     <mysql.version>8.2.0</mysql.version>
@@ -192,12 +193,12 @@
     <mockito-core.version>5.17.0</mockito-core.version>
     <mockito-inline.version>5.2.0</mockito-inline.version>
     <mina.version>2.0.0-M5</mina.version>
-    <netty.version>4.1.131.Final</netty.version>
+    <netty.version>4.1.137.Final</netty.version>
     <netty3.version>3.10.5.Final</netty3.version>
     <!-- used by druid storage handler -->
     <pac4j-saml.version>4.5.8</pac4j-saml.version>
     <paranamer.version>2.8</paranamer.version>
-    <parquet.version>1.17.0</parquet.version>
+    <parquet.version>1.17.1</parquet.version>
     <pig.version>0.16.0</pig.version>
     <plexus.version>1.5.6</plexus.version>
     <protobuf.version>3.25.9</protobuf.version>
@@ -208,7 +209,7 @@
     <stax.version>1.0.1</stax.version>
     <slf4j.version>1.7.30</slf4j.version>
     <ST4.version>4.0.4</ST4.version>
-    <storage-api.version>4.3.0.2-4.4.0-0</storage-api.version>
+    <storage-api.version>4.3.0.2-4.4.0-1</storage-api.version>
     <tez.version>0.10.5.1-4.3.0-0</tez.version>
     <super-csv.version>2.2.0</super-csv.version>
     <tempus-fugit.version>1.1</tempus-fugit.version>
@@ -219,10 +220,10 @@
     <velocity.version>2.3</velocity.version>
     <xerces.version>2.12.2</xerces.version>
     <xmlsec.version>2.3.4</xmlsec.version>
-    <zookeeper.version>3.9.5.1-4.3.0-0</zookeeper.version>
+    <zookeeper.version>3.9.5.2-4.4.0-0</zookeeper.version>
     <jpam.version>1.1</jpam.version>
     <felix.version>2.4.0</felix.version>
-    <curator.version>5.9.0.1-4.3.0-0</curator.version>
+    <curator.version>5.9.0.2-4.4.0-0</curator.version>
     <jsr305.version>3.0.0</jsr305.version>
     <gson.version>2.9.0</gson.version>
     <jjwt.version>0.10.5</jjwt.version>
@@ -236,7 +237,7 @@
     <validation-api.version>1.1.0.Final</validation-api.version>
     <aws-java-sdk.version>2.35.4</aws-java-sdk.version>
     <aws-secretsmanager-caching.version>2.2.0</aws-secretsmanager-caching.version>
-    <jansi.version>2.4.0</jansi.version>
+    <jansi.version>2.4.3</jansi.version>
     <!-- If upgrading, upgrade atlas as well in ql/pom.xml, which brings in some springframework dependencies transitively -->
     <spring.version>5.3.39</spring.version>
     <spring-boot.version>2.7.18</spring-boot.version>
@@ -255,7 +256,7 @@
   <repositories>
     <repository>
       <id>arenadata</id>
-      <url>https://maven.pkg.github.com/arenadata/*</url>
+      <url>https://maven.arenadata.io/arenadata</url>
     </repository>
     <!-- This needs to be removed before checking in-->
     <repository>
@@ -418,6 +419,11 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
         <version>${commons-collections4.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-configuration2</artifactId>
+        <version>${commons-configuration2.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -819,6 +825,51 @@
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-servlet</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-servlets</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-continuation</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-api</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-common</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-client</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-servlet</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>javax-websocket-server-impl</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>javax-websocket-client-impl</artifactId>
         <version>${jetty.version}</version>
       </dependency>
       <dependency>

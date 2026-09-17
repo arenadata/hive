@@ -21,7 +21,7 @@
   </parent>
   <groupId>org.apache.hive</groupId>
   <artifactId>hive-standalone-metastore</artifactId>
-  <version>4.3.0.2-4.4.0-0</version>
+  <version>4.3.0.2-4.4.0-1</version>
   <packaging>pom</packaging>
   <name>Hive Standalone Metastore</name>
   <inceptionYear>2008</inceptionYear>
@@ -34,7 +34,7 @@
     <module>packaging</module>
   </modules>
   <properties>
-    <hive.version>4.3.0.2-4.4.0-0</hive.version>
+    <hive.version>4.3.0.2-4.4.0-1</hive.version>
     <hive.version.shortname>4.3.0</hive.version.shortname>
     <standalone.metastore.path.to.root>.</standalone.metastore.path.to.root>
     <!-- Build properties -->
@@ -68,7 +68,8 @@
     <apache-directory-server.version>2.0.0-M24</apache-directory-server.version>
     <checkstyle.version>11.1.0</checkstyle.version>
     <commons-collections4.version>4.4</commons-collections4.version>
-    <commons-lang3.version>3.17.0</commons-lang3.version>
+    <commons-configuration2.version>2.15.1</commons-configuration2.version>
+    <commons-lang3.version>3.20.0</commons-lang3.version>
     <commons-dbcp2.version>2.14.0</commons-dbcp2.version>
     <datasketches.version>2.0.0</datasketches.version>
     <datanucleus-api-jdo.version>6.0.5</datanucleus-api-jdo.version>
@@ -87,7 +88,7 @@
     <guava.version>22.0</guava.version>
     <hadoop.version>3.4.2</hadoop.version>
     <hikaricp.version>4.0.3</hikaricp.version>
-    <jackson.version>2.18.6</jackson.version>
+    <jackson.version>2.18.10</jackson.version>
     <jexl.version>3.3</jexl.version>
     <javolution.version>5.5.1</javolution.version>
     <jdbc.faulty.version>2.1</jdbc.faulty.version>
@@ -97,7 +98,7 @@
     <junit.platform.version>1.13.3</junit.platform.version>
     <libfb303.version>0.9.3</libfb303.version>
     <libthrift.version>0.16.0</libthrift.version>
-    <log4j2.version>2.25.3</log4j2.version>
+    <log4j2.version>2.25.5</log4j2.version>
     <mockito-core.version>5.17.0</mockito-core.version>
     <orc.version>2.1.4</orc.version>
     <protobuf.version>3.25.9</protobuf.version>
@@ -106,11 +107,11 @@
     <reflections.version>0.10.2</reflections.version>
     <io.grpc.version>1.72.0</io.grpc.version>
     <sqlline.version>1.9.0</sqlline.version>
-    <netty.version>4.1.127.Final</netty.version>
+    <netty.version>4.1.137.Final</netty.version>
     <!-- HIVE-28992: only upgrade to newer than 3.25.0 if you tested the prompt -->
-    <jline.version>3.25.0</jline.version>
+    <jline.version>3.30.16</jline.version>
     <ST4.version>4.0.4</ST4.version>
-    <storage-api.version>4.3.0.2-4.4.0-0</storage-api.version>
+    <storage-api.version>4.3.0.2-4.4.0-1</storage-api.version>
     <beanutils.version>1.9.4</beanutils.version>
     <hamcrest.version>1.3</hamcrest.version>
     <curator.version>5.7.1</curator.version>
@@ -123,7 +124,7 @@
     <httpcomponents.client.version>4.5.13</httpcomponents.client.version>
     <pac4j-core.version>4.5.8</pac4j-core.version>
     <nimbus-oauth.version>11.28</nimbus-oauth.version>
-    <jetty.version>9.4.58.v20250814</jetty.version>
+    <jetty.version>9.4.58.1</jetty.version>
     <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
     <keycloak.version>26.0.6</keycloak.version>
     <!-- If upgrading, upgrade atlas as well in ql/pom.xml, which brings in some springframework dependencies transitively -->
@@ -236,6 +237,11 @@
         <groupId>org.antlr</groupId>
         <artifactId>ST4</artifactId>
         <version>${ST4.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-configuration2</artifactId>
+        <version>${commons-configuration2.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

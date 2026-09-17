@@ -21,7 +21,7 @@
   </parent>
   <groupId>org.apache.hive</groupId>
   <artifactId>hive-storage-api</artifactId>
-  <version>4.3.0.2-4.4.0-0</version>
+  <version>4.3.0.2-4.4.0-1</version>
   <packaging>jar</packaging>
   <name>Hive Storage API</name>
   <inceptionYear>2008</inceptionYear>
@@ -29,7 +29,7 @@
     <checkstyle.version>11.1.0</checkstyle.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
-    <netty.version>4.1.127.Final</netty.version>
+    <netty.version>4.1.137.Final</netty.version>
     <guava.version>22.0</guava.version>
     <hadoop.version>3.4.2</hadoop.version>
     <junit.version>4.13.2</junit.version>
