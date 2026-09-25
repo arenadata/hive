@@ -210,7 +210,7 @@
     <slf4j.version>1.7.30</slf4j.version>
     <ST4.version>4.0.4</ST4.version>
     <storage-api.version>4.3.0.2-4.4.0-2</storage-api.version>
-    <tez.version>0.10.5.1-4.3.0-0</tez.version>
+    <tez.version>0.10.5.2-4.4.0-0</tez.version>
     <super-csv.version>2.2.0</super-csv.version>
     <tempus-fugit.version>1.1</tempus-fugit.version>
     <testcontainers.version>1.21.3</testcontainers.version>
