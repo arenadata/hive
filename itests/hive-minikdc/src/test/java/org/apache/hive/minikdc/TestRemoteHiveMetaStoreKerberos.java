@@ -19,12 +19,15 @@
 package org.apache.hive.minikdc;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.metastore.ColumnType;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.TestRemoteHiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.EnvironmentContext;
 import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.client.builder.TableBuilder;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,7 +87,7 @@ public class TestRemoteHiveMetaStoreKerberos extends TestRemoteHiveMetaStore {
     });
     String exceptionMessage = expectedException.getMessage();
     // Verify the Thrift library is enforcing the limit
-    assertTrue(exceptionMessage.contains("MaxMessageSize reached"));
+    assertTrue(exceptionMessage.contains("Message size exceeds limit"));
     limitedClient.close();
 
     // test default client (with a default THRIFT_METASTORE_CLIENT_MAX_MESSAGE_SIZE)
@@ -105,6 +108,28 @@ public class TestRemoteHiveMetaStoreKerberos extends TestRemoteHiveMetaStore {
     }
 
     cleanUp(dbName, tblName, typeName);
+  }
+
+  @Test
+  public void testMessagesLargerThanDefaultFrameSize() throws Throwable {
+    String dbName = "framedb";
+    String tblName = "frametbl";
+
+    cleanUp(dbName, tblName, null);
+    createDb(dbName);
+    // A SASL frame carries a whole message; this parameter makes both the createTable request
+    // and the getTable response larger than Thrift's default max frame size.
+    String parameterValue = "x".repeat(TConfiguration.DEFAULT_MAX_FRAME_SIZE + 1024);
+    new TableBuilder()
+        .setDbName(dbName)
+        .setTableName(tblName)
+        .addCol("name", ColumnType.STRING_TYPE_NAME)
+        .addTableParam("frame.test", parameterValue)
+        .create(client, conf);
+
+    assertEquals(parameterValue.length(),
+        client.getTable(dbName, tblName).getParameters().get("frame.test").length());
+    cleanUp(dbName, tblName, null);
   }
 
   @Override
