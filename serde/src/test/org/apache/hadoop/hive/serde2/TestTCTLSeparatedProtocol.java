@@ -527,6 +527,11 @@ public class TestTCTLSeparatedProtocol {
       public void checkReadBytesAvailable(long l) throws TTransportException {
 
       }
+
+      @Override
+      public void resetMessageSizeAndConsumedBytes(long l) throws TTransportException {
+
+      }
     });
     separatedProtocol.initialize(null, new Properties());
     try {
