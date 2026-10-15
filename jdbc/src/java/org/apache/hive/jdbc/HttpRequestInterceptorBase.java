@@ -22,12 +22,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.protocol.HttpContext;
+import org.apache.hc.client5.http.cookie.CookieStore;
+import org.apache.hc.core5.http.EntityDetails;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpRequestInterceptor;
+import org.apache.hc.core5.http.protocol.HttpContext;
 
 public abstract class HttpRequestInterceptorBase implements HttpRequestInterceptor {
   CookieStore cookieStore;
@@ -50,16 +50,13 @@ public abstract class HttpRequestInterceptorBase implements HttpRequestIntercept
   }
 
   @Override
-  public void process(HttpRequest httpRequest, HttpContext httpContext)
+  public void process(HttpRequest httpRequest, EntityDetails entity, HttpContext httpContext)
     throws HttpException, IOException {
     try {
       // If cookie based authentication is allowed, generate ticket only when necessary.
       // The necessary condition is either when there are no server side cookies in the
       // cookiestore which can be send back or when the server returns a 401 error code
       // indicating that the previous cookie has expired.
-      if (isCookieEnabled) {
-        httpContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
-      }
       // Generate the kerberos ticket under the following scenarios:
       // 1. Cookie Authentication is disabled OR
       // 2. The first time when the request is sent OR

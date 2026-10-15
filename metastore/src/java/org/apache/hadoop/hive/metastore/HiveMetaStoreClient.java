@@ -56,6 +56,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.auth.HiveAuthUtils;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience.Public;
 import org.apache.hadoop.hive.common.classification.InterfaceStability.Unstable;
@@ -496,6 +497,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
                   throw new MetaException(e.toString());
               }
           }
+          HiveAuthUtils.configureThriftMaxFrameSize(transport);
           if (useSasl) {
             // Wrap thrift connection with SASL for secure connection.
             try {

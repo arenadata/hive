@@ -247,6 +247,11 @@
       <includes>
         <include>**/*</include>
       </includes>
+      <excludes>
+        <!-- fb303 is shipped from service/lib/php -->
+        <exclude>FacebookService*.php</exclude>
+        <exclude>fb_status.php</exclude>
+      </excludes>
       <outputDirectory>lib/php/packages/hive_metastore</outputDirectory>
     </fileSet>
 
