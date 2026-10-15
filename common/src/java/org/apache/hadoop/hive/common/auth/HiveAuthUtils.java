@@ -43,8 +43,21 @@ import org.slf4j.LoggerFactory;
 public class HiveAuthUtils {
   private static final Logger LOG = LoggerFactory.getLogger(HiveAuthUtils.class);
 
+  /**
+   * Raises the transport's max frame size to at least its max message size, because a SASL frame
+   * carries a whole message and Thrift rejects frames above the max frame size.
+   */
+  public static <T extends TTransport> T configureThriftMaxFrameSize(T transport) {
+    TConfiguration configuration = transport.getConfiguration();
+    if (configuration != null) {
+      configuration.setMaxFrameSize(
+          Math.max(configuration.getMaxFrameSize(), configuration.getMaxMessageSize()));
+    }
+    return transport;
+  }
+
   public static TTransport getSocketTransport(String host, int port, int loginTimeout) throws TTransportException {
-    return new TSocket(new TConfiguration(), host, port, loginTimeout);
+    return configureThriftMaxFrameSize(new TSocket(new TConfiguration(), host, port, loginTimeout));
   }
 
   public static TTransport getSSLSocket(String host, int port, int loginTimeout)
@@ -83,7 +96,7 @@ public class HiveAuthUtils {
       sslParams.setEndpointIdentificationAlgorithm("HTTPS");
     }
     sslSocket.setSSLParameters(sslParams);
-    return new TSocket(sslSocket);
+    return configureThriftMaxFrameSize(new TSocket(sslSocket));
   }
 
   public static TServerSocket getServerSocket(String hiveHost, int portNum)

@@ -17,12 +17,16 @@
  */
 package org.apache.hive.service.cli.thrift;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,6 +37,7 @@ import org.apache.hive.service.Service;
 import org.apache.hive.service.auth.HiveAuthFactory.AuthTypes;
 import org.apache.hive.service.cli.SessionHandle;
 import org.apache.hive.service.server.HiveServer2;
+import org.apache.thrift.TConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -166,6 +171,41 @@ public class ThriftCliServiceMessageSizeTest {
     } finally {
       stopHiveServer2(hiveServer2);
       hiveServer2 = null;
+    }
+  }
+
+  @Test
+  public void testMessagesLargerThanDefaultFrameSize() throws Exception {
+    hiveConf.setBoolVar(ConfVars.HIVE_SERVER2_ENABLE_DOAS, false);
+    hiveConf.setVar(ConfVars.HIVE_SERVER2_THRIFT_BIND_HOST, host);
+    hiveConf.setIntVar(ConfVars.HIVE_SERVER2_THRIFT_PORT, port);
+    hiveConf.setVar(ConfVars.HIVE_SERVER2_AUTHENTICATION, AuthTypes.NONE.toString());
+    hiveConf.setVar(ConfVars.HIVE_SERVER2_TRANSPORT_MODE, "binary");
+    hiveConf.setIntVar(ConfVars.HIVE_SERVER2_THRIFT_MAX_MESSAGE_SIZE, 100 * 1024 * 1024);
+    // A SASL frame carries a whole message; the request and the response below exceed Thrift's default max
+    // frame size.
+    int length = TConfiguration.DEFAULT_MAX_FRAME_SIZE + 1024;
+    char[] value = new char[length];
+    Arrays.fill(value, 'x');
+
+    HiveServer2 hiveServer2 = new HiveServer2();
+    Class.forName("org.apache.hive.jdbc.HiveDriver");
+    try {
+      startHiveServer2WithConf(hiveServer2, hiveConf);
+      Connection connection = DriverManager.getConnection("jdbc:hive2://localhost:" + port + "/default",
+          "hiveuser", "hive");
+      try {
+        Statement stmt = connection.createStatement();
+        stmt.execute("set hive.support.concurrency = false");
+        stmt.execute("set hivevar:large_value=" + new String(value));
+        ResultSet rs = stmt.executeQuery("select repeat('x', " + length + ")");
+        assertTrue(rs.next());
+        assertEquals(length, rs.getString(1).length());
+      } finally {
+        connection.close();
+      }
+    } finally {
+      stopHiveServer2(hiveServer2);
     }
   }
 }

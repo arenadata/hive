@@ -20,6 +20,25 @@ package org.apache.hive.jdbc;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.common.auth.HiveAuthUtils;
+import org.apache.hc.client5.http.HttpRequestRetryStrategy;
+import org.apache.hc.client5.http.cookie.BasicCookieStore;
+import org.apache.hc.client5.http.cookie.CookieStore;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.BasicHttpClientConnectionManager;
+import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpRequestInterceptor;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.NoHttpResponseException;
+import org.apache.hc.core5.http.config.Registry;
+import org.apache.hc.core5.http.config.RegistryBuilder;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.util.TimeValue;
 import org.apache.hive.jdbc.Utils.JdbcConnectionParams;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.auth.KerberosSaslHelper;
@@ -38,23 +57,6 @@ import org.apache.hive.service.rpc.thrift.TProtocolVersion;
 import org.apache.hive.service.rpc.thrift.TRenewDelegationTokenReq;
 import org.apache.hive.service.rpc.thrift.TRenewDelegationTokenResp;
 import org.apache.hive.service.rpc.thrift.TSessionHandle;
-import org.apache.http.HttpRequestInterceptor;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.HttpRequestRetryHandler;
-import org.apache.http.client.ServiceUnavailableRetryStrategy;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.ssl.SSLContexts;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.THttpClient;
@@ -342,7 +344,7 @@ public class HiveConnection implements java.sql.Connection {
   }
 
   private CloseableHttpClient getHttpClient(Boolean useSsl) throws SQLException {
-    boolean isCookieEnabled = sessConfMap.get(JdbcConnectionParams.COOKIE_AUTH) == null ||
+    final boolean isCookieEnabled = sessConfMap.get(JdbcConnectionParams.COOKIE_AUTH) == null ||
       (!JdbcConnectionParams.COOKIE_AUTH_FALSE.equalsIgnoreCase(
       sessConfMap.get(JdbcConnectionParams.COOKIE_AUTH)));
     String cookieName = sessConfMap.get(JdbcConnectionParams.COOKIE_NAME) == null ?
@@ -394,56 +396,52 @@ public class HiveConnection implements java.sql.Connection {
     }
     // Configure http client for cookie based authentication
     if (isCookieEnabled) {
-      // Create a http client with a retry mechanism when the server returns a status code of 401.
-      httpClientBuilder =
-          HttpClients.custom().setServiceUnavailableRetryStrategy(
-              new ServiceUnavailableRetryStrategy() {
-                @Override
-                public boolean retryRequest(final HttpResponse response, final int executionCount,
-                    final HttpContext context) {
-                  int statusCode = response.getStatusLine().getStatusCode();
-                  boolean ret = statusCode == 401 && executionCount <= 1;
-
-                  // Set the context attribute to true which will be interpreted by the request
-                  // interceptor
-                  if (ret) {
-                    context.setAttribute(Utils.HIVE_SERVER2_RETRY_KEY,
-                        Utils.HIVE_SERVER2_RETRY_TRUE);
-                  }
-                  return ret;
-                }
-
-                @Override
-                public long getRetryInterval() {
-                  // Immediate retry
-                  return 0;
-                }
-              });
+      httpClientBuilder = HttpClients.custom().setDefaultCookieStore(cookieStore);
     } else {
       httpClientBuilder = HttpClientBuilder.create();
     }
-    // In case the server's idletimeout is set to a lower value, it might close it's side of
-    // connection. However we retry one more time on NoHttpResponseException
-    httpClientBuilder.setRetryHandler(new HttpRequestRetryHandler() {
+    httpClientBuilder.setRetryStrategy(new HttpRequestRetryStrategy() {
+      // In case the server's idletimeout is set to a lower value, it might close it's side of
+      // connection. However we retry one more time on NoHttpResponseException
       @Override
-      public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
+      public boolean retryRequest(HttpRequest request, IOException exception, int executionCount,
+          HttpContext context) {
         if (executionCount > 1) {
           LOG.info("Retry attempts to connect to server exceeded.");
           return false;
         }
-        if (exception instanceof org.apache.http.NoHttpResponseException) {
+        if (exception instanceof NoHttpResponseException) {
           LOG.info("Could not connect to the server. Retrying one more time.");
           return true;
         }
         return false;
       }
+
+      // With cookie based authentication, retry once when the server returns a status code of 401.
+      @Override
+      public boolean retryRequest(HttpResponse response, int executionCount, HttpContext context) {
+        boolean ret = isCookieEnabled && response.getCode() == 401 && executionCount <= 1;
+
+        // Set the context attribute to true which will be interpreted by the request
+        // interceptor
+        if (ret) {
+          context.setAttribute(Utils.HIVE_SERVER2_RETRY_KEY, Utils.HIVE_SERVER2_RETRY_TRUE);
+        }
+        return ret;
+      }
+
+      @Override
+      public TimeValue getRetryInterval(HttpResponse response, int executionCount, HttpContext context) {
+        // Immediate retry
+        return TimeValue.ZERO_MILLISECONDS;
+      }
     });
 
     // Add the request interceptor to the client builder
-    httpClientBuilder.addInterceptorFirst(requestInterceptor);
+    httpClientBuilder.addRequestInterceptorFirst(requestInterceptor);
 
     // Add an interceptor to add in an XSRF header
-    httpClientBuilder.addInterceptorLast(new XsrfHttpRequestInterceptor());
+    httpClientBuilder.addRequestInterceptorLast(new XsrfHttpRequestInterceptor());
 
     // Configure http client for SSL
     if (useSsl) {

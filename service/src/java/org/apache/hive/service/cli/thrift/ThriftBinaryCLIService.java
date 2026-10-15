@@ -43,7 +43,9 @@ import org.apache.thrift.server.ServerContext;
 import org.apache.thrift.server.TServerEventHandler;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
+import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
 
@@ -94,7 +96,13 @@ public class ThriftBinaryCLIService extends ThriftCLIService {
           HiveConf.ConfVars.HIVE_SERVER2_THRIFT_LOGIN_TIMEOUT, TimeUnit.SECONDS);
       int beBackoffSlotLength = (int) hiveConf.getTimeVar(
           HiveConf.ConfVars.HIVE_SERVER2_THRIFT_LOGIN_BEBACKOFF_SLOT_LENGTH, TimeUnit.MILLISECONDS);
-      TThreadPoolServer.Args sargs = new TThreadPoolServer.Args(serverSocket)
+      TThreadPoolServer.Args sargs = new TThreadPoolServer.Args(
+          new TServerSocket(serverSocket.getServerSocket()) {
+            @Override
+            public TSocket accept() throws TTransportException {
+              return HiveAuthUtils.configureThriftMaxFrameSize(super.accept());
+            }
+          })
           .processorFactory(processorFactory).transportFactory(transportFactory)
           .protocolFactory(new TBinaryProtocol.Factory())
           .inputProtocolFactory(new TBinaryProtocol.Factory(true, true, maxMessageSize, maxMessageSize))

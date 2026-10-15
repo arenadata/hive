@@ -43,20 +43,22 @@ import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveMetastoreClie
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveOperationType;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HivePrivilegeObject;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthzContext;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.cookie.CookieStore;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.protocol.RequestDefaultHeaders;
+import org.apache.hc.core5.http.EntityDetails;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hive.jdbc.HttpBasicAuthInterceptor;
 import org.apache.hive.service.auth.HiveAuthFactory.AuthTypes;
 import org.apache.hive.service.rpc.thrift.TCLIService;
 import org.apache.hive.service.rpc.thrift.TExecuteStatementReq;
 import org.apache.hive.service.rpc.thrift.TOpenSessionReq;
 import org.apache.hive.service.rpc.thrift.TOpenSessionResp;
-import org.apache.http.Header;
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.protocol.RequestDefaultHeaders;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.HttpContext;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.THttpClient;
@@ -99,13 +101,13 @@ public class TestThriftHttpCLIServiceFeatures  {
     }
 
     @Override
-    public void process(HttpRequest httpRequest, HttpContext httpContext)
+    public void process(HttpRequest httpRequest, EntityDetails entityDetails, HttpContext httpContext)
       throws HttpException, IOException {
-      super.process(httpRequest, httpContext);
+      super.process(httpRequest, entityDetails, httpContext);
 
       String currHeaders = "";
 
-      for (org.apache.http.Header h : httpRequest.getAllHeaders()) {
+      for (Header h : httpRequest.getHeaders()) {
         currHeaders += h.getName() + ":" + h.getValue() + " ";
       }
       requestHeaders.add(currHeaders);
@@ -214,11 +216,12 @@ public class TestThriftHttpCLIServiceFeatures  {
   }
 
   private static TTransport getHttpTransport() throws Exception {
-    DefaultHttpClient httpClient = new DefaultHttpClient();
     String httpUrl = getHttpUrl();
-    httpClient.addRequestInterceptor(
-        new HttpBasicAuthInterceptor(ThriftCLIServiceTest.USERNAME, ThriftCLIServiceTest.PASSWORD,
-            null, null, false, null));
+    HttpClient httpClient = HttpClientBuilder.create()
+        .addRequestInterceptorLast(
+            new HttpBasicAuthInterceptor(ThriftCLIServiceTest.USERNAME, ThriftCLIServiceTest.PASSWORD,
+                null, null, false, null))
+        .build();
     return new THttpClient(httpUrl, httpClient);
   }
 
@@ -235,7 +238,6 @@ public class TestThriftHttpCLIServiceFeatures  {
   @Test
   public void testAdditionalHttpHeaders() throws Exception {
     TTransport transport;
-    DefaultHttpClient hClient = new DefaultHttpClient();
     String httpUrl = getHttpUrl();
     Map<String, String> additionalHeaders = new HashMap<String, String>();
     additionalHeaders.put("key1", "value1");
@@ -243,7 +245,9 @@ public class TestThriftHttpCLIServiceFeatures  {
     HttpBasicAuthInterceptorWithLogging authInt =
       new HttpBasicAuthInterceptorWithLogging(ThriftCLIServiceTest.USERNAME, ThriftCLIServiceTest.PASSWORD, null, null,
       false, additionalHeaders);
-    hClient.addRequestInterceptor(authInt);
+    HttpClient hClient = HttpClientBuilder.create()
+        .addRequestInterceptorLast(authInt)
+        .build();
     transport = new THttpClient(httpUrl, hClient);
     TCLIService.Client httpClient = getClient(transport);
 
@@ -284,7 +288,7 @@ public class TestThriftHttpCLIServiceFeatures  {
 
   private void verifyForwardedHeaders(ArrayList<String> headerIPs, String cmd) throws Exception {
     TTransport transport;
-    DefaultHttpClient hClient = new DefaultHttpClient();
+    HttpClientBuilder hClient = HttpClientBuilder.create();
     String httpUrl = getHttpUrl();
 
     // add an interceptor that adds the X-Forwarded-For header with given ips
@@ -292,16 +296,16 @@ public class TestThriftHttpCLIServiceFeatures  {
       Header xForwardHeader = new BasicHeader("X-Forwarded-For", Joiner.on(",").join(headerIPs));
       RequestDefaultHeaders headerInterceptor = new RequestDefaultHeaders(
           Arrays.asList(xForwardHeader));
-      hClient.addRequestInterceptor(headerInterceptor);
+      hClient.addRequestInterceptorLast(headerInterceptor);
     }
 
     // interceptor for adding username, pwd
     HttpBasicAuthInterceptor authInt = new HttpBasicAuthInterceptor(ThriftCLIServiceTest.USERNAME,
         ThriftCLIServiceTest.PASSWORD, null, null,
         false, null);
-    hClient.addRequestInterceptor(authInt);
+    hClient.addRequestInterceptorLast(authInt);
     
-    transport = new THttpClient(httpUrl, hClient);
+    transport = new THttpClient(httpUrl, hClient.build());
     TCLIService.Client httpClient = getClient(transport);
 
     // Create a new open session request object

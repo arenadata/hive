@@ -41,6 +41,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.delegation.AbstractDelegationTokenSecretManager.DelegationTokenInformation;
 import org.apache.hadoop.security.token.delegation.DelegationKey;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TSaslServerTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
@@ -238,6 +239,31 @@ public class TestHadoopAuthBridge23 {
     UserGroupInformation clientUgi = UserGroupInformation.getCurrentUser();
     obtainTokenAndAddIntoUGI(clientUgi, null);
     obtainTokenAndAddIntoUGI(clientUgi, "tokenForFooTablePartition");
+  }
+
+  @Test
+  public void testSaslMessagesLargerThanDefaultFrameSize() throws Exception {
+    setup();
+    UserGroupInformation clientUgi = UserGroupInformation.getCurrentUser();
+    String tokenStrForm = getDelegationTokenStr(clientUgi, clientUgi);
+    Token<DelegationTokenIdentifier> t = new Token<DelegationTokenIdentifier>();
+    t.decodeFromUrlString(tokenStrForm);
+    clientUgi.addToken(t);
+    HiveMetaStoreClient hiveClient =
+      clientUgi.doAs(new PrivilegedExceptionAction<HiveMetaStoreClient>() {
+        public HiveMetaStoreClient run() throws Exception {
+          return new HiveMetaStoreClient(conf);
+        }
+      });
+    try {
+      // A SASL frame carries a whole message; the request and the response exceed Thrift's default max frame size.
+      char[] value = new char[TConfiguration.DEFAULT_MAX_FRAME_SIZE + 1024];
+      Arrays.fill(value, 'x');
+      Assert.assertEquals(value.length, hiveClient.getConfigValue("hive.test.unset", new String(value)).length());
+    } finally {
+      hiveClient.close();
+      HiveMetaStore.cancelDelegationToken(tokenStrForm);
+    }
   }
 
   @Test
