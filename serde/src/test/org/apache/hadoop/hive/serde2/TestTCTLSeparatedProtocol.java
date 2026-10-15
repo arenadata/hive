@@ -159,7 +159,7 @@ public class TestTCTLSeparatedProtocol extends TestCase {
 
     prot.writeStructEnd();
     trans.flush();
-    byte[] b = new byte[3 * 1024];
+    byte[] b = new byte[1024];
     int len = trans.read(b, 0, b.length);
     String test = new String(b, 0, len);
 
@@ -419,7 +419,7 @@ public class TestTCTLSeparatedProtocol extends TestCase {
 
     prot.writeStructEnd();
 
-    byte b[] = new byte[3 * 1024];
+    byte b[] = new byte[1024];
     int len = trans.read(b, 0, b.length);
     String written = new String(b, 0, len);
 
@@ -513,6 +513,11 @@ public class TestTCTLSeparatedProtocol extends TestCase {
 
       @Override
       public void checkReadBytesAvailable(long l) throws TTransportException {
+
+      }
+
+      @Override
+      public void resetMessageSizeAndConsumedBytes(long l) throws TTransportException {
 
       }
     });

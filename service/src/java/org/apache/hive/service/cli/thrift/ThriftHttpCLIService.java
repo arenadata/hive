@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.http.HttpServlet;
+
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.shims.ShimLoader;
@@ -37,7 +39,6 @@ import org.apache.hive.service.server.ThreadFactoryWithGarbageCleanup;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.apache.thrift.server.TServlet;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.servlet.FilterMapping;
@@ -124,7 +125,7 @@ public class ThriftHttpCLIService extends ThriftCLIService {
       // UGI for the http/_HOST (SPNego) principal
       UserGroupInformation httpUGI = cliService.getHttpUGI();
       String authType = hiveConf.getVar(ConfVars.HIVE_SERVER2_AUTHENTICATION);
-      TServlet thriftHttpServlet = new ThriftHttpServlet(processor, protocolFactory, authType,
+      HttpServlet thriftHttpServlet = new ThriftHttpServlet(processor, protocolFactory, authType,
           serviceUGI, httpUGI, hiveAuthFactory);
 
       // Context handler

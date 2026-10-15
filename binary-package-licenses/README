@@ -45,7 +45,9 @@ hibernate-validator
 htrace-core
 http-client
 httpclient
+httpclient5
 httpcore
+httpcore5*
 ivy
 jackson*
 jasper*
@@ -59,7 +61,6 @@ jetty*
 joda-time
 jpam
 jsr305
-libfb303
 libthrift
 log4j*
 lz4

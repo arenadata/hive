@@ -146,6 +146,7 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TServerEventHandler;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
+import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
@@ -7230,7 +7231,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         serverSocket = new TServerSocketKeepAlive(serverSocket);
       }
 
-      TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverSocket)
+      TThreadPoolServer.Args args = new TThreadPoolServer.Args(
+          new TServerSocket(serverSocket.getServerSocket()) {
+            @Override
+            public TSocket accept() throws TTransportException {
+              return HiveAuthUtils.configureThriftMaxFrameSize(super.accept());
+            }
+          })
           .processor(processor)
           .transportFactory(transFactory)
           .protocolFactory(protocolFactory)
@@ -7254,7 +7261,18 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           } catch (Exception e) {
             LOG.warn("Error Reporting Metastore open connection to Metrics system", e);
           }
-          return null;
+          // TThreadPoolServer sets the client address on the context, so it must not be null.
+          return new ServerContext() {
+            @Override
+            public <T> T unwrap(Class<T> iface) {
+              return null;
+            }
+
+            @Override
+            public boolean isWrapperFor(Class<?> iface) {
+              return false;
+            }
+          };
         }
 
         @Override
