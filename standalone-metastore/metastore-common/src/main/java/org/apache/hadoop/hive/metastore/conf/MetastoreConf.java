@@ -32,9 +32,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.KubernetesHiveHelper;
 import org.apache.hadoop.hive.common.ZooKeeperHiveHelper;
 import org.apache.hadoop.hive.metastore.utils.StringUtils;
 import org.apache.hadoop.security.alias.CredentialProviderFactory;
@@ -1583,7 +1585,8 @@ public class MetastoreConf {
         "URIs Used by metastore client to connect to remotemetastore\n." +
                 "If dynamic service discovery mode is set, the URIs are used to connect to the" +
                 " corresponding service discovery servers e.g. a zookeeper. Otherwise they are " +
-                "used as URIs for remote metastore."),
+                "used as URIs for remote metastore. Not used when the discovery mode is " +
+                "\"k8s\": the URIs are read from Kubernetes instead."),
     THRIFT_METASTORE_CLIENT_MAX_MESSAGE_SIZE("metastore.thrift.client.max.message.size",
             "hive.thrift.client.max.message.size", "2147483647b",
             new SizeValidator(-1L, true, (long) Integer.MAX_VALUE, true),
@@ -1592,8 +1595,9 @@ public class MetastoreConf {
     THRIFT_SERVICE_DISCOVERY_MODE("metastore.service.discovery.mode",
             "hive.metastore.service.discovery.mode",
             "",
-            "Specifies which dynamic service discovery method to use. Currently we support only " +
-                    "\"zookeeper\" to specify ZooKeeper based service discovery."),
+            "Specifies which dynamic service discovery method to use. Currently we support " +
+                    "\"zookeeper\" to specify ZooKeeper based service discovery and " +
+                    "\"k8s\" to specify Kubernetes based service discovery."),
     THRIFT_ZOOKEEPER_USE_KERBEROS("metastore.zookeeper.kerberos.enabled",
             "hive.zookeeper.kerberos.enabled", true,
             "If ZooKeeper is configured for Kerberos authentication. This could be useful when cluster\n" +
@@ -1659,6 +1663,22 @@ public class MetastoreConf {
         "Truststore type when using a client-side certificate with TLS connectivity to ZooKeeper." +
             "Overrides any explicit value set via the zookeeper.ssl.trustStore.type" +
             "system property (note the camelCase)."),
+    KUBERNETES_NAMESPACES("metastore.kubernetes.namespaces",
+        "hive.metastore.kubernetes.namespaces", "",
+        "Comma separated list of Kubernetes namespaces to look for metastore Services in, when\n" +
+        "dynamic service discovery mode is \"k8s\". An empty value means the namespace of\n" +
+        "the pod the client runs in."),
+    KUBERNETES_CLUSTER("metastore.kubernetes.cluster",
+        "hive.metastore.kubernetes.cluster", "",
+        "Name of the metastore cluster (the hive.apache.org/cluster annotation of its Service,\n" +
+        "the Service name unless set) to connect to, when dynamic service discovery mode is\n" +
+        "\"k8s\". An empty value means the cluster marked hive.apache.org/default: \"true\",\n" +
+        "or the only one discovered."),
+    KUBERNETES_MASTER_URL("metastore.kubernetes.master.url",
+        "hive.metastore.kubernetes.master.url", "",
+        "The URL of the Kubernetes API server, when dynamic service discovery mode is\n" +
+        "\"k8s\". An empty value means the standard configuration chain: the in-cluster\n" +
+        "service account, then the kubeconfig file, then environment variables."),
     THRIFT_URI_SELECTION("metastore.thrift.uri.selection", "hive.metastore.uri.selection", "RANDOM",
         new StringSetValidator("RANDOM", "SEQUENTIAL"),
         "Determines the selection mechanism used by metastore client to connect to remote " +
@@ -2796,6 +2816,19 @@ public class MetastoreConf {
         .trustStoreLocation(MetastoreConf.getVar(conf, ConfVars.THRIFT_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION))
         .trustStorePassword(trustStorePassword)
         .trustStoreType(MetastoreConf.getVar(conf, ConfVars.THRIFT_ZOOKEEPER_SSL_TRUSTSTORE_TYPE)).build();
+  }
+
+  public static KubernetesHiveHelper getKubernetesConfig(Configuration conf) {
+    String namespaces = MetastoreConf.getVar(conf, ConfVars.KUBERNETES_NAMESPACES);
+    List<String> namespaceList = namespaces == null || namespaces.trim().isEmpty()
+        ? List.of()
+        : Arrays.stream(namespaces.split(",")).map(String::trim)
+            .filter(n -> !n.isEmpty()).collect(Collectors.toList());
+    return KubernetesHiveHelper.builder()
+        .namespaces(namespaceList)
+        .cluster(MetastoreConf.getVar(conf, ConfVars.KUBERNETES_CLUSTER))
+        .masterUrl(MetastoreConf.getVar(conf, ConfVars.KUBERNETES_MASTER_URL))
+        .build();
   }
 
   /**
