@@ -26,9 +26,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.discovery.v1.Endpoint;
+import io.fabric8.kubernetes.api.model.discovery.v1.EndpointConditions;
 import io.fabric8.kubernetes.api.model.discovery.v1.EndpointPort;
 import io.fabric8.kubernetes.api.model.discovery.v1.EndpointSlice;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -48,8 +50,8 @@ import org.slf4j.LoggerFactory;
  *
  * <pre>
  *   scheme    thrift (default) or http
- *   port      the thrift endpoint's port, a number or a port name; the Service port named
- *             "thrift" unless set, or its first port
+ *   port      the thrift endpoint's port: a number, which is the Service port as kubectl shows
+ *             it, or a port name; the Service port named "thrift" unless set, or its first port
  *   cluster   the logical cluster name; the Service name unless set
  *   default   "true" on the one cluster clients who name nothing get
  * </pre>
@@ -57,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * A Service with an unknown {@code hive.apache.org/} key or a port it does not have is skipped
  * with a warning and costs only itself.
  */
-public class KubernetesHiveHelper {
+public class KubernetesHiveHelper implements AutoCloseable {
   public static final Logger LOG = LoggerFactory.getLogger(KubernetesHiveHelper.class.getName());
 
   public static final String DISCOVERY_LABEL = "app.apache.org/discovery";
@@ -75,6 +77,7 @@ public class KubernetesHiveHelper {
   private static final String SERVICE_NAME_LABEL = "kubernetes.io/service-name";
 
   private final KubernetesClient client;
+  private final boolean ownsClient;
   private final List<String> namespaces;
   private final String cluster;
 
@@ -83,11 +86,27 @@ public class KubernetesHiveHelper {
     this.cluster = builder.cluster;
     if (builder.client != null) {
       this.client = builder.client;
-    } else if (builder.masterUrl != null && !builder.masterUrl.isEmpty()) {
-      this.client = new KubernetesClientBuilder()
-          .withConfig(new ConfigBuilder().withMasterUrl(builder.masterUrl).build()).build();
+      this.ownsClient = false;
     } else {
-      this.client = new KubernetesClientBuilder().build();
+      this.ownsClient = true;
+      if (builder.masterUrl != null && !builder.masterUrl.isEmpty()) {
+        this.client = new KubernetesClientBuilder()
+            .withConfig(new ConfigBuilder().withMasterUrl(builder.masterUrl).build()).build();
+      } else {
+        this.client = new KubernetesClientBuilder().build();
+      }
+    }
+  }
+
+  /**
+   * Closes the Kubernetes client this helper created. A client handed in through
+   * {@link KubernetesHiveHelperBuilder#client(KubernetesClient)} belongs to the caller and is
+   * left open.
+   */
+  @Override
+  public void close() {
+    if (ownsClient) {
+      client.close();
     }
   }
 
@@ -167,7 +186,11 @@ public class KubernetesHiveHelper {
       return namespaces;
     }
     String own = client.getNamespace();
-    return List.of(own != null && !own.isEmpty() ? own : "default");
+    if (own == null || own.isEmpty()) {
+      throw new IllegalStateException("Cannot tell the namespace to look for metastore Services in; "
+          + "set metastore.kubernetes.namespaces");
+    }
+    return List.of(own);
   }
 
   private List<Service> selectCluster(Map<String, List<Service>> clusters) {
@@ -217,6 +240,8 @@ public class KubernetesHiveHelper {
         .withLabel(SERVICE_NAME_LABEL, name).list().getItems()) {
       Optional<Integer> port = slicePort(slice, wanted.get());
       if (port.isEmpty()) {
+        LOG.warn("Skipping EndpointSlice {}/{} of Service {}/{}: it has no {}", namespace,
+            slice.getMetadata().getName(), namespace, name, wanted.get());
         continue;
       }
       for (Endpoint endpoint : slice.getEndpoints()) {
@@ -232,9 +257,10 @@ public class KubernetesHiveHelper {
   }
 
   /**
-   * The endpoint's port: what the 'port' annotation says (a number or a port name), or the
-   * Service port named "thrift", or the Service's first port. A Service asking for a port it
-   * does not have is a typo and is skipped, as one with an unknown key is.
+   * The Service port the annotation names: a number, which is matched against the Service port
+   * numbers, or a port name; without the annotation the Service port named "thrift", or the
+   * Service's first port. A Service asking for a port it does not have is a typo and is skipped,
+   * as one with an unknown key is.
    */
   private Optional<ResolvedPort> resolvePort(Service service, String requested) {
     String namespace = service.getMetadata().getNamespace();
@@ -244,15 +270,15 @@ public class KubernetesHiveHelper {
             ? List.of() : service.getSpec().getPorts();
     if (requested != null && !requested.trim().isEmpty()) {
       String wanted = requested.trim();
-      if (wanted.chars().allMatch(Character::isDigit)) {
-        return Optional.of(new ResolvedPort(null, Integer.parseInt(wanted)));
+      Optional<ServicePort> found = wanted.chars().allMatch(Character::isDigit)
+          ? ports.stream().filter(p -> p.getPort() != null
+              && wanted.equals(String.valueOf(p.getPort()))).findFirst()
+          : ports.stream().filter(p -> wanted.equals(p.getName())).findFirst();
+      if (found.isEmpty()) {
+        LOG.warn("Skipping Service {}/{}: the Service has no port {}", namespace, name, wanted);
+        return Optional.empty();
       }
-      return ports.stream().filter(p -> wanted.equals(p.getName())).findFirst()
-          .map(p -> new ResolvedPort(p.getName(), p.getPort()))
-          .or(() -> {
-            LOG.warn("Skipping Service {}/{}: the Service has no port named {}", namespace, name, wanted);
-            return Optional.empty();
-          });
+      return Optional.of(resolved(found.get()));
     }
     if (ports.isEmpty()) {
       LOG.warn("Skipping Service {}/{}: the Service has no ports", namespace, name);
@@ -260,26 +286,52 @@ public class KubernetesHiveHelper {
     }
     ServicePort port = ports.stream().filter(p -> DEFAULT_PORT_NAME.equals(p.getName()))
         .findFirst().orElse(ports.get(0));
-    return Optional.of(new ResolvedPort(port.getName(), port.getPort()));
+    return Optional.of(resolved(port));
   }
 
+  /**
+   * The port number of the endpoint behind the Service port, in the EndpointSlice of the Service:
+   * a named Service port is found by its name, which EndpointSlices carry over; an unnamed one by
+   * its target port.
+   */
   private Optional<Integer> slicePort(EndpointSlice slice, ResolvedPort wanted) {
     if (slice.getPorts() == null) {
       return Optional.empty();
     }
     return slice.getPorts().stream()
-        .filter(p -> wanted.name != null ? wanted.name.equals(p.getName())
-            : p.getPort() != null && p.getPort() == wanted.number)
+        .filter(p -> wanted.name != null
+            ? wanted.name.equals(p.getName())
+            : wanted.targetPort != null && wanted.targetPort.equals(p.getPort()))
         .map(EndpointPort::getPort)
         .findFirst();
   }
 
   private boolean isReady(Endpoint endpoint) {
     // A nil ready condition means ready; a terminating endpoint is not.
-    return endpoint.getConditions() == null
-        || (endpoint.getConditions().getReady() == null || endpoint.getConditions().getReady())
-        && (endpoint.getConditions().getTerminating() == null
-            || !endpoint.getConditions().getTerminating());
+    EndpointConditions conditions = endpoint.getConditions();
+    if (conditions == null) {
+      return true;
+    }
+    boolean ready = conditions.getReady() == null || conditions.getReady();
+    boolean terminating = Boolean.TRUE.equals(conditions.getTerminating());
+    return ready && !terminating;
+  }
+
+  private static ResolvedPort resolved(ServicePort port) {
+    return new ResolvedPort(port.getName(), port.getPort(), targetPortOf(port));
+  }
+
+  /**
+   * The pod port behind a Service port: its targetPort, which defaults to the port itself. A named
+   * targetPort is not resolved here; it yields null, as an unnamed Service port cannot then be
+   * matched to its EndpointSlice port.
+   */
+  private static Integer targetPortOf(ServicePort port) {
+    IntOrString target = port.getTargetPort();
+    if (target == null) {
+      return port.getPort();
+    }
+    return target.getIntVal();
   }
 
   private static Map<String, String> annotationsOf(Service service) {
@@ -298,11 +350,18 @@ public class KubernetesHiveHelper {
 
   private static final class ResolvedPort {
     private final String name;
-    private final int number;
+    private final Integer port;
+    private final Integer targetPort;
 
-    private ResolvedPort(String name, int number) {
+    private ResolvedPort(String name, Integer port, Integer targetPort) {
       this.name = name;
-      this.number = number;
+      this.port = port;
+      this.targetPort = targetPort;
+    }
+
+    @Override
+    public String toString() {
+      return name != null ? "port named " + name : "port " + port;
     }
   }
 }

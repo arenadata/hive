@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePort;
@@ -245,5 +246,60 @@ public class TestKubernetesHiveHelper {
         .withName("hive-metastore-xyz").delete();
     endpointSlice(NS, "hive-metastore", "thrift", 9083, Map.of("10.0.0.9", true));
     Assert.assertEquals(List.of("thrift://10.0.0.9:9083"), resolve(inNamespace(NS)));
+  }
+
+  @Test
+  public void testPortNumberIsServicePortNotTargetPort() throws Exception {
+    service(NS, "hive-metastore", Map.of(KubernetesHiveHelper.PORT_KEY, "9083"), true,
+        new ServicePortBuilder().withName("thrift").withPort(9083)
+            .withTargetPort(new IntOrString(8083)).build());
+    endpointSlice(NS, "hive-metastore", "thrift", 8083, Map.of("10.0.0.1", true));
+    Assert.assertEquals(List.of("thrift://10.0.0.1:8083"), resolve(inNamespace(NS)));
+  }
+
+  @Test
+  public void testUnnamedPortUsesTargetPort() throws Exception {
+    service(NS, "hive-metastore", Map.of(), true,
+        new ServicePortBuilder().withPort(80).withTargetPort(new IntOrString(8080)).build());
+    endpointSlice(NS, "hive-metastore", null, 8080, Map.of("10.0.0.1", true));
+    Assert.assertEquals(List.of("thrift://10.0.0.1:8080"), resolve(inNamespace(NS)));
+  }
+
+  @Test
+  public void testPortNumberNotInServiceSkipsService() throws Exception {
+    service(NS, "hive-metastore", Map.of(KubernetesHiveHelper.PORT_KEY, "9999"), true,
+        port("thrift", 9083));
+    endpointSlice(NS, "hive-metastore", "thrift", 9083, Map.of("10.0.0.1", true));
+    Assert.assertTrue(resolve(inNamespace(NS)).isEmpty());
+  }
+
+  @Test
+  public void testTerminatingEndpointExcluded() throws Exception {
+    service(NS, "hive-metastore", Map.of(), true, port("thrift", 9083));
+    EndpointSlice slice = new EndpointSliceBuilder()
+        .withNewMetadata()
+        .withName("hive-metastore-term")
+        .withNamespace(NS)
+        .withLabels(Map.of("kubernetes.io/service-name", "hive-metastore"))
+        .endMetadata()
+        .withAddressType("IPv4")
+        .withPorts(new EndpointPortBuilder().withName("thrift").withPort(9083).build())
+        .addToEndpoints(new EndpointBuilder().withAddresses("10.0.0.1")
+            .withNewConditions().withReady(true).withTerminating(true).endConditions().build())
+        .addToEndpoints(new EndpointBuilder().withAddresses("10.0.0.2")
+            .withNewConditions().withReady(true).withTerminating(false).endConditions().build())
+        .build();
+    client.discovery().v1().endpointSlices().inNamespace(NS).resource(slice).create();
+    Assert.assertEquals(List.of("thrift://10.0.0.2:9083"), resolve(inNamespace(NS)));
+  }
+
+  @Test
+  public void testCloseKeepsInjectedClientOpen() throws Exception {
+    service(NS, "hive-metastore", Map.of(), true, port("thrift", 9083));
+    endpointSlice(NS, "hive-metastore", "thrift", 9083, Map.of("10.0.0.1", true));
+    try (KubernetesHiveHelper helper = inNamespace(NS).client(client).build()) {
+      Assert.assertEquals(List.of("thrift://10.0.0.1:9083"), helper.getServerUris());
+    }
+    Assert.assertEquals(1, client.services().inNamespace(NS).list().getItems().size());
   }
 }

@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.KubernetesHiveHelper;
 import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.common.ValidTxnList;
@@ -276,7 +277,9 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
         }
       } else if (serviceDiscoveryMode.equalsIgnoreCase("k8s")) {
         // The URIs come with the scheme the Service's hive.apache.org/scheme annotation says.
-        metastoreUrisString = MetastoreConf.getKubernetesConfig(conf).getServerUris();
+        try (KubernetesHiveHelper k8s = MetastoreConf.getKubernetesConfig(conf)) {
+          metastoreUrisString = k8s.getServerUris();
+        }
       } else {
         throw new IllegalArgumentException("Invalid metastore dynamic service discovery mode " +
             serviceDiscoveryMode);
