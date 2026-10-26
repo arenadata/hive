@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.KubernetesHiveHelper;
 import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.common.ValidTxnList;
@@ -176,7 +177,12 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
     }
 
     String msUri = MetastoreConf.getVar(conf, MetastoreConf.ConfVars.THRIFT_URIS);
-    localMetaStore = MetastoreConf.isEmbeddedMetaStore(msUri);
+    // With dynamic service discovery the URIs are resolved from the discovery service, so
+    // THRIFT_URIS may stay empty: that must not turn the client into an embedded one.
+    String serviceDiscoveryMode =
+        MetastoreConf.getVar(conf, MetastoreConf.ConfVars.THRIFT_SERVICE_DISCOVERY_MODE);
+    localMetaStore = MetastoreConf.isEmbeddedMetaStore(msUri)
+        && (serviceDiscoveryMode == null || serviceDiscoveryMode.trim().isEmpty());
     if (localMetaStore) {
       if (!allowEmbedded) {
         throw new MetaException("Embedded metastore is not allowed here. Please configure "
@@ -254,8 +260,8 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
     String serviceDiscoveryMode = MetastoreConf.getVar(conf, MetastoreConf.ConfVars.THRIFT_SERVICE_DISCOVERY_MODE);
     List<String> metastoreUrisString = null;
 
-    // The metastore URIs can come from THRIFT_URIS directly or need to be fetched from the
-    // Zookeeper
+    // The metastore URIs can come from THRIFT_URIS directly or need to be fetched through
+    // a service discovery: ZooKeeper or Kubernetes
     try {
       if (serviceDiscoveryMode == null || serviceDiscoveryMode.trim().isEmpty()) {
         metastoreUrisString = Arrays.asList(thriftUris.split(","));
@@ -269,6 +275,11 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
         for (String s : MetastoreConf.getZKConfig(conf).getServerUris()) {
           metastoreUrisString.add("thrift://" + s);
         }
+      } else if (serviceDiscoveryMode.equalsIgnoreCase("k8s")) {
+        // The URIs come with the scheme the Service's hive.apache.org/scheme annotation says.
+        try (KubernetesHiveHelper k8s = MetastoreConf.getKubernetesConfig(conf)) {
+          metastoreUrisString = k8s.getServerUris();
+        }
       } else {
         throw new IllegalArgumentException("Invalid metastore dynamic service discovery mode " +
             serviceDiscoveryMode);
@@ -277,8 +288,9 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
       MetaStoreUtils.throwMetaException(e);
     }
 
-    if (metastoreUrisString.isEmpty() && "zookeeper".equalsIgnoreCase(serviceDiscoveryMode)) {
-      throw new MetaException("No metastore service discovered in ZooKeeper. "
+    if (metastoreUrisString.isEmpty() && serviceDiscoveryMode != null
+        && !serviceDiscoveryMode.trim().isEmpty()) {
+      throw new MetaException("No metastore service discovered via " + serviceDiscoveryMode + ". "
           + "Please ensure that at least one metastore server is online");
     }
 
