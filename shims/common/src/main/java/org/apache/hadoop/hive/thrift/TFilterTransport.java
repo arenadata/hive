@@ -102,7 +102,7 @@ import org.apache.thrift.transport.TTransportException;
 
   @Override
   public TConfiguration getConfiguration() {
-    return null;
+    return wrapped.getConfiguration();
   }
 
   @Override
@@ -112,6 +112,11 @@ import org.apache.thrift.transport.TTransportException;
 
   @Override
   public void checkReadBytesAvailable(long l) throws TTransportException {
+
+  }
+
+  @Override
+  public void resetMessageSizeAndConsumedBytes(long l) throws TTransportException {
 
   }
 }
