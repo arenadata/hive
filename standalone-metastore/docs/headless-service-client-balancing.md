@@ -41,6 +41,10 @@ URI resolver, turns the host into one URI per server:
 4. On every reconnect the client resolves the host again, so servers that were
    added, removed or rescheduled to a new address are picked up.
 
+A host that does not resolve at all is left as is, so that the failure surfaces
+as a connection error, which the client retries, instead of aborting the
+reconnect.
+
 ```
 hive.metastore.uris = thrift://hms.hive.svc.cluster.local:9083
                         |
@@ -138,7 +142,7 @@ set `metastore.housekeeping.leader.election` or
 |----------|-----------|
 | `hive.metastore.uris` | The headless Service name; several entries are each resolved. |
 | `hive.metastore.uri.resolver` | Turns each host into one URI per server. |
-| `hive.metastore.uri.selection` | `RANDOM` (default) spreads clients over servers; `SEQUENTIAL` tries them in sorted host name order. |
+| `hive.metastore.uri.selection` | `RANDOM` (default) spreads clients over servers; `SEQUENTIAL` tries them in pod name order (hms-2 before hms-10). |
 | `hive.metastore.client.socket.lifetime` | Connections are long-lived; a finite lifetime makes clients reconnect, resolve again and rebalance. `0s` (default) keeps a connection forever. |
 | `hive.metastore.failure.retries`, `hive.metastore.client.connect.retry.delay` | How many rounds over the servers a client makes, and the pause between them, before it gives up. |
 
@@ -175,7 +179,7 @@ client reconnects. Lower these security properties (in
 
 | Symptom | Cause |
 |---------|-------|
-| `Cannot resolve metastore host ...` | The name does not resolve: wrong name or namespace, or no pod is ready. |
+| `Cannot resolve metastore host ...` in the log, then connection failures | The name does not resolve: wrong name or namespace, or no pod is ready. The URI is kept as is, so the connection failure is retried like any other. |
 | Clients connect to one server only | `hive.metastore.uri.resolver` is not set, or the Service is not headless (a ClusterIP Service resolves to its single virtual IP). |
 | `GSS initiate failed` / `Server not found in Kerberos database` | The principal built from the host is not in the keytab: check what reverse DNS returns for the pod IP (`nslookup <pod-ip>`) and that it is a StatefulSet pod name. |
 | Load stays on the old servers after scaling up | Connections are long-lived; set `hive.metastore.client.socket.lifetime`. |

@@ -24,7 +24,6 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hive.metastore.HiveMetaException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -102,14 +101,28 @@ public class TestDnsURIResolverHook {
   }
 
   @Test
-  public void testUnknownHostFails() throws Exception {
-    DnsURIResolverHook hook = resolver(Map.of(), Map.of());
-    try {
-      hook.resolveURI(new URI("thrift://no-such:9083"));
-      Assert.fail("expected an exception for an unknown host");
-    } catch (HiveMetaException e) {
-      Assert.assertTrue(e.getMessage(), e.getMessage().contains("no-such"));
-    }
+  public void testUnknownHostKeptAsIs() throws Exception {
+    URI uri = new URI("thrift://no-such:9083");
+    Assert.assertEquals(List.of(uri), resolver(Map.of(), Map.of()).resolveURI(uri));
+  }
+
+  @Test
+  public void testPodNamesOrderedByOrdinal() throws Exception {
+    DnsURIResolverHook hook = resolver(
+        Map.of("hms", List.of("10.0.0.10", "10.0.0.2")),
+        Map.of("10.0.0.10", "hms-10.hms", "10.0.0.2", "hms-2.hms"));
+    Assert.assertEquals(List.of(
+            new URI("thrift://hms-2.hms:9083"),
+            new URI("thrift://hms-10.hms:9083")),
+        hook.resolveURI(new URI("thrift://hms:9083")));
+  }
+
+  @Test
+  public void testNamesDifferingOnlyInCaseCollapsed() throws Exception {
+    DnsURIResolverHook hook = resolver(Map.of("hms", List.of("10.0.0.1", "10.0.0.2")),
+        Map.of("10.0.0.1", "HMS-0.hms", "10.0.0.2", "hms-0.hms"));
+    Assert.assertEquals(List.of(new URI("thrift://HMS-0.hms:9083")),
+        hook.resolveURI(new URI("thrift://hms:9083")));
   }
 
   @Test

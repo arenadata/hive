@@ -33,7 +33,8 @@ import org.slf4j.LoggerFactory;
 /**
  * DnsURIResolverHook. Resolves a metastore URI whose host names several servers, such as a
  * Kubernetes headless Service, into one URI per server, so that the client balances and fails
- * over between them itself (see metastore.thrift.uri.selection).
+ * over between them itself (see metastore.thrift.uri.selection). Meant for Kubernetes: the host
+ * of every URI is replaced by what reverse DNS says for it.
  *
  * <p>Every address the host resolves to becomes a URI with the same scheme, port and path. The
  * address is turned back into a host name through reverse DNS, so that Kerberos principals with
@@ -41,7 +42,9 @@ import org.slf4j.LoggerFactory;
  * {@code <pod>.<service>.<namespace>.svc.cluster.local}. An address without a reverse record
  * stays an address.
  *
- * <p>The client resolves again on every reconnect, so servers that come and go are picked up.
+ * <p>A host that does not resolve at all is left as is, so that the failure surfaces as a
+ * connection error, which the client retries, instead of aborting the reconnect. The client
+ * resolves again on every reconnect, so servers that come and go are picked up.
  */
 public class DnsURIResolverHook implements URIResolverHook {
   private static final Logger LOG = LoggerFactory.getLogger(DnsURIResolverHook.class);
@@ -56,10 +59,11 @@ public class DnsURIResolverHook implements URIResolverHook {
     try {
       addresses = lookup(host);
     } catch (UnknownHostException e) {
-      throw new HiveMetaException("Cannot resolve metastore host " + host + " of " + uri, e);
+      LOG.warn("Cannot resolve metastore host {} of {}; keeping the URI as is", host, uri);
+      return List.of(uri);
     }
     // Sorted, so that a SEQUENTIAL selection always tries the servers in the same order.
-    TreeSet<String> hosts = new TreeSet<>();
+    TreeSet<String> hosts = new TreeSet<>(DnsURIResolverHook::compareHostNames);
     for (InetAddress address : addresses) {
       hosts.add(hostNameOf(address));
     }
@@ -74,6 +78,56 @@ public class DnsURIResolverHook implements URIResolverHook {
     }
     LOG.debug("Resolved metastore URI {} into {}", uri, uris);
     return uris;
+  }
+
+  /**
+   * Compares host names case-insensitively, with runs of digits compared as numbers, so that
+   * pod names order by their ordinal: hms-2 sorts before hms-10.
+   */
+  static int compareHostNames(String a, String b) {
+    int i = 0;
+    int j = 0;
+    while (i < a.length() && j < b.length()) {
+      char ca = a.charAt(i);
+      char cb = b.charAt(j);
+      if (Character.isDigit(ca) && Character.isDigit(cb)) {
+        int endA = i;
+        int endB = j;
+        while (endA < a.length() && Character.isDigit(a.charAt(endA))) {
+          endA++;
+        }
+        while (endB < b.length() && Character.isDigit(b.charAt(endB))) {
+          endB++;
+        }
+        String numA = stripLeadingZeros(a.substring(i, endA));
+        String numB = stripLeadingZeros(b.substring(j, endB));
+        if (numA.length() != numB.length()) {
+          return numA.length() - numB.length();
+        }
+        int cmp = numA.compareTo(numB);
+        if (cmp != 0) {
+          return cmp;
+        }
+        i = endA;
+        j = endB;
+      } else {
+        int cmp = Character.compare(Character.toLowerCase(ca), Character.toLowerCase(cb));
+        if (cmp != 0) {
+          return cmp;
+        }
+        i++;
+        j++;
+      }
+    }
+    return (a.length() - i) - (b.length() - j);
+  }
+
+  private static String stripLeadingZeros(String digits) {
+    int i = 0;
+    while (i < digits.length() - 1 && digits.charAt(i) == '0') {
+      i++;
+    }
+    return digits.substring(i);
   }
 
   protected InetAddress[] lookup(String host) throws UnknownHostException {
