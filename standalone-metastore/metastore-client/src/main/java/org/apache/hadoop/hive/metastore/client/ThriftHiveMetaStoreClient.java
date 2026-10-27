@@ -653,6 +653,16 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
     return httpClientBuilder;
   }
 
+  // java.net.URI keeps the brackets of an IPv6 literal in getHost(); sockets and
+  // Kerberos principals need the bare address.
+  private static String hostForConnection(URI store) {
+    String host = store.getHost();
+    if (host != null && host.startsWith("[") && host.endsWith("]")) {
+      return host.substring(1, host.length() - 1);
+    }
+    return host;
+  }
+
   private TTransport createBinaryClient(URI store, boolean useSSL) throws TTransportException,
       MetaException {
     TTransport binaryTransport = null;
@@ -675,11 +685,11 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
             MetastoreConf.getVar(conf, MetastoreConf.ConfVars.SSL_TRUSTMANAGERFACTORY_ALGORITHM).trim();
         String includeProtocols = MetastoreConf.getVar(conf, MetastoreConf.ConfVars.SSL_INCLUDE_PROTOCOLS);
         String includeCipherSuites = MetastoreConf.getVar(conf, MetastoreConf.ConfVars.SSL_INCLUDE_CIPHERSUITES);
-        binaryTransport = SecurityUtils.getSSLSocket(store.getHost(), store.getPort(), clientSocketTimeout,
-            connectionTimeout, trustStorePath, trustStorePassword, trustStoreType, trustStoreAlgorithm,
-            includeProtocols, includeCipherSuites);
+        binaryTransport = SecurityUtils.getSSLSocket(hostForConnection(store), store.getPort(),
+            clientSocketTimeout, connectionTimeout, trustStorePath, trustStorePassword,
+            trustStoreType, trustStoreAlgorithm, includeProtocols, includeCipherSuites);
       } else {
-        binaryTransport = new TSocket(new TConfiguration(), store.getHost(), store.getPort(),
+        binaryTransport = new TSocket(new TConfiguration(), hostForConnection(store), store.getPort(),
             clientSocketTimeout, connectionTimeout);
       }
       binaryTransport = createAuthBinaryTransport(store, binaryTransport);
@@ -896,14 +906,14 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
         if (tokenStrForm != null) {
           LOG.debug("HMSC::open(): Found delegation token. Creating DIGEST-based thrift connection.");
           // authenticate using delegation tokens via the "DIGEST" mechanism
-          transport = authBridge.createClientTransport(null, store.getHost(),
+          transport = authBridge.createClientTransport(null, hostForConnection(store),
               "DIGEST", tokenStrForm, underlyingTransport, saslProperties);
         } else {
           LOG.debug("HMSC::open(): Could not find delegation token. Creating KERBEROS-based thrift connection.");
           String principalConfig =
               MetastoreConf.getVar(conf, MetastoreConf.ConfVars.KERBEROS_PRINCIPAL);
           transport = authBridge.createClientTransport(
-              principalConfig, store.getHost(), "KERBEROS", null,
+              principalConfig, hostForConnection(store), "KERBEROS", null,
               underlyingTransport, saslProperties);
         }
       } catch (IOException ioe) {
