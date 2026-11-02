@@ -112,9 +112,9 @@ spec:
 Only ready pods are published in DNS (unless the Service sets
 `publishNotReadyAddresses: true`), so give the pods a readiness probe.
 
-With more than one server, have only one of them run the housekeeping tasks:
-set `metastore.housekeeping.leader.election` or
-`metastore.housekeeping.leader.hostname`.
+With more than one server, only one of them runs the housekeeping tasks: by
+default (`metastore.housekeeping.leader.election=lock`) the servers elect the
+leader through a Hive lock, so nothing needs to be set.
 
 ## Client side
 
