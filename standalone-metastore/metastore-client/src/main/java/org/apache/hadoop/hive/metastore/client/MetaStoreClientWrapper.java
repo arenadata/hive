@@ -46,6 +46,11 @@ public abstract class MetaStoreClientWrapper extends BaseMetaStoreClient {
   }
 
   @Override
+  public ThriftHiveMetaStoreClient getThriftClient() {
+    return delegate.getThriftClient();
+  }
+
+  @Override
   public boolean isCompatibleWith(Configuration conf) {
     return delegate.isCompatibleWith(conf);
   }

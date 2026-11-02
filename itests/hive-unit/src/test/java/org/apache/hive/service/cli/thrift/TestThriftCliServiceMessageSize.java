@@ -17,17 +17,21 @@
  */
 package org.apache.hive.service.cli.thrift;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.Statement;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hive.service.auth.HiveAuthConstants;
 import org.apache.hive.service.server.HiveServer2;
+import org.apache.thrift.TConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -114,6 +118,34 @@ public class TestThriftCliServiceMessageSize extends AbstractThriftCLITest {
       }
       // Verify we hit an error while connecting
       assertNotNull(caughtException);
+    } finally {
+      stopHiveServer2();
+      hiveServer2 = null;
+    }
+  }
+
+  @Test
+  public void testResponseLargerThanDefaultFrameSize() throws Exception {
+    hiveConf.setBoolVar(ConfVars.HIVE_SERVER2_ENABLE_DOAS, false);
+    hiveConf.setVar(ConfVars.HIVE_SERVER2_THRIFT_BIND_HOST, host);
+    hiveConf.setIntVar(ConfVars.HIVE_SERVER2_THRIFT_PORT, port);
+    hiveConf.setVar(ConfVars.HIVE_SERVER2_AUTHENTICATION, HiveAuthConstants.AuthTypes.NONE.toString());
+    hiveConf.setVar(ConfVars.HIVE_SERVER2_TRANSPORT_MODE, "binary");
+    hiveConf.setIntVar(ConfVars.HIVE_SERVER2_THRIFT_MAX_MESSAGE_SIZE, 100 * 1024 * 1024);
+    // A SASL frame carries a whole response; this one is larger than Thrift's default max frame size.
+    int length = TConfiguration.DEFAULT_MAX_FRAME_SIZE + 1024;
+
+    hiveServer2 = new HiveServer2();
+    try {
+      startHiveServer2WithConf(hiveConf);
+      try (Connection connection = DriverManager.getConnection("jdbc:hive2://localhost:" + port + "/default",
+          "hiveuser", "hive");
+          Statement stmt = connection.createStatement()) {
+        stmt.execute("set hive.support.concurrency = false");
+        ResultSet rs = stmt.executeQuery("select repeat('x', " + length + ")");
+        assertTrue(rs.next());
+        assertEquals(length, rs.getString(1).length());
+      }
     } finally {
       stopHiveServer2();
       hiveServer2 = null;

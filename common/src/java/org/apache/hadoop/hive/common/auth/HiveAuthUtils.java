@@ -34,6 +34,7 @@ import javax.net.ssl.TrustManagerFactory;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import org.apache.hadoop.hive.common.IPStackUtils;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
 import org.apache.thrift.transport.TServerSocket;
@@ -51,21 +52,26 @@ public class HiveAuthUtils {
   private static final Logger LOG = LoggerFactory.getLogger(HiveAuthUtils.class);
 
   /**
-   * Configure the provided T transport's max message size.
+   * Configure the provided T transport's max message size. The max frame size is raised to at least the max message
+   * size, because a SASL frame carries a whole message and Thrift rejects frames above the max frame size.
    * @param transport Transport to configure maxMessage for
    * @param maxMessageSize Maximum allowed message size in bytes, less than or equal to 0 means use the Thrift library
    *                       default.
    * @return The passed in T transport configured with desired max message size. The same object passed in is returned.
    */
   public static <T extends TTransport> T configureThriftMaxMessageSize(T transport, int maxMessageSize) {
-    if (maxMessageSize > 0) {
-      if (transport.getConfiguration() == null) {
+    TConfiguration configuration = transport.getConfiguration();
+    if (configuration == null) {
+      if (maxMessageSize > 0) {
         LOG.warn("TTransport {} is returning a null Configuration, Thrift max message size is not getting configured",
             transport.getClass().getName());
-        return transport;
       }
-      transport.getConfiguration().setMaxMessageSize(maxMessageSize);
+      return transport;
     }
+    if (maxMessageSize > 0) {
+      configuration.setMaxMessageSize(maxMessageSize);
+    }
+    configuration.setMaxFrameSize(Math.max(configuration.getMaxFrameSize(), configuration.getMaxMessageSize()));
     return transport;
   }
 
