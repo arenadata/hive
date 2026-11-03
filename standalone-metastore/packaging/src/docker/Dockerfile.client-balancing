@@ -58,7 +58,20 @@ RUN wget --no-verbose -O /tmp/hadoop.tar.gz "$HADOOP_URL" && \
       -f /tmp/hadoop.tar.gz \
       -C /opt/ \
       --wildcards "hadoop-$HADOOP_VERSION/share/hadoop/tools/lib/hadoop-*.jar" && \
+    # The housekeeping tasks need org.apache.hadoop.yarn.util.SystemClock.
+    tar -xz \
+      -f /tmp/hadoop.tar.gz \
+      -C /opt/ \
+      --wildcards \
+        "hadoop-$HADOOP_VERSION/share/hadoop/yarn/hadoop-yarn-api-*.jar" \
+        "hadoop-$HADOOP_VERSION/share/hadoop/yarn/hadoop-yarn-common-*.jar" && \
     mv /opt/hadoop-$HADOOP_VERSION /opt/hadoop
+
+# The JDBC driver of PostgreSQL, the database of the Helm chart's own postgres.
+ARG POSTGRES_JDBC_VERSION=42.7.5
+RUN mkdir -p /opt/jdbc && \
+    wget --no-verbose -P /opt/jdbc \
+      "https://repo1.maven.org/maven2/org/postgresql/postgresql/$POSTGRES_JDBC_VERSION/postgresql-$POSTGRES_JDBC_VERSION.jar"
 
 FROM eclipse-temurin:21.0.3_9-jre-ubi9-minimal AS run
 
@@ -79,6 +92,7 @@ ENV PATH=$HIVE_HOME/bin:$HADOOP_HOME/bin:$PATH
 
 COPY --from=hadoop --chown=hive /opt/hadoop $HADOOP_HOME
 COPY --from=build --chown=hive /opt/hive $HIVE_HOME
+COPY --from=hadoop --chown=hive /opt/jdbc/ $HIVE_HOME/lib/
 
 COPY --chown=hive standalone-metastore/packaging/src/docker/entrypoint.sh /
 COPY --chown=hive standalone-metastore/packaging/src/docker/conf $HIVE_HOME/conf
