@@ -58,6 +58,24 @@ thrift://hms-0.hms.hive.svc.cluster.local:9083
 thrift://hms-1.hms.hive.svc.cluster.local:9083
 ```
 
+## Building the image
+
+`standalone-metastore/packaging/src/docker/Dockerfile.client-balancing` builds
+the metastore from the source tree. Run it from the repository root; the
+`settings.xml` holds the credentials of the `arenadata` Maven server and is
+passed as a build secret, so it does not end up in the image.
+
+```bash
+docker build -f standalone-metastore/packaging/src/docker/Dockerfile.client-balancing \
+  --secret id=maven_settings,src=$HOME/.m2/settings.xml \
+  -t hive-metastore:client-balancing .
+```
+
+The image takes upstream Hadoop 3.4.3 by default. Pass
+`--build-arg HADOOP_VERSION=<version> --build-arg HADOOP_URL=<tarball URL>` for
+another distribution; the top directory of its tarball must be
+`hadoop-<version>`.
+
 ## Server side
 
 Run the metastore as a StatefulSet whose `serviceName` is the headless Service.
