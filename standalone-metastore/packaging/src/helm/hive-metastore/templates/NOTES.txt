@@ -1,0 +1,42 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+Hive Metastore is running in namespace {{ .Release.Namespace }} with {{ .Values.replicas }} replica(s),
+on {{ if .Values.postgres.enabled }}the chart's PostgreSQL {{ include "hive-metastore.postgresName" . }}{{ else }}the database {{ include "hive-metastore.db.url" . }}{{ end }}.
+
+Clients connect to it with these properties in hive-site.xml:
+
+  hive.metastore.uris                    {{ include "hive-metastore.uri" . }}
+  hive.metastore.uri.resolver            org.apache.hadoop.hive.metastore.hooks.DnsURIResolverHook
+  hive.metastore.uri.selection           RANDOM
+  hive.metastore.client.socket.lifetime  600s
+{{- $auth := include "hive-metastore.authType" . }}
+{{- if eq $auth "KERBEROS" }}
+  hive.metastore.sasl.enabled            true
+  hive.metastore.kerberos.principal      {{ .Values.auth.kerberos.principal }}
+{{- else if include "hive-metastore.authPlain" . }}
+  hive.metastore.client.auth.mode        PLAIN
+  hive.metastore.client.plain.username   <user>{{ if eq $auth "CONFIG" }} ({{ .Values.auth.config.username }}){{ end }}
+
+The client reads the password of <user> from the Hadoop credential provider
+(hadoop.security.credential.provider.path), with the user name as the alias:
+
+  hadoop credential create <user> -provider jceks://file/<path>/hms.jceks
+{{- end }}
+
+Result of the schema Job:
+
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "hive-metastore.name" . }}-schema-{{ .Release.Revision }}

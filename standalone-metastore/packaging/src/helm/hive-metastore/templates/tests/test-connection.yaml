@@ -1,0 +1,39 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "hive-metastore.name" . }}-test
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hive-metastore.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: thrift-port
+      image: busybox:1.36
+      # Every pod the Service name resolves to answers on the thrift port.
+      command: ["/bin/sh", "-ec"]
+      args:
+        - |
+          host={{ include "hive-metastore.name" . }}.{{ .Release.Namespace }}.svc.cluster.local
+          addresses=$(nslookup "$host" | awk '/^Address: / { print $2 }')
+          test -n "$addresses"
+          for a in $addresses; do nc -z -w 5 "$a" {{ .Values.port }}; echo "$a answers"; done
