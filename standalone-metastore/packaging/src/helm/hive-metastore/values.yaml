@@ -1,0 +1,155 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Image built from standalone-metastore/packaging/src/docker/Dockerfile.client-balancing.
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Metastore servers. Clients balance between them through DnsURIResolverHook; the housekeeping
+# leader is elected through a Hive lock (metastore.housekeeping.leader.election=lock).
+replicas: 2
+
+# Thrift port of the metastore servers and of the headless Service.
+port: 9083
+
+# The chart's own PostgreSQL for the metastore database. When enabled, the database values below
+# are not used. It is a single server: use an external database where it must be highly available.
+postgres:
+  enabled: false
+  image: postgres:16
+  database: metastore
+  user: hive
+  # Generated and kept in the Secret hive-metastore-postgres when empty.
+  password: ""
+  # Existing Secret with the password, used instead of hive-metastore-postgres.
+  existingSecret: ""
+  existingSecretKey: password
+  persistence:
+    enabled: true
+    size: 8Gi
+    # The cluster's default StorageClass when empty.
+    storageClass: ""
+  resources: {}
+
+# An external metastore database, used when postgres.enabled is false.
+database:
+  # Passed to schematool -dbType: postgres, mysql, mssql, oracle or derby.
+  type: postgres
+  url: ""
+  driver: ""
+  user: ""
+  # Existing Secret holding the database password.
+  passwordSecret:
+    name: ""
+    key: password
+
+# metastore.warehouse.dir, for example s3a://bucket/warehouse.
+warehouseDir: ""
+
+# Extra properties of metastore-site.xml, merged over the ones the chart sets.
+metastoreSite: {}
+# Properties of core-site.xml. Without any, the image's own core-site.xml stays.
+coreSite: {}
+
+# Maximum heap of the metastore servers and the schema Job.
+heap: 1g
+# Extra JVM options of the metastore servers.
+extraJavaOpts: ""
+
+# How clients authenticate to the metastore:
+#   NOSASL    no authentication (the default)
+#   KERBEROS  Kerberos (SASL GSSAPI); clients set hive.metastore.sasl.enabled
+#   LDAP      user and password checked against LDAP (SASL PLAIN)
+#   CONFIG    user and password checked against auth.config (SASL PLAIN)
+#   CUSTOM    user and password checked by auth.custom.className (SASL PLAIN)
+# With LDAP, CONFIG and CUSTOM the password travels in clear text unless TLS is set up
+# (metastore.use.SSL and a keystore, through metastoreSite and extraJavaOpts).
+auth:
+  type: NOSASL
+  kerberos:
+    # _HOST becomes each pod's name, so the keytab needs a principal for every pod ordinal:
+    # hive/hive-metastore-<N>.hive-metastore.<namespace>.svc.cluster.local.
+    principal: "hive/_HOST@EXAMPLE.COM"
+    # Secret holding the keytab.
+    keytabSecret:
+      name: ""
+      key: hive.keytab
+    # ConfigMap holding krb5.conf.
+    krb5ConfigMap:
+      name: ""
+      key: krb5.conf
+  ldap:
+    # metastore.authentication.ldap.url, for example ldaps://ldap.example.com:636.
+    url: ""
+    # metastore.authentication.ldap.baseDN.
+    baseDN: ""
+    # metastore.authentication.ldap.userDNPattern, for example uid=%s,ou=people,dc=example,dc=com.
+    userDNPattern: ""
+    # Bind user for searches, metastore.authentication.ldap.binddn; none when empty.
+    bindDN: ""
+    # Secret holding the bind user's password.
+    bindPasswordSecret:
+      name: ""
+      key: password
+    # Other metastore.authentication.ldap.* properties go into metastoreSite.
+  config:
+    # The one user the metastore accepts.
+    username: ""
+    # Secret holding that user's password.
+    passwordSecret:
+      name: ""
+      key: password
+  custom:
+    # Implementation of org.apache.hadoop.hive.metastore.MetaStorePasswdAuthenticationProvider;
+    className: ""
+
+schemaJob:
+  backoffLimit: 3
+  # Seconds before the schema Job is given up.
+  activeDeadlineSeconds: 600
+  # Seconds a finished schema Job, succeeded or failed, is kept for its logs before Kubernetes
+  # deletes it; this also removes the Job of a failed upgrade, which no later revision owns.
+  ttlSecondsAfterFinished: 86400
+  resources: {}
+
+readinessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  failureThreshold: 3
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  failureThreshold: 5
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+# Without one, the pods prefer to run on different nodes.
+affinity: {}
+podAnnotations: {}
+podLabels: {}
+serviceAccountName: ""
+# The image runs as the hive user, uid 1000.
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000

@@ -1,0 +1,108 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Builds the Hive Metastore image with DnsURIResolverHook from the source tree, for running behind
+# a Kubernetes headless Service with client-side balancing. See
+# standalone-metastore/docs/headless-service-client-balancing.md.
+#
+# Run from the repository root; settings.xml holds the credentials of the 'arenadata' server:
+#   docker build -f standalone-metastore/packaging/src/docker/Dockerfile.client-balancing \
+#     --secret id=maven_settings,src=$HOME/.m2/settings.xml -t hive-metastore:client-balancing .
+
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY . .
+RUN --mount=type=secret,id=maven_settings,target=/root/.m2/settings.xml \
+    --mount=type=cache,target=/root/.m2/repository \
+    mvn -B -ntp -pl standalone-metastore/packaging -am -Pdist package -DskipTests -Dmaven.javadoc.skip=true
+RUN mkdir -p /opt/hive && \
+    tar -xzf standalone-metastore/packaging/target/hive-standalone-metastore-*-bin.tar.gz \
+      --strip-components=1 -C /opt/hive && \
+    jar tf /opt/hive/lib/hive-standalone-metastore-common-*.jar | \
+      grep -q org/apache/hadoop/hive/metastore/hooks/DnsURIResolverHook.class
+
+FROM ubuntu AS hadoop
+ARG HADOOP_VERSION=3.4.3
+ARG HADOOP_URL=https://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
+RUN apt-get update && apt-get install -y wget
+RUN wget --no-verbose -O /tmp/hadoop.tar.gz "$HADOOP_URL" && \
+    tar -xz \
+      --exclude="hadoop-$HADOOP_VERSION/lib/native" \
+      --exclude="hadoop-$HADOOP_VERSION/share/doc" \
+      --exclude="hadoop-$HADOOP_VERSION/share/hadoop/client" \
+      --exclude="hadoop-$HADOOP_VERSION/share/hadoop/tools" \
+      --exclude="hadoop-$HADOOP_VERSION/share/hadoop/yarn/*" \
+      --exclude="*/jdiff" \
+      --exclude="*/sources" \
+      --exclude="*tests.jar" \
+      --exclude="*/webapps" \
+      -f /tmp/hadoop.tar.gz \
+      -C /opt/ && \
+    find /opt/hadoop-$HADOOP_VERSION/share/hadoop/common/lib \
+      \( -name "jetty-*.jar" -o -name "zookeeper-*.jar" -o -name "netty-*.jar" \) \
+      -delete && \
+    tar -xz \
+      -f /tmp/hadoop.tar.gz \
+      -C /opt/ \
+      --wildcards "hadoop-$HADOOP_VERSION/share/hadoop/tools/lib/hadoop-*.jar" && \
+    # The housekeeping tasks need org.apache.hadoop.yarn.util.SystemClock.
+    tar -xz \
+      -f /tmp/hadoop.tar.gz \
+      -C /opt/ \
+      --wildcards \
+        "hadoop-$HADOOP_VERSION/share/hadoop/yarn/hadoop-yarn-api-*.jar" \
+        "hadoop-$HADOOP_VERSION/share/hadoop/yarn/hadoop-yarn-common-*.jar" && \
+    mv /opt/hadoop-$HADOOP_VERSION /opt/hadoop
+
+# The JDBC driver of PostgreSQL, the database of the Helm chart's own postgres.
+ARG POSTGRES_JDBC_VERSION=42.7.5
+RUN mkdir -p /opt/jdbc && \
+    wget --no-verbose -P /opt/jdbc \
+      "https://repo1.maven.org/maven2/org/postgresql/postgresql/$POSTGRES_JDBC_VERSION/postgresql-$POSTGRES_JDBC_VERSION.jar"
+
+FROM eclipse-temurin:21.0.3_9-jre-ubi9-minimal AS run
+
+ARG UID=1000
+
+RUN set -ex; \
+    microdnf update -y; \
+    microdnf -y install procps gettext; \
+    microdnf clean all; \
+    useradd --no-create-home -s /sbin/nologin -c "" --uid $UID hive
+
+# entrypoint.sh reads only the major version from HIVE_VER.
+ENV HADOOP_HOME=/opt/hadoop \
+    HIVE_HOME=/opt/hive \
+    HIVE_VER=4
+
+ENV PATH=$HIVE_HOME/bin:$HADOOP_HOME/bin:$PATH
+
+COPY --from=hadoop --chown=hive /opt/hadoop $HADOOP_HOME
+COPY --from=build --chown=hive /opt/hive $HIVE_HOME
+COPY --from=hadoop --chown=hive /opt/jdbc/ $HIVE_HOME/lib/
+
+COPY --chown=hive standalone-metastore/packaging/src/docker/entrypoint.sh /
+COPY --chown=hive standalone-metastore/packaging/src/docker/conf $HIVE_HOME/conf
+
+RUN chmod +x /entrypoint.sh && \
+    mkdir -p $HIVE_HOME/data/warehouse && \
+    chown hive $HIVE_HOME/data/warehouse
+
+USER hive
+WORKDIR $HIVE_HOME
+EXPOSE 9001 9083
+
+ENTRYPOINT ["sh", "-c", "/entrypoint.sh"]

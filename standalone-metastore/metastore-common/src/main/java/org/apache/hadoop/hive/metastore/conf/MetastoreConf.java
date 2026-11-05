@@ -1721,7 +1721,10 @@ public class MetastoreConf {
         new TimeValidator(TimeUnit.SECONDS, 0L, false, Long.MAX_VALUE, false),
         "The maximum sleep time between various retries"),
     URI_RESOLVER("metastore.uri.resolver", "hive.metastore.uri.resolver", "",
-            "If set, fully qualified class name of resolver for hive metastore uri's"),
+            "If set, fully qualified class name of resolver for hive metastore uri's.\n" +
+            "org.apache.hadoop.hive.metastore.hooks.DnsURIResolverHook resolves a host that names\n" +
+            "several servers, such as a Kubernetes headless Service, into one URI per server, for\n" +
+            "the client to balance and fail over between them."),
     USERS_IN_ADMIN_ROLE("metastore.users.in.admin.role", "hive.users.in.admin.role", "", false,
         "Comma separated list of users who are in admin role for bootstrapping.\n" +
             "More users can be added in ADMIN role later."),
