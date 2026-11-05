@@ -53,7 +53,7 @@ jobs:
           server-password: GITHUB_TOKEN
       - name: Redirect the publisher to a sandbox
         id: sandbox
-        uses: arenadata/adrm-checks/actions/sandbox@6be18fed3f222b843af0e9fcbf8bc7306047dedd
+        uses: arenadata/adrm-checks/actions/sandbox@1e0cfbd8e03ee73c94739ceaaba3a85b7d9775f2
         with:
           tool: maven
           deploy-plugin-major: '2'   # maven-deploy-plugin 2.8.2 via the parent org.apache:apache:18
@@ -63,7 +63,7 @@ jobs:
         run: mvn ${{ env.MAVEN_ARGS }} --batch-mode deploy
       - name: Generate the manifest from the sandbox
         id: manifest
-        uses: arenadata/adrm-checks/actions/manifest@6be18fed3f222b843af0e9fcbf8bc7306047dedd
+        uses: arenadata/adrm-checks/actions/manifest@1e0cfbd8e03ee73c94739ceaaba3a85b7d9775f2
         with:
           sandbox: ${{ steps.sandbox.outputs.dir }}
           invocations: '1'
