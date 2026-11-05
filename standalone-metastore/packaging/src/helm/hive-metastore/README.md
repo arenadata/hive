@@ -102,7 +102,6 @@ already has one fails on these names without touching the first.
 | `database.passwordSecret.name` | required without `postgres.enabled` | Existing Secret with the database password |
 | `database.passwordSecret.key` | `password` | |
 | `warehouseDir` | required | `metastore.warehouse.dir` |
-| `extraJars` | `[]` | URLs of jars added to the image's `lib`, such as a JDBC driver the image lacks |
 | `metastoreSite` | `{}` | Properties merged over the chart's `metastore-site.xml` |
 | `coreSite` | `{}` | Properties of `core-site.xml`; without any, the image's own stays |
 | `heap` | `1g` | `-Xmx` of the servers and the schema Job |
@@ -115,7 +114,7 @@ already has one fails on these names without touching the first.
 | `auth.ldap.baseDN`, `.userDNPattern` | `""` | Other `metastore.authentication.ldap.*` properties go into `metastoreSite` |
 | `auth.ldap.bindDN`, `.bindPasswordSecret.name`, `.key` | `""`, `""`, `password` | Bind user for searches and the Secret with its password |
 | `auth.config.username`, `.passwordSecret.name`, `.key` | required with `CONFIG`, `password` | The one user and password the metastore accepts |
-| `auth.custom.className` | required with `CUSTOM` | A `MetaStorePasswdAuthenticationProvider`; its jar goes into `extraJars` |
+| `auth.custom.className` | required with `CUSTOM` | A `MetaStorePasswdAuthenticationProvider` |
 | `schemaJob.backoffLimit` | `3` | |
 | `schemaJob.activeDeadlineSeconds` | `600` | |
 | `schemaJob.resources` | `{}` | |
@@ -166,21 +165,6 @@ so that a new install opens the same database. Delete both to start afresh:
 
 ```bash
 kubectl -n <namespace> delete pvc/data-hive-metastore-postgres-0 secret/hive-metastore-postgres
-```
-
-## Images without the needed jars
-
-An image built from `Dockerfile.client-balancing` has the PostgreSQL driver and
-the YARN jars the housekeeping tasks need. The upstream `apache/hive:standalone-metastore-*`
-images do not: their log shows `ClassNotFoundException:
-org.apache.hadoop.yarn.util.SystemClock` and housekeeping does not run. With
-such an image, add the jars, and the JDBC driver, through `extraJars`:
-
-```yaml
-extraJars:
-  - https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.5/postgresql-42.7.5.jar
-  - https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-yarn-api/3.4.1/hadoop-yarn-api-3.4.1.jar
-  - https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-yarn-common/3.4.1/hadoop-yarn-common-3.4.1.jar
 ```
 
 Match the Hadoop version of the image (3.4.1 for `standalone-metastore-4.2.0`).
