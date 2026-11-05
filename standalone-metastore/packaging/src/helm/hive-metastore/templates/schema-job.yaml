@@ -58,10 +58,6 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with (include "hive-metastore.jarsInitContainer" .) }}
-      initContainers:
-        {{- . | nindent 8 }}
-      {{- end }}
       containers:
         - name: schema
           image: {{ include "hive-metastore.image" . }}

@@ -61,11 +61,6 @@ database:
 # metastore.warehouse.dir, for example s3a://bucket/warehouse.
 warehouseDir: ""
 
-# Jars downloaded into the image's lib directory before the metastore and the schema Job start,
-# for example the JDBC driver or the S3 filesystem jars, when the image does not have them. The
-# image built from Dockerfile.client-balancing has the PostgreSQL driver.
-extraJars: []
-
 # Extra properties of metastore-site.xml, merged over the ones the chart sets.
 metastoreSite: {}
 # Properties of core-site.xml. Without any, the image's own core-site.xml stays.
@@ -121,7 +116,6 @@ auth:
       key: password
   custom:
     # Implementation of org.apache.hadoop.hive.metastore.MetaStorePasswdAuthenticationProvider;
-    # its jar goes into extraJars.
     className: ""
 
 schemaJob:

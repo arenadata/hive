@@ -219,21 +219,3 @@ export HADOOP_CLIENT_OPTS="-Xmx{{ .Values.heap }}"
 {{- define "hive-metastore.schematool" -}}
 "$HIVE_HOME/bin/schematool" -dbType {{ include "hive-metastore.db.type" . }} -passWord "$DB_PASSWORD"
 {{- end }}
-
-{{/* Downloads extraJars into /tmp/ext-jars, which the image copies into its lib directory. */}}
-{{- define "hive-metastore.jarsInitContainer" -}}
-{{- if .Values.extraJars }}
-- name: download-jars
-  image: {{ include "hive-metastore.image" . }}
-  imagePullPolicy: {{ .Values.image.pullPolicy }}
-  command: ["/bin/sh", "-ec"]
-  args:
-    - |
-      {{- range .Values.extraJars }}
-      curl -fsSL -o "/tmp/ext-jars/$(basename {{ . | quote }})" {{ . | quote }}
-      {{- end }}
-  volumeMounts:
-    - name: ext-jars
-      mountPath: /tmp/ext-jars
-{{- end }}
-{{- end }}

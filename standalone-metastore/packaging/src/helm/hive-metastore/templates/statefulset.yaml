@@ -78,9 +78,6 @@ spec:
                     {{- include "hive-metastore.selectorLabels" . | nindent 20 }}
         {{- end }}
       initContainers:
-        {{- with (include "hive-metastore.jarsInitContainer" .) }}
-        {{- . | nindent 8 }}
-        {{- end }}
         # The server does not start on a missing or older schema: wait for the schema Job.
         - name: wait-for-schema
           image: {{ include "hive-metastore.image" . }}
