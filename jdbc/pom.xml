@@ -278,13 +278,6 @@
                       </includes>
                     </filter>
                     <filter>
-                      <artifact>io.netty:netty-common</artifact>
-                      <includes>
-                        <include>io/netty/util/*</include>
-                        <include>io/netty/util/internal/**</include>
-                      </includes>
-                    </filter>
-                    <filter>
                       <artifact>*:*</artifact>
                       <excludes>
                         <!--
@@ -347,14 +340,6 @@
                       <exclude>dnsjava:*</exclude>
                       <exclude>io.airlift:*</exclude>
                       <exclude>io.dropwizard.metrics:*</exclude>
-                      <exclude>io.netty:netty-handler</exclude>
-                      <exclude>io.netty:netty-resolver</exclude>
-                      <exclude>io.netty:netty-buffer</exclude>
-                      <exclude>io.netty:netty-transport</exclude>
-                      <exclude>io.netty:netty-transport-native-unix-common</exclude>
-                      <exclude>io.netty:netty-codec</exclude>
-                      <exclude>io.netty:netty-transport-native-epoll</exclude>
-                      <exclude>io.netty:netty-transport-classes-epoll</exclude>
                       <exclude>javax.activation:*</exclude>
                       <exclude>javax.inject:*</exclude>
                       <exclude>javax.jdo:*</exclude>
@@ -488,6 +473,9 @@
                       <shadedPattern>org.apache.hive.io.netty</shadedPattern>
                     </relocation>
                   </relocations>
+                  <transformers>
+                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                  </transformers>
                 </configuration>
               </execution>
             </executions>
