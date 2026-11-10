@@ -207,8 +207,41 @@
           <value>!true</value>
         </property>
       </activation>
+      <dependencies>
+        <!-- Woodstox 5.4.0 declares MSV as optional; standalone XML schema validation needs it. -->
+        <dependency>
+          <groupId>net.java.dev.msv</groupId>
+          <artifactId>msv-core</artifactId>
+          <version>2013.6.1</version>
+          <scope>runtime</scope>
+          <optional>true</optional>
+        </dependency>
+      </dependencies>
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>${maven.surefire.plugin.version}</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <failIfNoTests>true</failIfNoTests>
+              <includes>
+                <include>**/StandaloneJdbcIT.java</include>
+              </includes>
+              <systemPropertyVariables>
+                <standalone.jar>${project.build.directory}/${project.build.finalName}-${hive.jdbc.driver.classifier}.jar</standalone.jar>
+                <standalone.probe>${basedir}/src/it/StandaloneJdbcSmokeTest.java</standalone.probe>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
@@ -278,13 +311,6 @@
                       </includes>
                     </filter>
                     <filter>
-                      <artifact>io.netty:netty-common</artifact>
-                      <includes>
-                        <include>io/netty/util/*</include>
-                        <include>io/netty/util/internal/**</include>
-                      </includes>
-                    </filter>
-                    <filter>
                       <artifact>*:*</artifact>
                       <excludes>
                         <!--
@@ -347,14 +373,6 @@
                       <exclude>dnsjava:*</exclude>
                       <exclude>io.airlift:*</exclude>
                       <exclude>io.dropwizard.metrics:*</exclude>
-                      <exclude>io.netty:netty-handler</exclude>
-                      <exclude>io.netty:netty-resolver</exclude>
-                      <exclude>io.netty:netty-buffer</exclude>
-                      <exclude>io.netty:netty-transport</exclude>
-                      <exclude>io.netty:netty-transport-native-unix-common</exclude>
-                      <exclude>io.netty:netty-codec</exclude>
-                      <exclude>io.netty:netty-transport-native-epoll</exclude>
-                      <exclude>io.netty:netty-transport-classes-epoll</exclude>
                       <exclude>javax.activation:*</exclude>
                       <exclude>javax.inject:*</exclude>
                       <exclude>javax.jdo:*</exclude>
@@ -483,11 +501,40 @@
                       <pattern>org.codehaus.stax2</pattern>
                       <shadedPattern>org.apache.hive.org.codehaus.stax2</shadedPattern>
                     </relocation>
+                    <!-- StAX2 uses a literal resource prefix rather than the relocated class name. -->
+                    <relocation>
+                      <pattern>META-INF/services/org\.codehaus\.stax2\.validation\.XMLValidationSchemaFactory\.</pattern>
+                      <shadedPattern>META-INF/services/org.apache.hive.org.codehaus.stax2.validation.XMLValidationSchemaFactory.</shadedPattern>
+                      <rawString>true</rawString>
+                    </relocation>
+                    <relocation>
+                      <pattern>com.sun.msv</pattern>
+                      <shadedPattern>org.apache.hive.com.sun.msv</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>com.sun.xml.util</pattern>
+                      <shadedPattern>org.apache.hive.com.sun.xml.util</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>org.relaxng.datatype</pattern>
+                      <shadedPattern>org.apache.hive.org.relaxng.datatype</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>org.iso_relax</pattern>
+                      <shadedPattern>org.apache.hive.org.iso_relax</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>jp.gr.xml.relax</pattern>
+                      <shadedPattern>org.apache.hive.jp.gr.xml.relax</shadedPattern>
+                    </relocation>
                     <relocation>
                       <pattern>io.netty</pattern>
                       <shadedPattern>org.apache.hive.io.netty</shadedPattern>
                     </relocation>
                   </relocations>
+                  <transformers>
+                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                  </transformers>
                 </configuration>
               </execution>
             </executions>
