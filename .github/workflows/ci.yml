@@ -73,8 +73,13 @@ jobs:
             timeout: 90
 
           - name: Core
-            modules: storage-api,common,serde,parser,udf,service-rpc,classification,shims,shims/0.23,shims/aggregator,vector-code-gen,llap-common,llap-client,llap-tez,llap-ext-client,llap-server,testutils,jdbc,beeline,cli,contrib,jdbc-handler,hplsql,service
+            modules: storage-api,common,serde,parser,udf,service-rpc,classification,shims,shims/0.23,shims/aggregator,vector-code-gen,llap-common,llap-client,llap-tez,llap-ext-client,llap-server,testutils,beeline,cli,contrib,jdbc-handler,hplsql,service
             timeout: 90
+
+          - name: Standalone JDBC
+            modules: jdbc
+            phase: verify
+            timeout: 30
 
           - name: QL (txn & compactor)
             modules: ql
@@ -132,17 +137,19 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: >-
-        mvn ${{ env.MAVEN_ARGS }} test
+        mvn ${{ env.MAVEN_ARGS }} ${{ matrix.phase || 'test' }}
         -pl ${{ matrix.modules }}
         ${{ matrix.tests && format('-Dtest={0}', matrix.tests) || '' }}
         -Dmaven.javadoc.skip=true
         -Dsurefire.rerunFailingTestsCount=2
         -Dmaven.test.failure.ignore=false
         -fae
-    - name: Upload surefire reports
+    - name: Upload test reports
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: surefire-${{ matrix.name }}
-        path: '**/target/surefire-reports/'
+        name: test-reports-${{ matrix.name }}
+        path: |
+          **/target/surefire-reports/
+          **/target/failsafe-reports/
         if-no-files-found: ignore
