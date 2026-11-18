@@ -68,8 +68,8 @@ public class HiveMetaStoreClient extends MetaStoreClientWrapper implements IMeta
       IMetaStoreClient baseMetaStoreClient) {
     super(createUnderlyingClient(conf, hookLoader, baseMetaStoreClient), conf);
 
-    if (baseMetaStoreClient instanceof ThriftHiveMetaStoreClient metaStoreClient) {
-      this.thriftClient = metaStoreClient;
+    if (baseMetaStoreClient instanceof ThriftHiveMetaStoreClient) {
+      this.thriftClient = (ThriftHiveMetaStoreClient) baseMetaStoreClient;
     }
   }
 

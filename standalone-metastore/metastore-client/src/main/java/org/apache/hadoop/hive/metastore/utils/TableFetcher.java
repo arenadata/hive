@@ -36,6 +36,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TableFetcher {
   private static final Logger LOG = LoggerFactory.getLogger(TableFetcher.class);
@@ -121,14 +122,14 @@ public class TableFetcher {
 
     List<String> databases = client.getDatabases(catalogName, dbPattern).stream()
         .filter(dbName -> skipDBs == null || !skipDBs.contains(dbName))
-        .toList();
+        .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
 
     return () -> Iterators.concat(
         Iterators.transform(databases.iterator(), db -> {
           try {
             List<String> tableNames = getTableNamesForDatabase(catalogName, db).stream()
                 .filter(tableName -> skipTables == null || !skipTables.contains(TableName.getDbTable(db, tableName)))
-                .toList();
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
             return new TableIterable(client, db, tableNames, maxBatchSize).iterator();
           } catch (Exception e) {
             throw new RuntimeException("Failed to fetch tables for db: " + db, e);

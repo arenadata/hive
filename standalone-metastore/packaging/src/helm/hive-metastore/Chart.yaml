@@ -18,4 +18,4 @@ name: hive-metastore
 description: Hive Metastore behind a headless Service, one per namespace, for clients that balance between its pods
 type: application
 version: 0.1.0
-appVersion: "4.3.0.3-4.5.0-0"
+appVersion: "4.3.0.3-4.5.0-1"

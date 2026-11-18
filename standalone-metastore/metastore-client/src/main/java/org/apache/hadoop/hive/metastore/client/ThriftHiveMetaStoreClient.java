@@ -1069,7 +1069,7 @@ public class ThriftHiveMetaStoreClient extends BaseMetaStoreClient {
 
     List<Partition> new_parts = client.add_partitions_req(addPartitionsReq).getPartitions();
     if (new_parts != null && !new_parts.isEmpty()) {
-      return HiveMetaStoreClientUtils.deepCopy(new_parts.getFirst());
+      return HiveMetaStoreClientUtils.deepCopy(new_parts.get(0));
     }
     return null;
   }
