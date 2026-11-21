@@ -216,6 +216,11 @@ public class ProxyFileSystem extends FilterFileSystem {
   }
 
   @Override
+  public boolean mkdirs(Path f) throws IOException {
+    return super.mkdirs(swizzleParamPath(f));
+  }
+
+  @Override
   public boolean mkdirs(Path f, FsPermission permission) throws IOException {
     return super.mkdirs(swizzleParamPath(f), permission);
   }

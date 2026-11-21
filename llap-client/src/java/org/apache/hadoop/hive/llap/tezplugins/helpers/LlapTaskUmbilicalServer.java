@@ -46,7 +46,7 @@ public class LlapTaskUmbilicalServer {
   public LlapTaskUmbilicalServer(Configuration conf, LlapTaskUmbilicalProtocol umbilical, int numHandlers, String tokenIdentifier, Token<JobTokenIdentifier> token) throws
       IOException {
     JobTokenSecretManager jobTokenSecretManager =
-        new JobTokenSecretManager();
+        new JobTokenSecretManager(conf);
     jobTokenSecretManager.addTokenForJob(tokenIdentifier, token);
 
     server = new RPC.Builder(conf)

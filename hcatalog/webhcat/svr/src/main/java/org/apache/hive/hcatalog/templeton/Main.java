@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 
 import org.slf4j.Logger;
@@ -33,24 +34,26 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.classification.InterfaceStability;
-import org.apache.hadoop.hdfs.web.AuthFilter;
 import org.apache.hadoop.hive.shims.HttpUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.client.PseudoAuthenticator;
+import org.apache.hadoop.security.authentication.server.AuthenticationFilter;
+import org.apache.hadoop.security.authentication.server.KerberosAuthenticationHandler;
 import org.apache.hadoop.security.authentication.server.PseudoAuthenticationHandler;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.NetworkConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlet.FilterMapping;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.xml.XmlConfiguration;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -122,7 +125,7 @@ public class Main {
       checkEnv();
       runServer(port);
       // Currently only print the first port to be consistent with old behavior
-      port =  ArrayUtils.isEmpty(server.getConnectors()) ? -1 : server.getConnectors()[0].getPort();
+      port =  ArrayUtils.isEmpty(server.getConnectors()) ? -1 : ((NetworkConnector) server.getConnectors()[0]).getPort();
 
       System.out.println("templeton: listening on port " + port);
       LOG.info("Templeton listening on port " + port);
@@ -194,27 +197,27 @@ public class Main {
      * callbacks. So jetty would fail the request as unauthorized.
      */ 
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/ddl/*", 
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/pig/*", 
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/hive/*", 
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/sqoop/*",
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/queue/*", 
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/jobs/*",
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/mapreduce/*", 
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/status/*", 
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
     root.addFilter(fHolder, "/" + SERVLET_PATH + "/v1/version/*", 
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
 
     if (conf.getBoolean(AppConfig.XSRF_FILTER_ENABLED, false)){
       root.addFilter(makeXSRFFilter(), "/" + SERVLET_PATH + "/*",
-             FilterMapping.REQUEST);
+             EnumSet.of(DispatcherType.REQUEST));
       LOG.debug("XSRF filter enabled");
     } else {
       LOG.warn("XSRF filter disabled");
@@ -247,10 +250,15 @@ public class Main {
     return xsrfFilter;
   }
 
-  // Configure the AuthFilter with the Kerberos params iff security
+  // Configure authentication with the Kerberos params iff security
   // is enabled.
   public FilterHolder makeAuthFilter() {
-    FilterHolder authFilter = new FilterHolder(AuthFilter.class);
+    FilterHolder authFilter = new FilterHolder(AuthenticationFilter.class);
+    authFilter.setInitParameter(AuthenticationFilter.CONFIG_PREFIX, "dfs.web.authentication");
+    authFilter.setInitParameter("dfs.web.authentication." + AuthenticationFilter.COOKIE_PATH, "/");
+    authFilter.setInitParameter("dfs.web.authentication." + AuthenticationFilter.AUTH_TYPE,
+        UserGroupInformation.isSecurityEnabled()
+            ? KerberosAuthenticationHandler.TYPE : PseudoAuthenticationHandler.TYPE);
     UserNameHandler.allowAnonymous(authFilter);
     if (UserGroupInformation.isSecurityEnabled()) {
       //http://hadoop.apache.org/docs/r1.1.1/api/org/apache/hadoop/security/authentication/server/AuthenticationFilter.html
