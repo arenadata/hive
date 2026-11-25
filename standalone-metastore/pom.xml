@@ -44,6 +44,7 @@
     <maven.compiler.target>21</maven.compiler.target>
     <java.version>21</java.version>
     <jakarta.annotation.version>2.1.1</jakarta.annotation.version>
+    <fabric8.version>7.7.0</fabric8.version>
     <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
     <maven.cyclonedx.plugin.version>2.7.10</maven.cyclonedx.plugin.version>
     <maven.repo.local>${settings.localRepository}</maven.repo.local>
