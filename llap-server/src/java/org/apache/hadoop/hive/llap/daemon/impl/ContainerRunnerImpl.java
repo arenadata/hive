@@ -208,7 +208,7 @@ public class ContainerRunnerImpl extends CompositeService implements ContainerRu
         vertex.getVertexName(), request.getFragmentNumber(), request.getAttemptNumber());
 
     // This is the start of container-annotated logging.
-    final String dagId = attemptId.getTaskID().getVertexID().getDAGId().toString();
+    final String dagId = attemptId.getTaskID().getVertexID().getDAGID().toString();
     final String queryId = vertex.getHiveQueryId();
     final String fragId = LlapTezUtils.stripAttemptPrefix(fragmentIdString);
     MDC.put("dagId", dagId);
@@ -230,7 +230,7 @@ public class ContainerRunnerImpl extends CompositeService implements ContainerRu
       env.put(ApplicationConstants.Environment.USER.name(), vertex.getUser());
 
       TezTaskAttemptID taskAttemptId = TezTaskAttemptID.fromString(fragmentIdString);
-      int dagIdentifier = taskAttemptId.getTaskID().getVertexID().getDAGId().getId();
+      int dagIdentifier = taskAttemptId.getTaskID().getVertexID().getDAGID().getId();
 
       QueryIdentifier queryIdentifier = new QueryIdentifier(
           qIdProto.getApplicationIdString(), dagIdentifier);

@@ -53,12 +53,13 @@ import org.apache.logging.log4j.core.appender.FileManager;
 import org.apache.logging.log4j.core.appender.OutputStreamManager;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.rewrite.handler.RewriteRegexRule;
-import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.LowResourceMonitor;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandler.Context;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.nio.SelectChannelConnector;
-import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.FilterMapping;
@@ -95,7 +96,13 @@ public class HttpServer {
   private HttpServer(final Builder b) throws IOException {
     this.name = b.name;
 
-    webServer = new Server();
+    QueuedThreadPool threadPool = new QueuedThreadPool();
+    if (b.maxThreads > 0) {
+      threadPool.setMaxThreads(b.maxThreads);
+    }
+    threadPool.setDaemon(true);
+    threadPool.setName(b.name + "-web");
+    webServer = new Server(threadPool);
     appDir = getWebAppsPath(b.name);
     webAppContext = createWebAppContext(b);
 
@@ -219,7 +226,7 @@ public class HttpServer {
   }
 
   public int getPort() {
-    return webServer.getConnectors()[0].getLocalPort();
+    return ((ServerConnector) webServer.getConnectors()[0]).getLocalPort();
   }
 
   /**
@@ -344,10 +351,13 @@ public class HttpServer {
   /**
    * Create a channel connector for "http/https" requests
    */
-  Connector createChannelConnector(int queueSize, Builder b) {
-    SelectChannelConnector connector;
+  ServerConnector createChannelConnector(int queueSize, Builder b) {
+    ServerConnector connector;
+    HttpConfiguration configuration = new HttpConfiguration();
+    configuration.setRequestHeaderSize(1024*64);
+    HttpConnectionFactory http = new HttpConnectionFactory(configuration);
     if (!b.useSSL) {
-      connector = new SelectChannelConnector();
+      connector = new ServerConnector(webServer, http);
     } else {
       SslContextFactory sslContextFactory = new SslContextFactory();
       sslContextFactory.setKeyStorePath(b.keyStorePath);
@@ -357,14 +367,10 @@ public class HttpServer {
       sslContextFactory.addExcludeProtocols(excludedSSLProtocols.toArray(
           new String[excludedSSLProtocols.size()]));
       sslContextFactory.setKeyStorePassword(b.keyStorePassword);
-      connector = new SslSelectChannelConnector(sslContextFactory);
+      connector = new ServerConnector(webServer, sslContextFactory, http);
     }
 
-    connector.setLowResourcesMaxIdleTime(10000);
     connector.setAcceptQueueSize(queueSize);
-    connector.setResolveNames(false);
-    connector.setUseDirectBuffers(false);
-    connector.setRequestHeaderSize(1024*64);
     connector.setReuseAddress(true);
     return connector;
   }
@@ -379,17 +385,13 @@ public class HttpServer {
   }
 
   void initializeWebServer(Builder b) {
-    // Create the thread pool for the web server to handle HTTP requests
-    QueuedThreadPool threadPool = new QueuedThreadPool();
-    if (b.maxThreads > 0) {
-      threadPool.setMaxThreads(b.maxThreads);
-    }
-    threadPool.setDaemon(true);
-    threadPool.setName(b.name + "-web");
-    webServer.setThreadPool(threadPool);
+    LowResourceMonitor lowResources = new LowResourceMonitor(webServer);
+    lowResources.setLowResourcesIdleTimeout(10000);
+    webServer.addBean(lowResources);
 
-    // Create the channel connector for the web server
-    Connector connector = createChannelConnector(threadPool.getMaxThreads(), b);
+    // Create the channel connector for the web server.
+    ServerConnector connector = createChannelConnector(
+        ((QueuedThreadPool) webServer.getThreadPool()).getMaxThreads(), b);
     connector.setHost(b.host);
     connector.setPort(b.port);
     webServer.addConnector(connector);

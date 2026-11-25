@@ -55,6 +55,23 @@ public class TestFileUtils {
   public static final Logger LOG = LoggerFactory.getLogger(TestFileUtils.class);
 
   @Test
+  public void testProxyFileSystemMkdirPreservesProxyScheme() throws Exception {
+    File temp = Files.createTempDir();
+    HiveConf conf = new HiveConf();
+    conf.set("fs.pfile.impl", "org.apache.hadoop.fs.ProxyLocalFileSystem");
+    Path path = new Path("pfile", null, temp.getAbsolutePath() + "/child");
+    try (FileSystem fs = FileSystem.newInstance(URI.create("pfile:///"), conf)) {
+      assertTrue(FileUtils.mkdir(fs, path, false, conf));
+      assertTrue(fs.getFileStatus(path).isDirectory());
+      assertEquals("pfile", fs.getFileStatus(path).getPath().toUri().getScheme());
+      assertTrue(fs.delete(new Path("pfile", null, temp.getAbsolutePath()), true));
+    } finally {
+      org.apache.commons.io.FileUtils.deleteDirectory(temp);
+    }
+  }
+
+
+  @Test
   public void isPathWithinSubtree_samePrefix() {
     Path path = new Path("/somedir1");
     Path subtree = new Path("/somedir");

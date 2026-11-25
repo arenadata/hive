@@ -390,7 +390,7 @@ public class GenericUDTFGetSplits extends GenericUDTF {
 
         SubmitWorkInfo submitWorkInfo = new SubmitWorkInfo(applicationId,
             System.currentTimeMillis(), taskSpec.getVertexParallelism(), signedSvs.message,
-            signedSvs.signature);
+            signedSvs.signature, job);
         byte[] submitWorkBytes = SubmitWorkInfo.toBytes(submitWorkInfo);
 
         // 3. Generate input event.

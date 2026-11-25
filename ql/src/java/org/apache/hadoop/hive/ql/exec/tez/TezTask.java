@@ -664,14 +664,25 @@ public class TezTask extends Task<TezWork> {
       dagClient.close(); // Don't sync.
     }
 
+    @Override
     public String getDagIdentifierString() {
-      // TODO: Implement this when tez is upgraded. TEZ-3550
-      return null;
+      synchronized (dagClient) {
+        return dagClient.getDagIdentifierString();
+      }
     }
 
+    @Override
     public String getSessionIdentifierString() {
-      // TODO: Implement this when tez is upgraded. TEZ-3550
-      return null;
+      synchronized (dagClient) {
+        return dagClient.getSessionIdentifierString();
+      }
+    }
+
+    @Override
+    public String getWebUIAddress() throws IOException, TezException {
+      synchronized (dagClient) {
+        return dagClient.getWebUIAddress();
+      }
     }
 
 

@@ -20,6 +20,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -42,8 +43,14 @@ public class SubmitWorkInfo implements Writable {
 
   public SubmitWorkInfo(ApplicationId fakeAppId, long creationTime,
       int vertexParallelism, byte[] vertexSpec, byte[] vertexSpecSignature) {
+    this(fakeAppId, creationTime, vertexParallelism, vertexSpec, vertexSpecSignature,
+        new Configuration());
+  }
+
+  public SubmitWorkInfo(ApplicationId fakeAppId, long creationTime,
+      int vertexParallelism, byte[] vertexSpec, byte[] vertexSpecSignature, Configuration conf) {
     this.fakeAppId = fakeAppId;
-    this.token = createJobToken();
+    this.token = createJobToken(conf);
     this.creationTime = creationTime;
     this.vertexSpec = vertexSpec;
     this.vertexSpecSignature = vertexSpecSignature;
@@ -127,12 +134,12 @@ public class SubmitWorkInfo implements Writable {
   }
 
 
-  private Token<JobTokenIdentifier> createJobToken() {
+  private Token<JobTokenIdentifier> createJobToken(Configuration conf) {
     String tokenIdentifier = fakeAppId.toString();
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
         tokenIdentifier));
     Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,
-        new JobTokenSecretManager());
+        new JobTokenSecretManager(conf));
     sessionToken.setService(identifier.getJobId());
     return sessionToken;
   }
