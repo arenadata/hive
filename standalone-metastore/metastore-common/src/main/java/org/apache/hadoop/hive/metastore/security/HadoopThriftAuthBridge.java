@@ -612,7 +612,8 @@ public abstract class HadoopThriftAuthBridge {
       @Override
       public void process(final TProtocol inProt, final TProtocol outProt) throws TException {
        TTransport trans = inProt.getTransport();
-       if (inProt.getTransport() instanceof TUGIContainingTransport ugiTransport) {
+       if (inProt.getTransport() instanceof TUGIContainingTransport) {
+         TUGIContainingTransport ugiTransport = (TUGIContainingTransport) inProt.getTransport();
          assert useProxy;
          trans = ugiTransport.getWrapped();
        }
@@ -660,7 +661,8 @@ public abstract class HadoopThriftAuthBridge {
          if (useProxy) {
            UserGroupInformation clientUgi =
                UserGroupInformation.createProxyUser(endUser, UserGroupInformation.getLoginUser());
-           if (inProt.getTransport() instanceof TUGIContainingTransport ugiTransport) {
+           if (inProt.getTransport() instanceof TUGIContainingTransport) {
+             TUGIContainingTransport ugiTransport = (TUGIContainingTransport) inProt.getTransport();
              if (ugiTransport.getClientUGI() == null) {
                ugiTransport.setClientUGI(clientUgi);
              }

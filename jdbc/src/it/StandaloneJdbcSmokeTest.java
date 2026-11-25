@@ -89,7 +89,9 @@ public final class StandaloneJdbcSmokeTest {
   private static void testZooKeeper() throws Exception {
     // CuratorFrameworkFactory reads these defaults when it is first initialized.
     System.setProperty("curator-default-connection-timeout", "1000");
-    System.setProperty("curator-default-session-timeout", "2000");
+    // Keep the session alive through Curator's connection retries so the result is
+    // the connection-loss failure that this packaging probe verifies.
+    System.setProperty("curator-default-session-timeout", "60000");
     System.setProperty("zookeeper.sasl.client", "false");
     int port;
     try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {

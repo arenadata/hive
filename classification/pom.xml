@@ -17,7 +17,7 @@
   <parent>
     <groupId>org.apache.hive</groupId>
     <artifactId>hive</artifactId>
-    <version>4.3.0.3-4.5.0-0</version>
+    <version>4.3.0.3-4.5.0-1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>hive-classification</artifactId>
@@ -25,6 +25,9 @@
   <name>Hive Classifications</name>
   <properties>
     <hive.path.to.root>..</hive.path.to.root>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+    <maven.compiler.release>8</maven.compiler.release>
   </properties>
   <profiles>
     <profile>
