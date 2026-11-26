@@ -32,8 +32,12 @@ import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.jar.Attributes;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hive.service.cli.GetInfoType;
@@ -67,6 +71,7 @@ import org.apache.thrift.TException;
  *
  */
 public class HiveDatabaseMetaData implements DatabaseMetaData {
+  private static final Logger LOG = LoggerFactory.getLogger(HiveDatabaseMetaData.class);
 
   private final HiveConnection connection;
   private final TCLIService.Iface client;
@@ -80,6 +85,8 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
 
   //  Cached values, to save on round trips to database.
   private String dbVersion = null;
+  // Null until the first GetInfo. True only when the server is Impala.
+  private Boolean impalaServer = null;
 
   /**
    *
@@ -326,6 +333,9 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getFunctions(String catalogName, String schemaPattern, String functionNamePattern)
       throws SQLException {
+    // Impala lists stored procedures on GetFunctions. Drop them so a tool that
+    // also calls getProcedures() does not show each procedure twice.
+    boolean impala = isImpalaServer();
     TGetFunctionsResp funcResp;
     TGetFunctionsReq getFunctionsReq = new TGetFunctionsReq();
     getFunctionsReq.setSessionHandle(sessHandle);
@@ -340,10 +350,12 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
     }
     Utils.verifySuccess(funcResp.getStatus());
 
-    return new HiveQueryResultSet.Builder(connection)
+    ResultSet server = new HiveQueryResultSet.Builder(connection)
     .setClient(client)
     .setStmtHandle(funcResp.getOperationHandle())
     .build();
+    if (!impala) return server;
+    return ImpalaProcedures.withoutProcedureMarkers(server);
   }
 
   public String getIdentifierQuoteString() throws SQLException {
@@ -542,15 +554,51 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getProcedures(String catalog, String schemaPattern,
       String procedureNamePattern) throws SQLException {
-    // Hive doesn't support primary keys
-    // using local schema with empty resultset
+    // Hive has no procedures. Impala stores them and lists them with SHOW PROCEDURES.
+    if (!isImpalaServer()) return emptyProcedures();
+    List<String> databases = new ArrayList<String>();
+    try (ResultSet schemas = getSchemas(catalog, schemaPattern)) {
+      while (schemas.next()) {
+        String database = schemas.getString("TABLE_SCHEM");
+        if (database != null && !database.isEmpty()) databases.add(database);
+      }
+    }
+    try {
+      List<Object[]> rows = new ArrayList<Object[]>();
+      for (String database : databases) {
+        rows.addAll(proceduresIn(database, procedureNamePattern));
+      }
+      return ImpalaProcedures.procedureResult(rows);
+    } catch (SQLException e) {
+      LOG.warn("SHOW PROCEDURES failed; returning no procedures", e);
+      return emptyProcedures();
+    }
+  }
+
+  private List<Object[]> proceduresIn(String database, String namePattern) throws SQLException {
+    List<Object[]> rows = new ArrayList<Object[]>();
+    try (Statement statement = connection.createStatement();
+         ResultSet rs = statement.executeQuery(ImpalaProcedures.showProceduresSql(database))) {
+      while (rs.next()) {
+        String name = rs.getString("name");
+        if (!ImpalaProcedures.nameMatches(namePattern, name)) continue;
+        rows.add(ImpalaProcedures.procedureRow(database, name, rs.getString("dialect")));
+      }
+    }
+    return rows;
+  }
+
+  private ResultSet emptyProcedures() throws SQLException {
     return new HiveQueryResultSet.Builder(connection).setClient(client).setEmptyResultSet(true).
-                  setSchema(
-                    Arrays.asList("PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "RESERVERD", "RESERVERD",
-                                  "RESERVERD", "REMARKS", "PROCEDURE_TYPE", "SPECIFIC_NAME"),
-                    Arrays.asList("STRING", "STRING", "STRING", "STRING", "STRING",
-                                  "STRING", "STRING", "SMALLINT", "STRING"))
+                  setSchema(ImpalaProcedures.PROCEDURE_COLUMNS, ImpalaProcedures.PROCEDURE_TYPES)
                   .build();
+  }
+
+  private boolean isImpalaServer() throws SQLException {
+    if (impalaServer == null) {
+      impalaServer = ImpalaProcedures.isImpala(getDatabaseProductName());
+    }
+    return impalaServer.booleanValue();
   }
 
   public int getResultSetHoldability() throws SQLException {
@@ -1074,7 +1122,11 @@ public class HiveDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsStoredProcedures() throws SQLException {
-    return false;
+    try {
+      return isImpalaServer();
+    } catch (SQLException e) {
+      return false;
+    }
   }
 
   public boolean supportsSubqueriesInComparisons() throws SQLException {
